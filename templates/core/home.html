@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}{{ APP_NAME }} &middot; Generic Checklist &amp; Inspection Platform{% endblock %}
+
+{% block content %}
+<section class="mb-10">
+  <span class="badge badge-info mb-3">Phase 0 &middot; Foundation</span>
+  <h1 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
+    Generic Enterprise Checklist &amp; Inspection Platform
+  </h1>
+  <p class="mt-3 max-w-3xl text-lg text-slate-600 dark:text-slate-300">
+    One checklist engine for QA audits, operations inspections, restaurant and safety checks,
+    and compliance programmes &mdash; with configurable scoring, findings, corrective actions,
+    workflow and offline execution.
+  </p>
+  <div class="mt-6 flex flex-wrap gap-3">
+    <a href="/api/docs/" class="btn btn-primary">
+      <i data-lucide="book-open" class="h-4 w-4" aria-hidden="true"></i> API documentation
+    </a>
+    <a href="/admin/" class="btn btn-secondary">
+      <i data-lucide="shield" class="h-4 w-4" aria-hidden="true"></i> Open admin
+    </a>
+    <a href="{% url 'accounts:login' %}" class="btn btn-secondary">
+      <i data-lucide="log-in" class="h-4 w-4" aria-hidden="true"></i> Sign in
+    </a>
+  </div>
+</section>
+
+<div class="grid gap-8 lg:grid-cols-3">
+  <div class="space-y-8 lg:col-span-2">
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">Platform capabilities</h2>
+        <span class="badge badge-neutral">10 modules</span>
+      </div>
+      <div class="card-body grid gap-4 sm:grid-cols-2">
+        {% for feature in features %}
+          <div class="flex items-start gap-3">
+            <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-300">
+              <i data-lucide="{{ feature.icon }}" class="h-5 w-5" aria-hidden="true"></i>
+            </span>
+            <div>
+              <p class="font-medium text-slate-900 dark:text-slate-100">{{ feature.title }}</p>
+              <p class="text-sm text-slate-500 dark:text-slate-400">{{ feature.description }}</p>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">Domain architecture</h2>
+      </div>
+      <div class="card-body">
+        <pre class="overflow-x-auto rounded-lg bg-slate-900 p-4 text-xs leading-relaxed text-slate-100"><code>Organization
+  └─ Locations
+      └─ Checklist Template ─▶ Version ─▶ Sections ─▶ Items ─▶ Answer Types / Options / Rules
+              │
+              └─ Execution ─▶ Responses ─▶ Evidence ─▶ Findings ─▶ Corrective Actions ─▶ Verification
+
+Cross-cutting: Users · Roles · Permissions · Workflow · Scoring · Notifications · Activity History</code></pre>
+      </div>
+    </section>
+  </div>
+
+  <div class="space-y-8">
+    <section class="card"
+             hx-get="{% url 'core:health-widget' %}"
+             hx-trigger="load, every 30s"
+             hx-swap="innerHTML">
+      <div class="card-header">
+        <h2 class="card-title">System health</h2>
+        <i data-lucide="activity" class="h-5 w-5 text-slate-400" aria-hidden="true"></i>
+      </div>
+      <div class="card-body">
+        <div class="skeleton h-12 w-full"></div>
+      </div>
+    </section>
+
+    <section class="card" x-data="{ open: false }">
+      <div class="card-header">
+        <h2 class="card-title">Interactive foundation</h2>
+        <span class="badge badge-success">Alpine.js</span>
+      </div>
+      <div class="card-body">
+        <p class="text-sm text-slate-600 dark:text-slate-300">
+          Alpine.js and HTMX are wired into the shell with a strict, nonce-based CSP.
+        </p>
+        <button type="button" class="btn btn-secondary btn-sm mt-3" @click="open = !open">
+          <i data-lucide="chevron-down" class="h-4 w-4" aria-hidden="true"></i>
+          <span x-text="open ? 'Hide details' : 'Show details'">Show details</span>
+        </button>
+        <div x-show="open" x-cloak x-transition class="mt-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+          Progressive web app, offline shell, REST API and a service layer are all part of the core.
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

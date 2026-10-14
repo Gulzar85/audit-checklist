@@ -1,0 +1,13 @@
+# ---------------------------------------------------------------------------
+# Production dependencies
+# ---------------------------------------------------------------------------
+-r base.txt
+
+# WSGI server
+gunicorn>=23,<24
+
+# Static file serving
+whitenoise>=6.8
+
+# PDF rendering (reports/evidence packs in later phases)
+WeasyPrint>=63

@@ -1,0 +1,8 @@
+{% comment %}Lifecycle status badge. Params: label (text), tone (active|suspended|inactive).{% endcomment %}
+{% if tone == "active" %}
+  <span class="badge badge-success"><i data-lucide="circle-check" class="h-3.5 w-3.5" aria-hidden="true"></i>{{ label|default:"Active" }}</span>
+{% elif tone == "suspended" %}
+  <span class="badge badge-warning"><i data-lucide="circle-pause" class="h-3.5 w-3.5" aria-hidden="true"></i>{{ label|default:"Suspended" }}</span>
+{% else %}
+  <span class="badge badge-neutral"><i data-lucide="circle-off" class="h-3.5 w-3.5" aria-hidden="true"></i>{{ label|default:"Inactive" }}</span>
+{% endif %}

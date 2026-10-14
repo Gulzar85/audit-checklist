@@ -1,0 +1,6 @@
+{% comment %}Active/inactive badge. Param: is_active (bool). Icon + text so colour is not the only signal.{% endcomment %}
+{% if is_active %}
+  <span class="badge badge-success"><i data-lucide="check" class="h-3.5 w-3.5" aria-hidden="true"></i>Active</span>
+{% else %}
+  <span class="badge badge-neutral"><i data-lucide="minus" class="h-3.5 w-3.5" aria-hidden="true"></i>Inactive</span>
+{% endif %}

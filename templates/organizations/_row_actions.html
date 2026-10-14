@@ -1,0 +1,8 @@
+{% if perms.organizations.view_organization or perms.organizations.change_organization %}
+  <div class="flex justify-end gap-1">
+    <a href="{% url 'organizations:detail' record.pk %}" class="btn btn-ghost btn-sm">View</a>
+    {% if perms.organizations.change_organization %}
+      <a href="{% url 'organizations:update' record.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+    {% endif %}
+  </div>
+{% endif %}

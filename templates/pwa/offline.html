@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Offline &middot; {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-md py-12 text-center">
+  <span class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-300">
+    <i data-lucide="wifi-off" class="h-8 w-8" aria-hidden="true"></i>
+  </span>
+  <h1 class="mt-4 text-2xl font-semibold text-slate-900 dark:text-white">You are offline</h1>
+  <p class="mt-2 text-slate-600 dark:text-slate-300">
+    This page is served from the offline cache. Checklist execution and synchronisation
+    will be available offline in a later phase.
+  </p>
+  <a href="/" class="btn btn-primary mt-6">Try again</a>
+</div>
+{% endblock %}

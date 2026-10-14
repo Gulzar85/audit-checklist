@@ -1,0 +1,53 @@
+<header class="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
+  <div class="container-page flex h-16 items-center justify-between gap-4">
+    <a href="{% url 'core:home' %}" class="flex items-center gap-2 font-semibold text-slate-900 dark:text-white">
+      <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
+        <i data-lucide="clipboard-check" class="h-5 w-5" aria-hidden="true"></i>
+      </span>
+      <span class="hidden sm:inline">{{ APP_NAME }}</span>
+    </a>
+
+    <nav class="hidden items-center gap-1 md:flex" aria-label="Primary">
+      <a class="nav-link" href="{% url 'core:home' %}">
+        <i data-lucide="home" class="h-4 w-4" aria-hidden="true"></i> Home
+      </a>
+      {% if user.is_authenticated %}
+        <a class="nav-link" href="{% url 'organizations:list' %}">
+          <i data-lucide="building-2" class="h-4 w-4" aria-hidden="true"></i> Organizations
+        </a>
+        <a class="nav-link" href="{% url 'locations:tree' %}">
+          <i data-lucide="network" class="h-4 w-4" aria-hidden="true"></i> Locations
+        </a>
+      {% endif %}
+      <a class="nav-link" href="/api/v1/" target="_blank" rel="noopener">
+        <i data-lucide="braces" class="h-4 w-4" aria-hidden="true"></i> API
+      </a>
+      <a class="nav-link" href="/api/docs/" target="_blank" rel="noopener">
+        <i data-lucide="book-open" class="h-4 w-4" aria-hidden="true"></i> Docs
+      </a>
+      <a class="nav-link" href="/admin/">
+        <i data-lucide="shield" class="h-4 w-4" aria-hidden="true"></i> Admin
+      </a>
+      {% if user.is_authenticated %}
+        <a class="nav-link" href="{% url 'accounts:profile' %}">
+          <i data-lucide="circle-user" class="h-4 w-4" aria-hidden="true"></i> Profile
+        </a>
+      {% endif %}
+    </nav>
+
+    <div class="flex items-center gap-2">
+      <button type="button" data-theme-toggle class="btn btn-ghost btn-icon" aria-label="Toggle colour theme">
+        <i data-lucide="sun-moon" class="h-5 w-5" aria-hidden="true"></i>
+      </button>
+      {% if user.is_authenticated %}
+        <span class="hidden text-sm text-slate-600 sm:inline dark:text-slate-300">{{ user.get_short_name }}</span>
+        <form method="post" action="{% url 'accounts:logout' %}" class="inline">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-secondary btn-sm">Sign out</button>
+        </form>
+      {% else %}
+        <a href="{% url 'accounts:login' %}" class="btn btn-primary btn-sm">Sign in</a>
+      {% endif %}
+    </div>
+  </div>
+</header>

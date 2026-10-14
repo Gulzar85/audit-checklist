@@ -1,0 +1,15 @@
+{
+  "name": "checklist-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Generic enterprise checklist & inspection platform - frontend asset pipeline.",
+  "scripts": {
+    "css:build": "tailwindcss -i ./tailwind/input.css -o ./static/css/app.css --minify",
+    "css:watch": "tailwindcss -i ./tailwind/input.css -o ./static/css/app.css --watch",
+    "css:dev": "tailwindcss -i ./tailwind/input.css -o ./static/css/app.css"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.0",
+    "tailwindcss": "^4.1.0"
+  }
+}

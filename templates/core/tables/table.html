@@ -1,0 +1,84 @@
+{% load django_tables2 %}
+{% load i18n l10n table_extras %}
+{% block table-wrapper %}
+<div class="overflow-x-auto">
+  {% block table %}
+    <table class="table">
+      {% block table.thead %}
+        {% if table.show_header %}
+          <thead>
+            <tr>
+              {% for column in table.columns %}
+                <th scope="col">
+                  {% if column.orderable %}
+                    <a href="?{% querystring_replace table.prefixed_order_by_field column.order_by_alias.next %}">{{ column.header }}</a>
+                  {% else %}
+                    {{ column.header }}
+                  {% endif %}
+                </th>
+              {% endfor %}
+            </tr>
+          </thead>
+        {% endif %}
+      {% endblock table.thead %}
+      {% block table.tbody %}
+        <tbody>
+          {% for row in table.paginated_rows %}
+            {% block table.tbody.row %}
+              <tr>
+                {% for column, cell in row.items %}
+                  <td>{% if column.localize == None %}{{ cell }}{% else %}{% if column.localize %}{{ cell|localize }}{% else %}{{ cell|unlocalize }}{% endif %}{% endif %}</td>
+                {% endfor %}
+              </tr>
+            {% endblock table.tbody.row %}
+          {% empty %}
+            {% if table.empty_text %}
+              {% block table.tbody.empty_text %}
+                <tr><td colspan="{{ table.columns|length }}">{{ table.empty_text }}</td></tr>
+              {% endblock table.tbody.empty_text %}
+            {% endif %}
+          {% endfor %}
+        </tbody>
+      {% endblock table.tbody %}
+      {% block table.tfoot %}
+        {% if table.has_footer %}
+          <tfoot>
+            <tr>
+              {% for column in table.columns %}
+                <td>{{ column.footer }}</td>
+              {% endfor %}
+            </tr>
+          </tfoot>
+        {% endif %}
+      {% endblock table.tfoot %}
+    </table>
+  {% endblock table %}
+
+  {% block pagination %}
+    {% if table.page and table.paginator.num_pages > 1 %}
+      <nav class="mt-4 flex items-center justify-between" aria-label="Pagination">
+        <p class="text-sm text-slate-500 dark:text-slate-400">
+          Page {{ table.page.number }} of {{ table.paginator.num_pages }}
+        </p>
+        <ul class="pagination">
+          {% if table.page.has_previous %}
+            <li><a href="?{% querystring_replace table.prefixed_page_field table.page.previous_page_number %}">Previous</a></li>
+          {% endif %}
+          {% for p in table.page|table_page_range:table.paginator %}
+            {% if p == '...' %}
+              <li><span>{{ p }}</span></li>
+            {% elif p == table.page.number %}
+              <li><span class="current" aria-current="page">{{ p }}</span></li>
+            {% else %}
+              <li><a href="?{% querystring_replace table.prefixed_page_field p %}">{{ p }}</a></li>
+            {% endif %}
+          {% endfor %}
+          {% if table.page.has_next %}
+            <li><a href="?{% querystring_replace table.prefixed_page_field table.page.next_page_number %}">Next</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+    {% endif %}
+  {% endblock pagination %}
+</div>
+{% endblock table-wrapper %}

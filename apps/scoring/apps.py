@@ -1,0 +1,12 @@
+"""Application configuration for scoring."""
+
+from __future__ import annotations
+
+from django.apps import AppConfig
+
+
+class ScoringConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.scoring"
+    label = "scoring"
+    verbose_name = "Scoring"

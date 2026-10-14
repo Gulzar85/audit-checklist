@@ -1,0 +1,267 @@
+/* ==========================================================================
+   Checklist Platform - design system foundation
+   Tailwind CSS v4 entrypoint. Compiled to static/css/app.css.
+   ========================================================================== */
+
+@import "tailwindcss";
+
+/* Scan application sources for utility classes. */
+@source "../templates/**/*.html";
+@source "../apps/**/*.py";
+@source "../static/js/**/*.js";
+
+/* Class-based dark mode so a theme toggle (and later, organization branding)
+   can control the palette. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Brand scale (indigo). */
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+  --color-brand-800: #3730a3;
+  --color-brand-900: #312e81;
+  --color-brand-950: #1e1b4b;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+
+  --radius-card: 0.75rem;
+
+  /* Safe-area support for installed PWAs. */
+  --spacing-safe-top: env(safe-area-inset-top, 0px);
+  --spacing-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-slate-100 text-slate-800 antialiased;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .dark body {
+    @apply bg-slate-950 text-slate-100;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-950;
+  }
+
+  /* HTMX request indicator affordance. */
+  .htmx-indicator {
+    @apply opacity-0 transition-opacity;
+  }
+  .htmx-request .htmx-indicator,
+  .htmx-request.htmx-indicator {
+    @apply opacity-100;
+  }
+
+  /* Alpine.js: hide un-initialised components before hydration. */
+  [x-cloak] {
+    display: none !important;
+  }
+}
+
+@layer components {
+  /* --- Buttons ---------------------------------------------------------- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-transparent
+      px-4 py-2.5 text-sm font-semibold leading-5 transition-colors
+      focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800;
+  }
+  .btn-secondary {
+    @apply border-slate-300 bg-white text-slate-700 hover:bg-slate-50
+      dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700;
+  }
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700;
+  }
+  .btn-success {
+    @apply bg-emerald-600 text-white hover:bg-emerald-700;
+  }
+  .btn-ghost {
+    @apply text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800;
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+  .btn-lg {
+    @apply px-5 py-3 text-base;
+  }
+  .btn-icon {
+    @apply h-10 w-10 p-0;
+  }
+
+  /* --- Form controls ---------------------------------------------------- */
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300;
+  }
+  .input,
+  .select,
+  .textarea {
+    @apply block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm
+      text-slate-900 shadow-sm placeholder:text-slate-400
+      focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30
+      disabled:cursor-not-allowed disabled:bg-slate-100
+      dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500;
+  }
+  .checkbox,
+  .radio {
+    @apply h-5 w-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500
+      dark:border-slate-600 dark:bg-slate-900;
+  }
+  .help-text {
+    @apply mt-1 text-xs text-slate-500 dark:text-slate-400;
+  }
+  .errorlist {
+    @apply mt-1 list-none space-y-1 p-0 text-xs font-medium text-red-600 dark:text-red-400;
+  }
+
+  /* --- Surfaces --------------------------------------------------------- */
+  .card {
+    @apply rounded-xl border border-slate-200 bg-white shadow-sm
+      dark:border-slate-800 dark:bg-slate-900;
+  }
+  .card-header {
+    @apply flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4
+      dark:border-slate-800;
+  }
+  .card-title {
+    @apply text-base font-semibold text-slate-900 dark:text-slate-100;
+  }
+  .card-body {
+    @apply px-5 py-4;
+  }
+  .card-footer {
+    @apply border-t border-slate-200 px-5 py-4 dark:border-slate-800;
+  }
+
+  /* --- Badges ----------------------------------------------------------- */
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .badge-neutral {
+    @apply bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300;
+  }
+  .badge-success {
+    @apply bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300;
+  }
+  .badge-warning {
+    @apply bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300;
+  }
+  .badge-danger {
+    @apply bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300;
+  }
+  .badge-info {
+    @apply bg-brand-100 text-brand-800 dark:bg-brand-900/40 dark:text-brand-300;
+  }
+
+  /* --- Alerts ----------------------------------------------------------- */
+  .alert {
+    @apply flex items-start gap-3 rounded-lg border px-4 py-3 text-sm;
+  }
+  .alert-success {
+    @apply border-emerald-200 bg-emerald-50 text-emerald-800
+      dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200;
+  }
+  .alert-warning {
+    @apply border-amber-200 bg-amber-50 text-amber-800
+      dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-200;
+  }
+  .alert-danger {
+    @apply border-red-200 bg-red-50 text-red-800
+      dark:border-red-900 dark:bg-red-950/50 dark:text-red-200;
+  }
+  .alert-info {
+    @apply border-brand-200 bg-brand-50 text-brand-800
+      dark:border-brand-900 dark:bg-brand-950/50 dark:text-brand-200;
+  }
+
+  /* --- Tables ----------------------------------------------------------- */
+  .table {
+    @apply w-full border-collapse text-left text-sm;
+  }
+  .table thead th {
+    @apply border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase
+      tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400;
+  }
+  .table tbody td {
+    @apply border-b border-slate-100 px-4 py-3 text-slate-700 dark:border-slate-800 dark:text-slate-300;
+  }
+  .table tbody tr:hover {
+    @apply bg-slate-50 dark:bg-slate-800/50;
+  }
+
+  /* --- Pagination ------------------------------------------------------- */
+  .pagination {
+    @apply flex items-center gap-1;
+  }
+  .pagination a,
+  .pagination span {
+    @apply inline-flex h-9 min-w-9 items-center justify-center rounded-md border border-slate-200
+      px-3 text-sm text-slate-600 hover:bg-slate-50
+      dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800;
+  }
+  .pagination .current {
+    @apply border-brand-600 bg-brand-600 text-white;
+  }
+
+  /* --- Breadcrumbs ------------------------------------------------------ */
+  .breadcrumbs {
+    @apply flex flex-wrap items-center gap-1 text-sm text-slate-500 dark:text-slate-400;
+  }
+  .breadcrumbs li:not(:last-child)::after {
+    content: "/";
+    @apply mx-1 text-slate-300 dark:text-slate-600;
+  }
+
+  /* --- Empty / loading states ------------------------------------------ */
+  .empty-state {
+    @apply flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed
+      border-slate-300 px-6 py-12 text-center dark:border-slate-700;
+  }
+  .spinner {
+    @apply inline-block h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent;
+  }
+  .skeleton {
+    @apply animate-pulse rounded bg-slate-200 dark:bg-slate-800;
+  }
+
+  /* --- Modal ------------------------------------------------------------ */
+  .modal-backdrop {
+    @apply fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm;
+  }
+  .modal-panel {
+    @apply fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2
+      rounded-xl border border-slate-200 bg-white p-6 shadow-xl
+      dark:border-slate-800 dark:bg-slate-900;
+  }
+
+  /* --- Layout helpers --------------------------------------------------- */
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+  .nav-link {
+    @apply inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium
+      text-slate-600 hover:bg-slate-100 hover:text-slate-900
+      dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white;
+  }
+  .skip-link {
+    @apply sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50
+      focus:rounded-md focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-white;
+  }
+}

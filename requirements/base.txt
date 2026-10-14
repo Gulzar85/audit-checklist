@@ -1,0 +1,31 @@
+# ---------------------------------------------------------------------------
+# Base runtime dependencies
+# ---------------------------------------------------------------------------
+# Framework
+Django==6.1.2
+
+# Database driver (PostgreSQL)
+psycopg[binary]>=3.2,<4
+
+# REST API
+djangorestframework>=3.16,<4
+drf-spectacular>=0.28,<1
+
+# List / filtering / import-export
+django-filter>=24.3
+django-tables2>=2.7
+django-import-export>=4.3
+
+# Authorization / history
+django-guardian>=2.4
+django-simple-history>=3.7
+
+# Forms
+django-crispy-forms>=2.3
+crispy-tailwind>=1.0
+
+# Admin theme
+django-jazzmin>=3.0
+
+# Imaging (avatars, evidence thumbnails in later phases)
+Pillow>=11.0

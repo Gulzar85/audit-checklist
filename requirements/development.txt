@@ -1,0 +1,6 @@
+# ---------------------------------------------------------------------------
+# Local development dependencies
+# ---------------------------------------------------------------------------
+-r base.txt
+
+# Nothing beyond base is required for local development in Phase 0.

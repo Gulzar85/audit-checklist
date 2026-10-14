@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load django_tables2 crispy_forms_tags %}
+{% block title %}Organizations · {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<nav class="breadcrumbs mb-4" aria-label="Breadcrumbs">
+  <ol>
+    <li><a href="{% url 'core:home' %}">Home</a></li>
+    <li aria-current="page">Organizations</li>
+  </ol>
+</nav>
+
+<div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+  <div class="flex items-center gap-3">
+    <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-600 text-white">
+      <i data-lucide="building-2" class="h-5 w-5" aria-hidden="true"></i>
+    </span>
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Organizations</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400">
+        Tenant organizations and their lifecycle.
+      </p>
+    </div>
+  </div>
+  {% if can_create %}
+    <a href="{% url 'organizations:create' %}" class="btn btn-primary">
+      <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i> New organization
+    </a>
+  {% endif %}
+</div>
+
+<div class="card mb-6">
+  <div class="card-body">
+    <form method="get" class="flex flex-wrap items-end gap-3">
+      {{ filter.form|crispy }}
+      <div class="flex items-center gap-2 self-end pb-2">
+        <button class="btn btn-primary" type="submit">
+          <i data-lucide="search" class="h-4 w-4" aria-hidden="true"></i> Filter
+        </button>
+        <a href="{% url 'organizations:list' %}" class="btn btn-secondary">Reset</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  {% render_table table %}
+</div>
+{% endblock %}
