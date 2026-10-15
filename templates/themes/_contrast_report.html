@@ -1,0 +1,27 @@
+{# Accessibility report (WCAG 2.2 AA). Params: checks, blocking, warnings. #}
+<section aria-label="Accessibility report" class="space-y-2">
+  {% if blocking %}
+    <div class="alert alert-danger" role="alert">
+      <i data-lucide="circle-x" class="h-5 w-5 shrink-0" aria-hidden="true"></i>
+      <div>
+        <p class="font-semibold">{{ blocking|length }} required contrast check{{ blocking|length|pluralize }} failing - this theme cannot be published</p>
+        <ul class="mt-1 list-disc pl-5">{% for c in blocking %}<li>{{ c.mode|capfirst }} mode · {{ c.label }}: {{ c.ratio_display }} (needs {{ c.required|floatformat:"-1" }}:1)</li>{% endfor %}</ul>
+      </div>
+    </div>
+  {% endif %}
+  {% if warnings %}
+    <div class="alert alert-warning" role="status">
+      <i data-lucide="triangle-alert" class="h-5 w-5 shrink-0" aria-hidden="true"></i>
+      <div>
+        <p class="font-semibold">{{ warnings|length }} advisory check{{ warnings|length|pluralize }} below the recommended contrast</p>
+        <ul class="mt-1 list-disc pl-5">{% for c in warnings %}<li>{{ c.mode|capfirst }} mode · {{ c.label }}: {{ c.ratio_display }} (recommended {{ c.required|floatformat:"-1" }}:1)</li>{% endfor %}</ul>
+      </div>
+    </div>
+  {% endif %}
+  {% if not blocking and not warnings %}
+    <div class="alert alert-success" role="status">
+      <i data-lucide="circle-check" class="h-5 w-5 shrink-0" aria-hidden="true"></i>
+      <span>All {{ checks|length }} contrast checks pass WCAG 2.2 AA in light and dark mode.</span>
+    </div>
+  {% endif %}
+</section>

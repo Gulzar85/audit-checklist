@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Component gallery · {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<nav class="breadcrumbs mb-4" aria-label="Breadcrumbs">
+  <ol>
+    <li><a href="{% url 'core:home' %}">Home</a></li>
+    <li><a href="{% url 'themes:list' %}">Themes</a></li>
+    <li aria-current="page">Component gallery</li>
+  </ol>
+</nav>
+<h1 class="mb-1 text-2xl font-bold tracking-tight">Component gallery</h1>
+<p class="mb-6 text-sm text-muted-foreground">The platform's real components under the active theme. Build new screens from these semantic classes (<code>bg-primary</code>, <code>text-foreground</code>, <code>border-border</code> ...), never raw colours.</p>
+<div id="sample">{% include "themes/_components_sample.html" %}</div>
+{% endblock %}

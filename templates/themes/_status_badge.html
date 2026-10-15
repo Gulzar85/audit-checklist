@@ -1,0 +1,10 @@
+{# Theme lifecycle badge. Params: status. Colour is never the only signal: every status has an icon and a label. #}
+{% if status == "active" %}
+  <span class="badge badge-active"><i data-lucide="circle-check" class="h-3.5 w-3.5" aria-hidden="true"></i>Active</span>
+{% elif status == "published" %}
+  <span class="badge badge-info"><i data-lucide="send" class="h-3.5 w-3.5" aria-hidden="true"></i>Published</span>
+{% elif status == "draft" %}
+  <span class="badge badge-pending"><i data-lucide="pencil" class="h-3.5 w-3.5" aria-hidden="true"></i>Draft</span>
+{% else %}
+  <span class="badge badge-inactive"><i data-lucide="archive" class="h-3.5 w-3.5" aria-hidden="true"></i>Archived</span>
+{% endif %}

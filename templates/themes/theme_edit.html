@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ theme.name }} · {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<nav class="breadcrumbs mb-4" aria-label="Breadcrumbs">
+  <ol>
+    <li><a href="{% url 'core:home' %}">Home</a></li>
+    <li><a href="{% url 'themes:list' %}">Themes</a></li>
+    <li><a href="{{ theme.get_absolute_url }}">{{ theme.name }}</a></li>
+    <li aria-current="page">Edit</li>
+  </ol>
+</nav>
+
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+  <div class="flex items-center gap-3">
+    <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+      <i data-lucide="palette" class="h-5 w-5" aria-hidden="true"></i>
+    </span>
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Theme editor</h1>
+      <p class="text-sm text-muted-foreground">{{ theme.name }} · v{{ theme.version }} · draft. Changes preview instantly and are saved only when you press Save.</p>
+    </div>
+  </div>
+  <nav aria-label="Editor sections" class="flex flex-wrap gap-1 text-sm">
+    {% for section in form.editor_sections %}<a class="btn btn-ghost btn-sm" href="#section-{{ section.id }}">{{ section.title }}</a>{% endfor %}
+    <a class="btn btn-ghost btn-sm" href="#section-preview">Preview</a>
+  </nav>
+</div>
+
+<div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,30rem)]" x-data="themePreview">
+  <form id="theme-form" method="post" novalidate class="min-w-0"
+        hx-post="{% url 'themes:preview' theme.pk %}" hx-trigger="input delay:300ms, change"
+        hx-target="#preview-feedback" hx-swap="innerHTML">
+    {% csrf_token %}
+    {% include "tailwind/errors.html" %}
+    {% for section in form.editor_sections %}
+      <section id="section-{{ section.id }}" class="card mb-6 scroll-mt-24" aria-labelledby="title-{{ section.id }}">
+        <div class="card-header">
+          <div>
+            <h2 id="title-{{ section.id }}" class="card-title">{{ section.title }}</h2>
+            <p class="text-sm text-muted-foreground">{{ section.description }}</p>
+          </div>
+        </div>
+        <div class="card-body space-y-4">
+          {% if section.id == "colors" %}
+            <p class="text-sm text-muted-foreground" aria-hidden="true">Each colour has a light-mode and a dark-mode value.</p>
+          {% endif %}
+          {% for row in section.rows %}
+            <div class="grid items-start gap-2 sm:grid-cols-[13rem_minmax(0,1fr)] sm:gap-4">
+              <div>
+                {% if row.cells.0.0 %}<span class="label mb-0">{{ row.label }}</span>{% else %}<label class="label mb-0" for="{{ row.cells.0.1.id_for_label }}">{{ row.label }}</label>{% endif %}
+                {% if row.help %}<p class="help-text mt-0">{{ row.help }}</p>{% endif %}
+              </div>
+              <div class="flex flex-wrap items-start gap-x-6 gap-y-2">
+                {% for caption, field in row.cells %}
+                  <div class="flex items-center gap-2">
+                    {% if caption %}<span class="text-xs text-muted-foreground" aria-hidden="true">{{ caption }}</span>{% endif %}
+                    <div>
+                      {{ field }}
+                      {% for error in field.errors %}<p class="errorlist" id="error_{{ field.auto_id }}">{{ error }}</p>{% endfor %}
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+    {% endfor %}
+    <div class="sticky bottom-0 z-20 -mx-1 flex flex-wrap gap-3 border-t border-border bg-background/95 px-1 py-4 backdrop-blur">
+      <button type="submit" class="btn btn-primary"><i data-lucide="save" class="h-4 w-4" aria-hidden="true"></i> Save draft</button>
+      <a href="{{ theme.get_absolute_url }}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+
+  <aside id="section-preview" class="min-w-0 xl:sticky xl:top-20 xl:self-start scroll-mt-24" aria-labelledby="preview-title">
+    <div class="card">
+      <div class="card-header">
+        <h2 id="preview-title" class="card-title">Live preview</h2>
+        {# The radios live outside <form>, so their change events do not reach it: they post the form themselves. #}
+        <fieldset class="flex items-center gap-3 text-sm"
+                  hx-post="{% url 'themes:preview' theme.pk %}" hx-include="#theme-form" hx-trigger="change"
+                  hx-target="#preview-feedback" hx-swap="innerHTML">
+          <legend class="sr-only">Preview colour mode</legend>
+          <label class="inline-flex items-center gap-1"><input class="radio" type="radio" name="preview_mode" value="light" form="theme-form" {% if preview_mode == "light" %}checked{% endif %}> Light</label>
+          <label class="inline-flex items-center gap-1"><input class="radio" type="radio" name="preview_mode" value="dark" form="theme-form" {% if preview_mode == "dark" %}checked{% endif %}> Dark</label>
+        </fieldset>
+      </div>
+      <div class="card-body space-y-4">
+        <div id="preview-feedback" aria-live="polite">{% include "themes/_preview_feedback.html" %}</div>
+        <div class="preview-frame" data-preview-frame data-theme="{{ preview_mode }}">
+          {% include "themes/_components_sample.html" %}
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+{% endblock %}

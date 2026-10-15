@@ -1,0 +1,14 @@
+{# HTMX fragment: the CSS variables to preview (applied by the themePreview component) + the live accessibility report. #}
+<div data-preview-vars="{{ preview.variables_json }}" data-preview-mode="{{ preview.mode }}" hidden></div>
+
+{% if preview.errors %}
+  <div class="alert alert-danger mb-3" role="alert">
+    <i data-lucide="circle-x" class="h-5 w-5 shrink-0" aria-hidden="true"></i>
+    <div>
+      <p class="font-semibold">Some values are not valid yet</p>
+      <ul class="mt-1 list-disc pl-5">{% for error in preview.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+    </div>
+  </div>
+{% endif %}
+
+{% include "themes/_contrast_report.html" with blocking=preview.blocking warnings=preview.warnings checks=preview.checks %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}New theme · {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<nav class="breadcrumbs mb-4" aria-label="Breadcrumbs">
+  <ol>
+    <li><a href="{% url 'core:home' %}">Home</a></li>
+    <li><a href="{% url 'themes:list' %}">Themes</a></li>
+    <li aria-current="page">New theme</li>
+  </ol>
+</nav>
+<div class="mx-auto max-w-2xl">
+  <div class="card">
+    <div class="card-header">
+      <h1 class="card-title">Create a theme</h1>
+      <i data-lucide="palette" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
+    </div>
+    <form method="post" novalidate>
+      <div class="card-body">
+        {% csrf_token %}
+        {% include "tailwind/errors.html" %}
+        {% for field in form %}{{ field|as_crispy_field }}{% endfor %}
+        <p class="help-text">The theme starts as a <strong>draft</strong>. You will customize it, publish it and then activate it.</p>
+      </div>
+      <div class="card-footer flex flex-wrap gap-3">
+        <button type="submit" class="btn btn-primary"><i data-lucide="arrow-right" class="h-4 w-4" aria-hidden="true"></i> Create and customize</button>
+        <a href="{% url 'themes:list' %}" class="btn btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

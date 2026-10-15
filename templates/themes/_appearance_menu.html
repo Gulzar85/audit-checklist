@@ -1,0 +1,27 @@
+{% comment %}
+Light / Dark / System switcher. State lives in the `appearance` Alpine component; it applies
+the mode instantly (data-theme on <html>) and, for signed-in users, saves it on the server.
+{% endcomment %}
+<div class="relative" x-data="appearance" @keydown.escape="close" @click.outside="close"
+     data-current="{{ ui_theme.mode }}"{% if user.is_authenticated %} data-persist-url="{% url 'themes:appearance' %}"{% endif %}>
+  <button type="button" class="btn btn-ghost btn-icon text-sidebar-foreground" @click="toggle"
+          :aria-expanded="open" aria-haspopup="true" aria-controls="appearance-menu"
+          aria-label="Appearance: colour mode">
+    <i data-lucide="sun-moon" class="h-5 w-5" aria-hidden="true"></i>
+  </button>
+  <div id="appearance-menu" role="menu" aria-label="Appearance" x-show="open" x-cloak
+       class="menu-panel absolute right-0 z-40 mt-2 w-44">
+    <button type="button" role="menuitemradio" class="menu-item" @click="setLight" :aria-checked="isLight">
+      <i data-lucide="sun" class="h-4 w-4" aria-hidden="true"></i> Light
+      <span class="ml-auto" x-show="isLight"><i data-lucide="check" class="h-4 w-4" aria-hidden="true"></i></span>
+    </button>
+    <button type="button" role="menuitemradio" class="menu-item" @click="setDark" :aria-checked="isDark">
+      <i data-lucide="moon" class="h-4 w-4" aria-hidden="true"></i> Dark
+      <span class="ml-auto" x-show="isDark"><i data-lucide="check" class="h-4 w-4" aria-hidden="true"></i></span>
+    </button>
+    <button type="button" role="menuitemradio" class="menu-item" @click="setSystem" :aria-checked="isSystem">
+      <i data-lucide="monitor" class="h-4 w-4" aria-hidden="true"></i> System
+      <span class="ml-auto" x-show="isSystem"><i data-lucide="check" class="h-4 w-4" aria-hidden="true"></i></span>
+    </button>
+  </div>
+</div>

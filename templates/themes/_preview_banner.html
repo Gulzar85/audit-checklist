@@ -1,0 +1,14 @@
+{% if ui_theme.is_preview %}
+  <div class="banner-preview" role="status">
+    <div class="container-page flex flex-wrap items-center justify-between gap-3 py-2 text-sm">
+      <p class="flex items-center gap-2">
+        <i data-lucide="eye" class="h-4 w-4" aria-hidden="true"></i>
+        Previewing theme <strong>{{ ui_theme.theme.name }}</strong> (v{{ ui_theme.theme.version }}). Only you can see this; nothing has been changed.
+      </p>
+      <form method="post" action="{% url 'themes:preview_stop' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-secondary btn-sm">Exit preview</button>
+      </form>
+    </div>
+  </div>
+{% endif %}
