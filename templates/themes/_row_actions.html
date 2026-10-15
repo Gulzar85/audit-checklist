@@ -1,0 +1,5 @@
+{% load ui %}{% comment %}Icon row actions for themes. Display hints only; every destination re-authorises.{% endcomment %}
+<div class="flex justify-end gap-0.5">
+  {% url 'themes:detail' record.pk as view_url %}{% row_action "View" "eye" href=view_url subject=record.name %}
+  {% if record.status == "draft" and perms.themes.change_theme %}{% url 'themes:edit' record.pk as edit_url %}{% row_action "Edit" "pencil" href=edit_url subject=record.name %}{% endif %}
+</div>

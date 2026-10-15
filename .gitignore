@@ -8,6 +8,16 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.egg-info/
+*.pyo
+*.pyd
+*.pyc
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+.pytest_cache/
+.hypothesis/
 .eggs/
 build/
 dist/
@@ -58,3 +68,10 @@ yarn-error.log*
 *.swp
 .DS_Store
 Thumbs.db
+
+# ---------------------------------------------------------------------------
+# Django migrations (generated per environment; not committed)
+# ---------------------------------------------------------------------------
+# Every migration module except the package marker is ignored.
+**/migrations/*.py
+!**/migrations/__init__.py

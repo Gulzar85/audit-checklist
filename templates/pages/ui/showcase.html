@@ -82,7 +82,7 @@
     <section id="forms" aria-labelledby="h-forms" class="scroll-mt-20">
       <h2 id="h-forms" class="mb-3 text-lg font-semibold">Forms</h2>
       <div class="card">
-        <form class="card-body grid gap-x-6 gap-y-4 sm:grid-cols-2" novalidate x-data="formGuard" @submit="onSubmit" @input="markDirty" @beforeunload.window="warn" @pageshow.window="reset">
+        <form class="card-body grid gap-x-6 gap-y-4 sm:grid-cols-2" novalidate data-demo-form x-data="formGuard" @submit="onSubmit" @input="markDirty" @beforeunload.window="warn" @pageshow.window="reset">
           <h3 class="form-section-title sm:col-span-2">Basic information</h3>
           <div><label class="label" for="demo-name">Name <span class="required-mark" aria-hidden="true">*</span></label><input id="demo-name" class="input" type="text" value="Safety inspection" required><p class="help-text">Shown in lists and reports.</p></div>
           <div><label class="label" for="demo-select">Status</label><select id="demo-select" class="select"><option>Draft</option><option>Published</option></select></div>
@@ -104,6 +104,7 @@
     {# ------------------------------------------------------------------ Tables #}
     <section id="tables" aria-labelledby="h-tables" class="scroll-mt-20">
       <h2 id="h-tables" class="mb-3 text-lg font-semibold">Tables &amp; row actions</h2>
+      <p class="mb-3 text-sm text-muted-foreground">Row actions are icon buttons with a tooltip and a screen-reader name: <code>{% templatetag openblock %} row_action "Edit" "pencil" href=url subject=row.name {% templatetag closeblock %}</code>. Use <code>components/tables/row_actions.html</code> (a menu) when a row has more than three actions.</p>
       <p class="mb-3 text-sm text-muted-foreground">Add <code>table-stack</code> and a <code>data-label</code> per cell and each row becomes a labelled card on phones.</p>
       <div class="card">
         <div class="table-wrap overflow-x-auto">
@@ -116,7 +117,7 @@
                   <td data-label="Version">{{ row.version }}</td>
                   <td data-label="Status">{% status_badge row.status %}</td>
                   <td data-label="Updated">{{ row.updated }}</td>
-                  <td data-label="Actions" class="text-right">{% include "components/tables/row_actions.html" with label="Actions for "|add:row.name actions=sample_actions %}</td>
+                  <td data-label="Actions" class="text-right"><div class="flex justify-end gap-0.5">{% row_action "View" "eye" href="#tables" subject=row.name %}{% row_action "Edit" "pencil" href="#tables" subject=row.name %}{% row_action "Delete" "trash-2" href="#tables" subject=row.name tone="danger" %}</div></td>
                 </tr>
               {% endfor %}
             </tbody>

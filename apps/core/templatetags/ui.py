@@ -141,3 +141,20 @@ def as_crumbs(objects: Any, url_name: str) -> list[str]:
     for obj in objects or []:
         flat += [str(getattr(obj, "name", obj)), reverse(url_name, args=[obj.pk])]
     return flat
+
+
+@register.inclusion_tag("components/tables/icon_action.html", takes_context=True)
+def row_action(
+    context: Any, label: str, icon: str, href: str = "", post_url: str = "", subject: str = "",
+    tone: str = "", field_name: str = "", field_value: str = "",
+) -> dict[str, Any]:
+    """An icon-only row action (link, or POST form) with a tooltip and a screen-reader name.
+
+    ``label`` is the verb ("Edit"), ``subject`` the row it applies to (read by assistive technology only).
+    Display hint only: the destination re-authorizes.
+    """
+    return {
+        "label": label, "icon": icon, "href": href, "post_url": post_url, "subject": subject,
+        "tone": tone, "field_name": field_name, "field_value": field_value,
+        "csrf_token": context.get("csrf_token", ""),
+    }

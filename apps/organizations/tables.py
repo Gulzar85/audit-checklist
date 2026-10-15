@@ -12,10 +12,7 @@ class OrganizationTable(tables.Table):
 
     name = tables.Column(linkify=True, attrs={"a": {"class": "font-medium"}})
     status = tables.TemplateColumn(
-        template_code=(
-            '{% include "components/status_badge.html" '
-            'with label=record.get_status_display tone=record.status %}'
-        ),
+        template_code='{% load ui %}{% status_badge record.status %}',
         order_by=("status",),
     )
     actions = tables.TemplateColumn(

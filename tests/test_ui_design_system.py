@@ -622,3 +622,47 @@ class TestDocumentation:
             assert heading in doc, heading
         adrs = " ".join(p.read_text(encoding="utf-8") for p in (settings.BASE_DIR / "docs/decisions").glob("00[34]*.md"))
         assert "application shell" in adrs.lower() and "navigation" in adrs.lower()
+
+
+class TestIconRowActions:
+    def test_tag_renders_icon_tooltip_and_a_screen_reader_name(self):
+        html = render('{% row_action "Edit" "pencil" href="/x/" subject="Acme" %}')
+        assert 'data-lucide="pencil"' in html and 'data-tooltip="Edit"' in html
+        assert '<span class="sr-only">Edit Acme</span>' in html and "btn-icon" in html
+
+    def test_post_actions_are_forms_with_csrf_and_a_hidden_field(self):
+        html = Template("{% load ui %}{% row_action 'Deactivate' 'power-off' post_url='/s/' subject='T' tone='danger' field_name='action' field_value='deactivate' %}").render(Context({"csrf_token": "tok"}))
+        assert 'method="post"' in html and 'name="csrfmiddlewaretoken" value="tok"' in html
+        assert 'name="action" value="deactivate"' in html and "text-danger-text" in html
+
+    def test_list_pages_use_icon_actions_not_text_buttons(self, client, staff_user, org_a, make_location):
+        make_location(org_a, "Root", code="ROOT")
+        client.force_login(staff_user)
+        for url in (reverse("organizations:list"), reverse("locations:list"), reverse("locations:type_list")):
+            html = client.get(url).content.decode()
+            assert 'data-lucide="pencil"' in html and 'data-tooltip="Edit"' in html, url
+            assert 'btn btn-ghost btn-sm">Edit' not in html, url
+        assert 'data-lucide="eye"' in client.get(reverse("organizations:list")).content.decode()
+
+    def test_type_list_status_actions_post_with_csrf(self, client, staff_user, org_a, make_type):
+        make_type(org_a, "Region", "REGION")
+        client.force_login(staff_user)
+        html = client.get(reverse("locations:type_list")).content.decode()
+        assert 'data-lucide="power-off"' in html and "Deactivate" in html and 'name="action" value="deactivate"' in html
+
+    def test_theme_list_has_view_and_edit_icons_for_drafts(self, client, theme_admin_a, org_a, make_theme):
+        make_theme(org_a, "Draft theme")
+        client.force_login(theme_admin_a)
+        html = client.get(reverse("themes:list")).content.decode()
+        assert 'data-lucide="eye"' in html and 'data-lucide="pencil"' in html
+
+    def test_tables_use_the_shared_status_badges(self, client, staff_user, org_a):
+        client.force_login(staff_user)
+        html = client.get(reverse("organizations:list")).content.decode()
+        assert "badge badge-success" in html and 'data-lucide="circle-check"' in html and ">Active<" in html
+
+    def test_showcase_demo_form_never_posts(self, client, staff_user):
+        client.force_login(staff_user)
+        html = client.get(reverse("core:ui")).content.decode()
+        assert "data-demo-form" in html
+        assert client.post(reverse("core:ui")).status_code == 405

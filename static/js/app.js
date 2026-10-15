@@ -100,6 +100,19 @@
     });
   });
 
+  /* The showcase form never posts: it only demonstrates the submitting state, then resets. */
+  document.addEventListener("submit", function (event) {
+    if (event.target.hasAttribute && event.target.hasAttribute("data-demo-form")) {
+      event.preventDefault();
+      if (window.cpToast) {
+        window.cpToast("Demo form: nothing was saved.", "info");
+      }
+      window.setTimeout(function () {
+        window.dispatchEvent(new Event("pageshow"));
+      }, 1200);
+    }
+  });
+
   /* Showcase helper: buttons with data-demo-toast raise a sample toast. */
   document.addEventListener("click", function (event) {
     var button = event.target.closest ? event.target.closest("[data-demo-toast]") : null;

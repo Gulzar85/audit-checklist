@@ -1,13 +1,8 @@
-{# Display hint only (Django perms); the views re-authorise through policies. #}
+{% load ui %}{% comment %}Icon row actions. Display hint only (Django perms); the views re-authorise through policies.{% endcomment %}
 {% if perms.locations.change_locationtype %}
-  <div class="flex justify-end gap-1">
-    <a href="{% url 'locations:type_update' record.pk %}" class="btn btn-ghost btn-sm">Edit</a>
-    <form method="post" action="{% url 'locations:type_status' record.pk %}" class="inline">
-      {% csrf_token %}
-      <input type="hidden" name="action" value="{% if record.is_active %}deactivate{% else %}activate{% endif %}">
-      <button type="submit" class="btn btn-ghost btn-sm">
-        {% if record.is_active %}Deactivate<span class="sr-only"> {{ record.name }}</span>{% else %}Activate<span class="sr-only"> {{ record.name }}</span>{% endif %}
-      </button>
-    </form>
+  <div class="flex justify-end gap-0.5">
+    {% url 'locations:type_update' record.pk as edit_url %}{% row_action "Edit" "pencil" href=edit_url subject=record.name %}
+    {% url 'locations:type_status' record.pk as status_url %}
+    {% if record.is_active %}{% row_action "Deactivate" "power-off" post_url=status_url subject=record.name tone="danger" field_name="action" field_value="deactivate" %}{% else %}{% row_action "Activate" "power" post_url=status_url subject=record.name field_name="action" field_value="activate" %}{% endif %}
   </div>
 {% endif %}

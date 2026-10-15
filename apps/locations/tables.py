@@ -10,7 +10,7 @@ import django_tables2 as tables
 
 from .models import Location, LocationType
 
-_ACTIVE_BADGE = '{% include "components/active_badge.html" with is_active=record.is_active %}'
+_ACTIVE_BADGE = '{% load ui %}{% status_badge record.is_active|yesno:"active,inactive" %}'
 
 
 class LocationTypeTable(tables.Table):
