@@ -193,6 +193,46 @@ _HIGH_CONTRAST = Preset(
     },
 )
 
+_MCDONALDS = Preset(
+    key="mcdonalds",
+    name="McDonald's",
+    description="Golden Arches red and yellow: a red navigation bar and primary actions in light mode, a yellow accent on charcoal in dark mode.",
+    tokens={
+        "light": {
+            "primary": "#da291c",
+            "primary_hover": "#b71f14",
+            "primary_active": "#9a190f",
+            "accent": "#ffc72c",
+            "link": "#b71f14",
+            "focus": "#27251f",
+            "sidebar_background": "#da291c",
+            "sidebar_foreground": "#ffffff",
+            "sidebar_active": "#ffc72c",
+            "sidebar_hover": "#b71f14",
+            "sidebar_border": "#b71f14",
+        },
+        "dark": {
+            "primary": "#ffc72c",
+            "primary_hover": "#ffd65c",
+            "primary_active": "#ffe08a",
+            "primary_foreground": "#27251f",
+            "accent": "#ffc72c",
+            "link": "#ffc72c",
+            "focus": "#ffc72c",
+            "background": "#121212",
+            "surface": "#1e1e1e",
+            "surface_elevated": "#2a2a2a",
+            "muted": "#2a2a2a",
+            "border": "#3d3d3d",
+            "sidebar_background": "#1a1a1a",
+            "sidebar_foreground": "#ffffff",
+            "sidebar_active": "#ffc72c",
+            "sidebar_hover": "#2e2e2e",
+            "sidebar_border": "#da291c",
+        },
+    },
+)
+
 PRESETS: dict[str, Preset] = {
     preset.key: preset
     for preset in (
@@ -210,6 +250,7 @@ PRESETS: dict[str, Preset] = {
         ),
         _HIGH_CONTRAST,
         _MINIMAL,
+        _MCDONALDS,
     )
 }
 

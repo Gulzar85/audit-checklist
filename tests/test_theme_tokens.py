@@ -227,7 +227,7 @@ class TestPresets:
         assert contrast.mandatory_failures(merged) == []
 
     def test_expected_presets_exist(self):
-        assert {"default", "corporate", "dark", "high_contrast", "minimal"} <= set(presets.PRESETS)
+        assert {"default", "corporate", "dark", "high_contrast", "minimal", "mcdonalds"} <= set(presets.PRESETS)
 
     def test_high_contrast_passes_every_check_in_both_modes(self):
         merged = tk.merge_tokens(presets.PRESETS["high_contrast"].tokens)
@@ -240,3 +240,11 @@ class TestPresets:
             assert contrast.contrast_ratio(strong[mode]["foreground"], strong[mode]["background"]) > contrast.contrast_ratio(
                 default[mode]["foreground"], default[mode]["background"]
             )
+
+
+class TestMcDonaldsPreset:
+    def test_brand_colours_and_full_accessibility(self):
+        preset = presets.PRESETS["mcdonalds"]
+        merged = tk.merge_tokens(preset.tokens)
+        assert merged["light"]["primary"] == "#da291c" and merged["dark"]["primary"] == "#ffc72c"
+        assert [c for c in contrast.contrast_checks(merged) if not c.passed] == []

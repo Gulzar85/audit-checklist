@@ -61,7 +61,7 @@ Ranges (examples): base text 12-20 px, small 10-16, large 14-28, line height 1.2
 
 ## Presets
 
-`default`, `corporate`, `dark`, `high_contrast`, `minimal` (`apps/themes/presets.py`). A preset is
+`default`, `corporate`, `dark`, `high_contrast`, `minimal`, `mcdonalds` (`apps/themes/presets.py`). A preset is
 a dictionary of token overrides plus a default appearance - data, not templates. Add one by
 appending to `PRESETS`; a test validates every preset and requires it to pass the mandatory
 contrast checks (`high_contrast` must pass *all* checks).
