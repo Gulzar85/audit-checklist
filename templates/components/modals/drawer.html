@@ -1,0 +1,11 @@
+<dialog id="{{ id }}" class="drawer-dialog" data-side="{{ side }}" aria-labelledby="{{ id }}-title" data-backdrop-close>
+  <div class="flex h-full flex-col">
+    <div class="flex items-center justify-between gap-4 border-b border-border px-5 py-4">
+      <h2 id="{{ id }}-title" class="text-lg font-semibold text-foreground">{{ title }}</h2>
+      <button type="button" class="btn btn-ghost btn-icon btn-sm" data-modal-close aria-label="Close panel">
+        <i data-lucide="x" class="h-4 w-4" aria-hidden="true"></i>
+      </button>
+    </div>
+    <div class="flex-1 overflow-y-auto p-5">{{ body }}</div>
+  </div>
+</dialog>

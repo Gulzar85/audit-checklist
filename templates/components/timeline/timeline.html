@@ -1,0 +1,22 @@
+{% load ui %}{% comment %}
+Activity timeline grouped by day.  Params: days = [{day, events: [{actor, text, time, tone, icon}]}].
+Build `days` with apps.core.timeline.group_activity(entries) for ActivityLog rows, or any module's history.
+{% endcomment %}
+{% if days %}
+  <div class="timeline">
+    {% for group in days %}
+      <h3 class="timeline-day">{{ group.day }}</h3>
+      <ol>
+        {% for event in group.events %}
+          <li class="timeline-item">
+            <span class="timeline-dot timeline-dot-{{ event.tone|default:'neutral' }}">{% icon event.icon|default:"circle" "xs" %}</span>
+            <p class="text-sm text-foreground">{% if event.actor %}<strong class="font-semibold">{{ event.actor }}</strong> {% endif %}{{ event.text }}</p>
+            <p class="text-xs text-muted-foreground">{% if event.datetime %}<time datetime="{{ event.datetime }}">{{ event.time }}</time>{% else %}{{ event.time }}{% endif %}</p>
+          </li>
+        {% endfor %}
+      </ol>
+    {% endfor %}
+  </div>
+{% else %}
+  {% include "components/states/empty.html" with icon="history" title="No activity yet" message="Events will appear here as people work in this area." %}
+{% endif %}

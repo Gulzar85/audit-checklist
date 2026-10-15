@@ -1,0 +1,44 @@
+{% extends "base_root.html" %}
+{% load static ui %}
+{% comment %}
+The authenticated application shell.
+
+    sidebar | top bar
+            | breadcrumbs  -> page header (+ actions)  -> content
+            | footer / status
+
+Blocks a page may fill (all optional):
+  title            the <title>
+  breadcrumbs      `{% breadcrumbs "Home" "core:home" "Organizations" %}`
+  page_header      `{% page_header title="..." subtitle="..." %}actions{% endpage_header %}`
+  content          the page body
+  page_width       "" (default, max-w-6xl) | "page-wide" (tables, execution screens) | "page-narrow" (forms)
+{% endcomment %}
+{% block shell %}
+  <div class="app-shell" x-data="shell"{% if user.is_authenticated %} data-session-url="{% url 'accounts:session' %}"{% endif %}
+       @keydown.escape.window="closeMobile">
+    {% if user.is_authenticated %}
+      {% include "components/navigation/sidebar.html" %}
+      <div class="app-backdrop" x-show="mobileOpen" x-cloak @click="closeMobile" aria-hidden="true"></div>
+    {% endif %}
+
+    <div class="app-main">
+      {% include "components/navigation/topbar.html" %}
+      {% include "themes/_preview_banner.html" %}
+      {% include "components/feedback/offline_banner.html" %}
+      <main id="main" class="app-content" tabindex="-1">
+        <div class="page {% block page_width %}{% endblock %}">
+          {% block breadcrumbs %}{% endblock %}
+          {% block page_header %}{% endblock %}
+          {% block content %}{% endblock %}
+        </div>
+      </main>
+      <footer class="app-footer">
+        <p>{{ APP_NAME }} &middot; v{{ APP_VERSION }}</p>
+        <p class="flex items-center gap-2">
+          <span class="badge badge-neutral">{{ APP_ENVIRONMENT }}</span>
+        </p>
+      </footer>
+    </div>
+  </div>
+{% endblock %}

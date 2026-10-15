@@ -1,0 +1,15 @@
+<div class="relative hidden sm:block" x-data="dropdown" @keydown.escape="closeAndFocus" @click.outside="close" @keydown="onKeydown">
+  <button type="button" class="btn btn-ghost btn-icon" @click="toggle" :aria-expanded="open" aria-haspopup="true"
+          aria-controls="help-menu" aria-label="Help">
+    <i data-lucide="circle-help" class="h-5 w-5" aria-hidden="true"></i>
+  </button>
+  <div id="help-menu" role="menu" aria-label="Help" x-show="open" x-cloak class="menu-panel absolute right-0 z-50 mt-2 w-64">
+    <a href="/api/docs/" role="menuitem" class="menu-item" target="_blank" rel="noopener">
+      <i data-lucide="book-open" class="h-4 w-4" aria-hidden="true"></i> API documentation
+      <span class="sr-only">(opens in a new tab)</span>
+    </a>
+    <p class="px-3 py-2 text-xs text-muted-foreground">
+      Shortcuts: <kbd class="rounded border border-border px-1">/</kbd> or <kbd class="rounded border border-border px-1">Ctrl K</kbd> to search.
+    </p>
+  </div>
+</div>

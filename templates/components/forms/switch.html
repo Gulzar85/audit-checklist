@@ -1,0 +1,11 @@
+{% comment %}
+Toggle switch built on a real checkbox (so it posts, is keyboard operable and announced as a
+checkbox/switch).  Params: id, name, label, help, checked.
+{% endcomment %}
+<div class="flex items-start justify-between gap-4">
+  <div class="min-w-0">
+    <label for="{{ id }}" class="label mb-0">{{ label }}</label>
+    {% if help %}<p class="help-text mt-0.5">{{ help }}</p>{% endif %}
+  </div>
+  <input type="checkbox" role="switch" class="switch" id="{{ id }}" name="{{ name }}"{% if checked %} checked{% endif %}>
+</div>

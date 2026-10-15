@@ -1,31 +1,22 @@
 {% extends "base.html" %}
-{% load crispy_forms_tags %}
-{% block title %}Clone {{ theme.name }} · {{ APP_NAME }}{% endblock %}
+{% load crispy_forms_tags ui %}
+{% block title %}Clone {{ theme.name }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-narrow{% endblock %}
+{% block breadcrumbs %}{% url 'themes:detail' theme.pk as crumb_url_1 %}{% breadcrumbs "Home" "core:home" "Themes" "themes:list" theme.name crumb_url_1 "Clone" %}{% endblock %}
+{% block page_header %}{% with clone_title="Clone “"|add:theme.name|add:"”" %}{% page_header title=clone_title subtitle="The clone is a new draft with its own code. The original is not changed." icon="copy" %}{% endpage_header %}{% endwith %}{% endblock %}
 
 {% block content %}
-<nav class="breadcrumbs mb-4" aria-label="Breadcrumbs">
-  <ol>
-    <li><a href="{% url 'core:home' %}">Home</a></li>
-    <li><a href="{% url 'themes:list' %}">Themes</a></li>
-    <li><a href="{{ theme.get_absolute_url }}">{{ theme.name }}</a></li>
-    <li aria-current="page">Clone</li>
-  </ol>
-</nav>
-<div class="mx-auto max-w-2xl">
-  <div class="card">
-    <div class="card-header"><h1 class="card-title">Clone “{{ theme.name }}”</h1><i data-lucide="copy" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i></div>
-    <form method="post" novalidate>
-      <div class="card-body">
-        {% csrf_token %}
-        {% include "tailwind/errors.html" %}
-        {% for field in form %}{{ field|as_crispy_field }}{% endfor %}
-        <p class="help-text">The clone is a new draft with its own code. The original is not changed.</p>
-      </div>
-      <div class="card-footer flex flex-wrap gap-3">
-        <button type="submit" class="btn btn-primary">Clone and customize</button>
-        <a href="{{ theme.get_absolute_url }}" class="btn btn-secondary">Cancel</a>
-      </div>
-    </form>
-  </div>
+<div class="card">
+  <form method="post" novalidate x-data="formGuard" @submit="onSubmit" @input="markDirty" @beforeunload.window="warn" @pageshow.window="reset">
+    <div class="card-body">
+      {% csrf_token %}
+      {% include "tailwind/errors.html" %}
+      {% for field in form %}{{ field|as_crispy_field }}{% endfor %}
+    </div>
+    <div class="card-footer">
+      {% url 'themes:detail' theme.pk as cancel_url %}
+      {% include "components/forms/actions.html" with submit_label="Clone and customize" submit_icon="copy" cancel_url=cancel_url %}
+    </div>
+  </form>
 </div>
 {% endblock %}

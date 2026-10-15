@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}UI components &middot; {{ APP_NAME }}{% endblock %}
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "UI components" %}{% endblock %}
+
+{% block page_header %}
+  {% page_header title="UI components" subtitle="The design system in one place: every component below is a reusable partial or template tag. Platform staff only." icon="component" %}
+    {% button "Theme editor" href="/themes/" variant="secondary" icon="palette" %}
+  {% endpage_header %}
+{% endblock %}
+
+{% block content %}
+<div class="grid gap-8 lg:grid-cols-[12rem_minmax(0,1fr)]">
+  <nav class="hidden lg:block" aria-label="On this page">
+    <ul class="sticky top-20 space-y-1 text-sm">
+      {% for anchor, label in anchors %}<li><a href="#{{ anchor }}" class="block rounded-md px-2 py-1 hover:bg-muted">{{ label }}</a></li>{% endfor %}
+    </ul>
+  </nav>
+
+  <div class="min-w-0 space-y-10">
+    {# ------------------------------------------------------------------ Buttons #}
+    <section id="buttons" aria-labelledby="h-buttons" class="scroll-mt-20">
+      <h2 id="h-buttons" class="mb-3 text-lg font-semibold">Buttons</h2>
+      <p class="mb-3 text-sm text-muted-foreground">One hierarchy: a single <strong>primary</strong> per view, then secondary / outline / ghost; <strong>danger</strong> always asks for confirmation. <code>{% templatetag openblock %} button "Label" variant="primary" icon="plus" {% templatetag closeblock %}</code></p>
+      <div class="card"><div class="card-body flex flex-wrap items-center gap-3">
+        {% button "Primary" variant="primary" icon="plus" %}
+        {% button "Secondary" variant="secondary" %}
+        {% button "Outline" variant="outline" %}
+        {% button "Ghost" variant="ghost" %}
+        {% button "Danger" variant="danger" icon="trash-2" %}
+        {% button "Link" variant="link" %}
+        {% button "More actions" variant="ghost" icon="ellipsis-vertical" icon_only=True %}
+        {% button "Disabled" variant="primary" disabled=True %}
+        {% button "Small" variant="secondary" size="sm" %}
+        {% button "Large" variant="primary" size="lg" %}
+      </div></div>
+    </section>
+
+    {# ------------------------------------------------------------------ Cards #}
+    <section id="cards" aria-labelledby="h-cards" class="scroll-mt-20">
+      <h2 id="h-cards" class="mb-3 text-lg font-semibold">Cards &amp; stat cards</h2>
+      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {% include "components/cards/stat_card.html" with label="Assigned" value="124" icon="clipboard-list" hint="This week" %}
+        {% include "components/cards/stat_card.html" with label="Completed" value="87" icon="circle-check" hint="70% of assigned" %}
+        {% include "components/cards/stat_card.html" with label="Findings" value="16" icon="triangle-alert" hint="4 high severity" %}
+        {% include "components/cards/stat_card.html" with label="Overdue" value="8" icon="clock-alert" hint="Needs attention" %}
+      </div>
+      <div class="mt-4 grid gap-4 md:grid-cols-2">
+        {% card title="Standard card" subtitle="Surface, thin border, subtle shadow" icon="layers" %}<p class="text-sm text-muted-foreground">Cards give structure; they carry no colour of their own.</p>{% endcard %}
+        {% card title="Tinted card" tone="warning" icon="triangle-alert" %}<p class="text-sm">Semantic tones: success, warning, danger, info, neutral.</p>{% endcard %}
+      </div>
+    </section>
+
+    {# ------------------------------------------------------------------ Badges #}
+    <section id="badges" aria-labelledby="h-badges" class="scroll-mt-20">
+      <h2 id="h-badges" class="mb-3 text-lg font-semibold">Badges &amp; status</h2>
+      <p class="mb-3 text-sm text-muted-foreground">A status is a tone <em>plus</em> an icon and a label - never colour alone. <code>{% templatetag openblock %} status_badge "overdue" {% templatetag closeblock %}</code></p>
+      <div class="card"><div class="card-body flex flex-wrap gap-2">
+        {% for key in statuses %}{% status_badge key %}{% endfor %}
+      </div></div>
+    </section>
+
+    {# ------------------------------------------------------------------ Alerts #}
+    <section id="alerts" aria-labelledby="h-alerts" class="scroll-mt-20">
+      <h2 id="h-alerts" class="mb-3 text-lg font-semibold">Alerts &amp; toasts</h2>
+      <div class="space-y-2">
+        {% include "components/alerts/alert.html" with tone="success" message="Checklist saved." %}
+        {% include "components/alerts/alert.html" with tone="warning" title="Heads up" message="Two items are overdue." %}
+        {% include "components/alerts/alert.html" with tone="danger" message="The upload failed." %}
+        {% include "components/alerts/alert.html" with tone="info" message="A new version is available." %}
+      </div>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <button type="button" class="btn btn-secondary btn-sm" data-demo-toast="success">Success toast</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-demo-toast="info">Info toast</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-demo-toast="warning">Warning toast</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-demo-toast="error">Error toast</button>
+      </div>
+    </section>
+
+    {# ------------------------------------------------------------------ Forms #}
+    <section id="forms" aria-labelledby="h-forms" class="scroll-mt-20">
+      <h2 id="h-forms" class="mb-3 text-lg font-semibold">Forms</h2>
+      <div class="card">
+        <form class="card-body grid gap-x-6 gap-y-4 sm:grid-cols-2" novalidate x-data="formGuard" @submit="onSubmit" @input="markDirty" @beforeunload.window="warn" @pageshow.window="reset">
+          <h3 class="form-section-title sm:col-span-2">Basic information</h3>
+          <div><label class="label" for="demo-name">Name <span class="required-mark" aria-hidden="true">*</span></label><input id="demo-name" class="input" type="text" value="Safety inspection" required><p class="help-text">Shown in lists and reports.</p></div>
+          <div><label class="label" for="demo-select">Status</label><select id="demo-select" class="select"><option>Draft</option><option>Published</option></select></div>
+          <div><label class="label" for="demo-date">Date</label><input id="demo-date" class="input" type="date"></div>
+          <div><label class="label" for="demo-datetime">Date and time</label><input id="demo-datetime" class="input" type="datetime-local"></div>
+          <div class="sm:col-span-2"><label class="label" for="demo-textarea">Description</label><textarea id="demo-textarea" class="textarea" rows="3"></textarea></div>
+          <div><label class="label" for="demo-invalid">Code <span class="required-mark" aria-hidden="true">*</span></label><input id="demo-invalid" class="input" type="text" aria-invalid="true" aria-describedby="demo-invalid-error" value="bad code!"><ul class="errorlist" id="demo-invalid-error"><li>Use letters, digits and underscores only.</li></ul></div>
+          <fieldset><legend class="label">Notification channel</legend>
+            <label class="mb-1 flex items-center gap-2 text-sm"><input class="radio" type="radio" name="demo-radio" checked> Email</label>
+            <label class="flex items-center gap-2 text-sm"><input class="radio" type="radio" name="demo-radio"> In-app</label></fieldset>
+          <label class="flex items-center gap-2 text-sm"><input class="checkbox" type="checkbox" checked> Require a signature</label>
+          <div>{% include "components/forms/switch.html" with id="demo-switch" name="demo_switch" label="Allow offline use" help="Download for use without a connection." checked=True %}</div>
+          <div class="sm:col-span-2">{% include "components/forms/file_upload.html" with id="demo-file" name="demo_file" label="Logo" help="PNG or JPG, up to 2 MB. Validated on upload." accept="image/png,image/jpeg" %}</div>
+          <div class="sm:col-span-2">{% include "components/forms/actions.html" with submit_label="Save changes" submit_icon="save" cancel_url="#forms" %}</div>
+        </form>
+      </div>
+    </section>
+
+    {# ------------------------------------------------------------------ Tables #}
+    <section id="tables" aria-labelledby="h-tables" class="scroll-mt-20">
+      <h2 id="h-tables" class="mb-3 text-lg font-semibold">Tables &amp; row actions</h2>
+      <p class="mb-3 text-sm text-muted-foreground">Add <code>table-stack</code> and a <code>data-label</code> per cell and each row becomes a labelled card on phones.</p>
+      <div class="card">
+        <div class="table-wrap overflow-x-auto">
+          <table class="table table-stack" aria-label="Sample checklist templates">
+            <thead><tr><th scope="col">Name</th><th scope="col">Version</th><th scope="col">Status</th><th scope="col">Updated</th><th scope="col" class="text-right">Actions</th></tr></thead>
+            <tbody>
+              {% for row in sample_rows %}
+                <tr>
+                  <td data-label="Name" class="font-medium">{{ row.name }}</td>
+                  <td data-label="Version">{{ row.version }}</td>
+                  <td data-label="Status">{% status_badge row.status %}</td>
+                  <td data-label="Updated">{{ row.updated }}</td>
+                  <td data-label="Actions" class="text-right">{% include "components/tables/row_actions.html" with label="Actions for "|add:row.name actions=sample_actions %}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="card-footer"><ul class="pagination"><li><span>Previous</span></li><li><span class="current" aria-current="page">1</span></li><li><a href="#tables">2</a></li><li><a href="#tables">Next</a></li></ul></div>
+      </div>
+    </section>
+
+    {# ------------------------------------------------------------------ Modals / drawers / dropdowns #}
+    <section id="overlays" aria-labelledby="h-overlays" class="scroll-mt-20">
+      <h2 id="h-overlays" class="mb-3 text-lg font-semibold">Modals, drawers, dropdowns &amp; tooltips</h2>
+      <div class="flex flex-wrap items-center gap-3">
+        {% button "Open modal" variant="secondary" icon="app-window" modal="demo-modal" %}
+        {% button "Open drawer" variant="secondary" icon="panel-right" modal="demo-drawer" %}
+        {% include "components/modals/confirm.html" with id="demo-confirm" trigger="Delete template" trigger_icon="trash-2" tone="danger" title="Delete this template?" message="This cannot be undone. Existing executions keep their data." action="#overlays" confirm_label="Delete" %}
+        <div class="relative" x-data="dropdown" @keydown.escape="closeAndFocus" @click.outside="close" @keydown="onKeydown">
+          <button type="button" class="btn btn-secondary" @click="toggle" :aria-expanded="open" aria-haspopup="true" aria-controls="demo-menu">Menu <i data-lucide="chevron-down" class="h-4 w-4" aria-hidden="true"></i></button>
+          <div id="demo-menu" role="menu" aria-label="Demo menu" x-show="open" x-cloak class="menu-panel absolute left-0 z-40 mt-1 w-48">
+            <a href="#overlays" role="menuitem" class="menu-item">{% icon "pencil" %} Edit</a>
+            <a href="#overlays" role="menuitem" class="menu-item">{% icon "copy" %} Duplicate</a>
+            <a href="#overlays" role="menuitem" class="menu-item text-danger-text">{% icon "trash-2" %} Delete</a>
+          </div>
+        </div>
+        <button type="button" class="btn btn-ghost btn-icon" data-tooltip="Hover or focus me" data-tooltip-side="bottom" aria-label="Tooltip example">{% icon "info" "md" %}</button>
+      </div>
+      {% modal id="demo-modal" title="Example dialog" description="Built on the native dialog element." %}
+        <p class="text-sm text-muted-foreground">Focus is trapped, Escape closes it, and the page behind is inert - all from the browser.</p>
+        <div class="mt-5 flex justify-end gap-2"><button type="button" class="btn btn-secondary" data-modal-close>Close</button><button type="button" class="btn btn-primary" data-modal-close>Got it</button></div>
+      {% endmodal %}
+      {% drawer id="demo-drawer" title="Example drawer" %}
+        <p class="text-sm text-muted-foreground">Use drawers for secondary tasks: filters, details, quick edits.</p>
+      {% enddrawer %}
+    </section>
+
+    {# ------------------------------------------------------------------ Tabs / breadcrumbs / steps / progress #}
+    <section id="navigation" aria-labelledby="h-navigation" class="scroll-mt-20">
+      <h2 id="h-navigation" class="mb-3 text-lg font-semibold">Tabs, breadcrumbs, steps &amp; progress</h2>
+      <div class="card"><div class="card-body">
+        <div x-data="tabs">
+          {% include "components/navigation/tab_buttons.html" with tabs=sample_tabs label="Template sections" %}
+          <div role="tabpanel" id="panel-overview" data-tab-panel="overview" aria-labelledby="tab-overview"><p class="text-sm">Overview content. Arrow keys switch tabs; the tab is kept in the URL hash.</p></div>
+          <div role="tabpanel" id="panel-sections" data-tab-panel="sections" aria-labelledby="tab-sections" hidden><p class="text-sm">Sections content.</p></div>
+          <div role="tabpanel" id="panel-activity" data-tab-panel="activity" aria-labelledby="tab-activity" hidden><p class="text-sm">Activity content.</p></div>
+        </div>
+        <hr class="my-5 border-border">
+        {% breadcrumbs "Home" "core:home" "Checklists" "core:ui" "Templates" "core:ui" "Safety inspection" %}
+        <hr class="my-5 border-border">
+        {% include "components/progress/steps.html" with steps=sample_steps %}
+        <div class="mt-5 max-w-sm">{% include "components/progress/progress.html" with value=62 label="Completion" %}<p class="mt-1 text-xs text-muted-foreground">62% complete</p></div>
+        <div class="mt-5 flex items-center gap-3">{% include "components/avatars/avatar.html" with user=user size="sm" %}{% include "components/avatars/avatar.html" with user=user %}{% include "components/avatars/avatar.html" with user=user size="lg" %}</div>
+      </div></div>
+    </section>
+
+    {# ------------------------------------------------------------------ Tree #}
+    <section id="tree" aria-labelledby="h-tree" class="scroll-mt-20">
+      <h2 id="h-tree" class="mb-3 text-lg font-semibold">Tree view</h2>
+      <p class="mb-3 text-sm text-muted-foreground">Generic hierarchy: any depth, keyboard accessible (arrows), lazy branches via <code>children_url</code>. Below: a static sample, then <em>your</em> top-level locations loading their children on demand.</p>
+      <div class="grid gap-4 md:grid-cols-2">
+        {% card title="Static sample" icon="folder-tree" %}{% include "components/tree/tree.html" with nodes=sample_tree label="Sample hierarchy" %}{% endcard %}
+        {% card title="Your locations (lazy)" icon="network" %}
+          {% if real_tree %}{% include "components/tree/tree.html" with nodes=real_tree label="Your locations" %}
+          {% else %}{% include "components/states/empty.html" with icon="network" title="No locations yet" message="Create locations to see them load here, one level at a time." %}{% endif %}
+        {% endcard %}
+      </div>
+    </section>
+
+    {# ------------------------------------------------------------------ Timeline #}
+    <section id="timeline" aria-labelledby="h-timeline" class="scroll-mt-20">
+      <h2 id="h-timeline" class="mb-3 text-lg font-semibold">Activity timeline</h2>
+      {% card title="Recent activity" icon="history" %}{% include "components/timeline/timeline.html" with days=sample_timeline %}{% endcard %}
+    </section>
+
+    {# ------------------------------------------------------------------ States #}
+    <section id="states" aria-labelledby="h-states" class="scroll-mt-20">
+      <h2 id="h-states" class="mb-3 text-lg font-semibold">Empty, loading &amp; error states</h2>
+      <div class="grid gap-4 md:grid-cols-3">
+        <div class="card">{% include "components/states/empty.html" with icon="clipboard-list" title="No checklist templates" message="Create your first template to get started." action_url="#states" action_label="Create template" %}</div>
+        <div class="card"><div class="card-body">{% include "components/states/loading.html" with kind="list" %}</div></div>
+        <div class="card">{% include "components/states/error.html" with retry_url="#states" %}</div>
+      </div>
+      <div class="card mt-4"><div class="card-body">{% include "components/states/loading.html" with kind="table" %}</div></div>
+    </section>
+
+    {# ------------------------------------------------------------------ Network / search #}
+    <section id="feedback" aria-labelledby="h-feedback" class="scroll-mt-20">
+      <h2 id="h-feedback" class="mb-3 text-lg font-semibold">Network status &amp; search</h2>
+      <div class="card"><div class="card-body flex flex-wrap items-center gap-6">
+        <div><p class="mb-2 text-sm font-medium">Network status</p>{% include "components/feedback/network_status.html" %}<p class="mt-1 text-xs text-muted-foreground">Visible from the md breakpoint up in the top bar; the offline banner shows on every size.</p></div>
+        <div><p class="mb-2 text-sm font-medium">Global search</p><p class="text-sm text-muted-foreground">Press <kbd class="rounded border border-border px-1">/</kbd> or <kbd class="rounded border border-border px-1">Ctrl K</kbd>.</p></div>
+      </div></div>
+    </section>
+
+    {# ------------------------------------------------------------------ Tokens #}
+    <section id="tokens" aria-labelledby="h-tokens" class="scroll-mt-20">
+      <h2 id="h-tokens" class="mb-3 text-lg font-semibold">Semantic tokens</h2>
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {% for name, classes in token_swatches %}<div class="rounded-md border border-border p-3 text-xs {{ classes }}">{{ name }}</div>{% endfor %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

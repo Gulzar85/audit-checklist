@@ -1,0 +1,10 @@
+{% comment %}In-page tab buttons (WAI-ARIA tabs). Params: tabs (key, label, icon), label.  Parent has x-data="tabs".{% endcomment %}
+<div class="tabs" role="tablist" aria-label="{{ label|default:'Sections' }}" @keydown="onKeydown">
+  {% for tab in tabs %}
+    <button type="button" role="tab" id="tab-{{ tab.key }}" class="tab" data-tab="{{ tab.key }}"
+            aria-controls="panel-{{ tab.key }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+            tabindex="{% if forloop.first %}0{% else %}-1{% endif %}" @click="select">
+      {% if tab.icon %}<i data-lucide="{{ tab.icon }}" class="h-4 w-4" aria-hidden="true"></i>{% endif %}{{ tab.label }}
+    </button>
+  {% endfor %}
+</div>

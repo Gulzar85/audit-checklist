@@ -1,0 +1,25 @@
+{% extends "base_root.html" %}
+{% comment %}
+Standalone layout for signed-out pages (sign-in, authentication errors).  Brand on top, one card,
+a quiet footer.  Fully theme-aware: semantic tokens only.
+{% endcomment %}
+{% block shell %}
+  <div class="flex min-h-dvh flex-col bg-background">
+    <main id="main" class="flex flex-1 items-center justify-center px-4 py-10">
+      <div class="w-full max-w-md">
+        <div class="mb-8 text-center">
+          {% include "components/navigation/brand_mark.html" with size="lg" %}
+          <p class="mt-4 text-2xl font-semibold tracking-tight text-foreground">{{ APP_NAME }}</p>
+          {% block auth_tagline %}<p class="mt-1 text-sm text-muted-foreground">Sign in with your organization</p>{% endblock %}
+        </div>
+        {% block content %}{% endblock %}
+        <p class="mt-6 flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
+          <i data-lucide="shield-check" class="h-3.5 w-3.5" aria-hidden="true"></i> Secure enterprise access
+        </p>
+      </div>
+    </main>
+    <footer class="px-4 py-4 text-center text-xs text-muted-foreground">
+      {{ APP_NAME }} &middot; v{{ APP_VERSION }}
+    </footer>
+  </div>
+{% endblock %}

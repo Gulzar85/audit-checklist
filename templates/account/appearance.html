@@ -1,34 +1,22 @@
 {% extends "base.html" %}
-{% load crispy_forms_tags %}
+{% load crispy_forms_tags ui %}
 
 {% block title %}Appearance &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-narrow{% endblock %}
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Preferences" "accounts:preferences" "Appearance" %}{% endblock %}
+{% block page_header %}{% page_header title="Appearance" subtitle="Choose a light, dark or system-matched colour mode. It is saved to your account and follows you to any device." icon="sun-moon" %}{% endpage_header %}{% endblock %}
 
 {% block content %}
-<div class="mx-auto max-w-xl">
-  <nav class="breadcrumbs mb-4" aria-label="Breadcrumb">
-    <ol class="flex items-center">
-      <li><a href="{% url 'core:home' %}">Home</a></li>
-      <li><a href="{% url 'accounts:preferences' %}">Preferences</a></li>
-      <li aria-current="page">Appearance</li>
-    </ol>
-  </nav>
-
-  <div class="card">
-    <div class="card-header">
-      <h1 class="card-title">Appearance</h1>
-      <i data-lucide="sun-moon" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
-    </div>
+<div class="card">
+  <form method="post" action="{% url 'accounts:appearance' %}" novalidate x-data="formGuard" @submit="onSubmit" @input="markDirty" @beforeunload.window="warn" @pageshow.window="reset">
     <div class="card-body">
-      <p class="help-text mb-6">
-        Choose whether {{ APP_NAME }} uses a light, dark, or system-matched colour mode. Your
-        choice is remembered on this account and follows you to any device.
-      </p>
-      <form method="post" action="{% url 'accounts:appearance' %}" novalidate>
-        {% csrf_token %}
-        {{ form|crispy }}
-        <button type="submit" class="btn btn-primary mt-6">Save appearance</button>
-      </form>
+      {% csrf_token %}
+      {{ form|crispy }}
     </div>
-  </div>
+    <div class="card-footer">
+      {% url 'accounts:preferences' as cancel_url %}
+      {% include "components/forms/actions.html" with submit_label="Save appearance" submit_icon="save" cancel_url=cancel_url %}
+    </div>
+  </form>
 </div>
 {% endblock %}

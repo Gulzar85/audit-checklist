@@ -1,0 +1,18 @@
+{% load ui %}{% comment %}
+A surface.  `{% card title="..." subtitle="..." icon="..." tone="danger" flush=True %}body{% endcard %}`.
+tone adds a semantic tint (success|warning|danger|info|neutral); flush drops body padding (tables, lists).
+{% endcomment %}
+<section class="card{% if tone %} card-{{ tone }}{% endif %}{% if css %} {{ css }}{% endif %}">
+  {% if title %}
+    <div class="card-header">
+      <div class="flex min-w-0 items-center gap-2">
+        {% if icon %}<span class="text-muted-foreground">{% icon icon "md" %}</span>{% endif %}
+        <div class="min-w-0">
+          <h{{ level }} class="card-title">{{ title }}</h{{ level }}>
+          {% if subtitle %}<p class="text-xs text-muted-foreground">{{ subtitle }}</p>{% endif %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+  <div{% if not flush %} class="card-body"{% endif %}>{{ body }}</div>
+</section>

@@ -1,30 +1,14 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}{{ theme.name }} · {{ APP_NAME }}{% endblock %}
 
-{% block content %}
-<nav class="breadcrumbs mb-4" aria-label="Breadcrumbs">
-  <ol>
-    <li><a href="{% url 'core:home' %}">Home</a></li>
-    <li><a href="{% url 'themes:list' %}">Themes</a></li>
-    <li aria-current="page">{{ theme.name }}</li>
-  </ol>
-</nav>
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Themes" "themes:list" theme.name %}{% endblock %}
 
-<div class="mb-6 flex flex-wrap items-start justify-between gap-4">
-  <div class="flex items-center gap-3">
-    <span class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-      <i data-lucide="palette" class="h-6 w-6" aria-hidden="true"></i>
-    </span>
-    <div>
-      <h1 class="text-2xl font-bold tracking-tight">{{ theme.name }}</h1>
-      <p class="text-sm text-muted-foreground">
-        Code <span class="font-mono">{{ theme.code }}</span> · v{{ theme.version }} ·
-        {% if theme.organization %}{{ theme.organization.name }}{% else %}System (application-wide){% endif %}
-      </p>
-    </div>
-  </div>
-  <div class="flex flex-wrap items-center gap-2">
-    {% include "themes/_status_badge.html" with status=theme.status %}
+{% block page_header %}
+{% with version_text=theme.version|stringformat:"d" scope_text=theme.organization.name|default:"System (application-wide)" %}
+{% with theme_sub="Code "|add:theme.code|add:" · v"|add:version_text|add:" · "|add:scope_text %}
+{% page_header title=theme.name subtitle=theme_sub icon="palette" status=theme.status %}
+{% include "themes/_status_badge.html" with status=theme.status %}
     {% if can_edit %}<a href="{% url 'themes:edit' theme.pk %}" class="btn btn-secondary"><i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i> Edit</a>{% endif %}
     {% if can_preview %}
       <form method="post" action="{% url 'themes:try' theme.pk %}">{% csrf_token %}<button type="submit" class="btn btn-secondary"><i data-lucide="eye" class="h-4 w-4" aria-hidden="true"></i> Preview in app</button></form>
@@ -46,9 +30,12 @@
     {% if can_archive %}
       <form method="post" action="{% url 'themes:archive' theme.pk %}">{% csrf_token %}<button type="submit" class="btn btn-ghost"><i data-lucide="archive" class="h-4 w-4" aria-hidden="true"></i> Archive</button></form>
     {% endif %}
-  </div>
-</div>
+{% endpage_header %}
+{% endwith %}
+{% endwith %}
+{% endblock %}
 
+{% block content %}
 {% if not theme.is_editable and theme.status != "archived" %}
   <div class="alert alert-info mb-6" role="status">
     <i data-lucide="lock" class="h-5 w-5 shrink-0" aria-hidden="true"></i>

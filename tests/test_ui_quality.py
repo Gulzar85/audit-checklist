@@ -224,7 +224,7 @@ class TestPwaAndResponsive:
 
     def test_mobile_navigation_exists_and_is_labelled(self, pages):
         html = pages["location tree"]
-        assert 'id="mobile-nav"' in html and 'aria-controls="mobile-nav"' in html
+        assert 'id="app-sidebar"' in html and 'aria-controls="app-sidebar"' in html
         assert 'aria-label="Open navigation menu"' in html
 
     def test_service_worker_precaches_the_new_script_and_still_bypasses_api_and_admin(self, client):

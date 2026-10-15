@@ -1,0 +1,17 @@
+{% comment %}
+Breadcrumbs: `{% breadcrumbs "Home" "core:home" "Organizations" "organizations:list" "Acme" %}`.
+The last item is the current page.  On phones only the first and last items show, with an
+ellipsis between, so the trail never wraps into several lines.
+{% endcomment %}
+<nav class="breadcrumbs mb-3" aria-label="Breadcrumbs">
+  <ol>
+    {% for crumb in trail %}
+      <li{% if not forloop.first and not forloop.last %} class="hidden sm:list-item"{% endif %}>
+        {% if forloop.last %}<span aria-current="page" class="font-medium text-foreground">{{ crumb.label }}</span>
+        {% elif crumb.url %}<a href="{{ crumb.url }}">{{ crumb.label }}</a>
+        {% else %}<span>{{ crumb.label }}</span>{% endif %}
+      </li>
+      {% if forloop.first and trail|length > 2 %}<li class="sm:hidden" aria-hidden="true">&hellip;</li>{% endif %}
+    {% endfor %}
+  </ol>
+</nav>

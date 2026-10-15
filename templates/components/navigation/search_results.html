@@ -1,0 +1,29 @@
+{% comment %}Grouped search results (HTMX fragment). Params: groups, query, too_short.{% endcomment %}
+{% if too_short %}
+  <div class="state py-8">
+    <p class="text-sm text-muted-foreground">Type at least two characters to search organizations and locations.</p>
+  </div>
+{% elif groups %}
+  {% for group in groups %}
+    <section aria-label="{{ group.label }}">
+      <h3 class="command-group-title">{{ group.label }}</h3>
+      <ul>
+        {% for item in group.items %}
+          <li>
+            <a href="{{ item.url }}" class="command-item">
+              <i data-lucide="{{ group.icon }}" class="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true"></i>
+              <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
+              <span class="truncate text-xs text-muted-foreground">{{ item.meta }}</span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endfor %}
+{% else %}
+  <div class="state py-8">
+    <span class="state-icon"><i data-lucide="search-x" class="h-6 w-6" aria-hidden="true"></i></span>
+    <p class="font-medium text-foreground">No results for “{{ query }}”</p>
+    <p class="text-sm text-muted-foreground">Check the spelling, or try a code or a shorter name.</p>
+  </div>
+{% endif %}

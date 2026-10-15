@@ -15,7 +15,7 @@ def test_home_page_renders_for_anonymous(client):
     assert "manifest.webmanifest" in body
     assert "system health" not in body.lower()
     # The default page is a standalone login screen: no navigation menu.
-    assert 'id="mobile-nav"' not in body
+    assert 'id="app-sidebar"' not in body
     assert 'aria-label="Primary"' not in body
 
 
@@ -29,7 +29,7 @@ def test_home_page_renders_for_authenticated_user(client, user):
     assert "manifest.webmanifest" in body
     assert "system health" in body.lower()
     # Signed in: the full navigation menu is shown.
-    assert 'id="mobile-nav"' in body or 'aria-label="Primary"' in body
+    assert 'id="app-sidebar"' in body and 'aria-label="Primary"' in body
 
 
 @pytest.mark.django_db

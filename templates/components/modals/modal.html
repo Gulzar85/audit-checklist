@@ -1,0 +1,19 @@
+{% comment %}
+A modal on the native <dialog> element (focus trap, Escape and inert page come from the browser).
+Open: any control with data-modal-open="<id>"; close: data-modal-close or the backdrop.
+Use `{% modal id="x" title="..." %}...{% endmodal %}`.
+{% endcomment %}
+<dialog id="{{ id }}" class="modal-dialog{% if size == 'lg' %} max-w-2xl!{% elif size == 'sm' %} max-w-sm!{% endif %}" aria-labelledby="{{ id }}-title"{% if description %} aria-describedby="{{ id }}-desc"{% endif %} data-backdrop-close>
+  <div class="p-6">
+    <div class="mb-4 flex items-start justify-between gap-4">
+      <div>
+        <h2 id="{{ id }}-title" class="text-lg font-semibold text-foreground">{{ title }}</h2>
+        {% if description %}<p id="{{ id }}-desc" class="mt-1 text-sm text-muted-foreground">{{ description }}</p>{% endif %}
+      </div>
+      <button type="button" class="btn btn-ghost btn-icon btn-sm -mr-2 -mt-1 shrink-0" data-modal-close aria-label="Close dialog">
+        <i data-lucide="x" class="h-4 w-4" aria-hidden="true"></i>
+      </button>
+    </div>
+    {{ body }}
+  </div>
+</dialog>

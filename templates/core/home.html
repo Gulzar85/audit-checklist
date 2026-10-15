@@ -1,67 +1,65 @@
 {% extends "base.html" %}
+{% load ui %}
 
-{% block title %}{{ APP_NAME }} &middot; Generic Checklist &amp; Inspection Platform{% endblock %}
+{% block title %}Dashboard &middot; {{ APP_NAME }}{% endblock %}
+
+{% block breadcrumbs %}{% breadcrumbs "Dashboard" %}{% endblock %}
+
+{% block page_header %}
+  {% if dashboard_organization %}
+    {% page_header title="Dashboard" subtitle="Welcome back, "|add:user.get_short_name|add:". Here is what is happening in "|add:dashboard_organization.name|add:"." icon="layout-dashboard" %}
+      {% button "Locations" href="/locations/tree/" variant="secondary" icon="network" %}
+    {% endpage_header %}
+  {% else %}
+    {% page_header title="Dashboard" subtitle="Welcome back. You are not a member of an organization yet." icon="layout-dashboard" %}{% endpage_header %}
+  {% endif %}
+{% endblock %}
 
 {% block content %}
-<section class="mb-10">
-  <span class="badge badge-info mb-3">Phase 2 &middot; Identity</span>
-  <h1 class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-    Generic Enterprise Checklist &amp; Inspection Platform
-  </h1>
-  <p class="mt-3 max-w-3xl text-lg text-muted-foreground">
-    One checklist engine for QA audits, operations inspections, restaurant and safety checks,
-    and compliance programmes &mdash; with configurable scoring, findings, corrective actions,
-    workflow and offline execution.
-  </p>
-  <div class="mt-6 flex flex-wrap gap-3">
-    <a href="/api/docs/" class="btn btn-primary">
-      <i data-lucide="book-open" class="h-4 w-4" aria-hidden="true"></i> API documentation
-    </a>
-    <a href="/admin/" class="btn btn-secondary">
-      <i data-lucide="shield" class="h-4 w-4" aria-hidden="true"></i> Open admin
-    </a>
-  </div>
+<section aria-label="Key figures" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  {% url 'organizations:list' as organizations_url %}{% url 'locations:list' as locations_url %}{% url 'locations:type_list' as types_url %}
+  {% include "components/cards/stat_card.html" with label="Organizations" value=organization_count icon="building-2" href=organizations_url hint="You can access" %}
+  {% include "components/cards/stat_card.html" with label="Locations" value=location_total icon="network" href=locations_url hint=location_active|stringformat:"d"|add:" active" %}
+  {% include "components/cards/stat_card.html" with label="Location types" value=location_type_count icon="tags" href=types_url hint="Configurable hierarchy levels" %}
+  {% include "components/cards/stat_card.html" with label="Inactive locations" value=location_inactive icon="circle-off" hint="Kept for history, not deleted" %}
 </section>
 
-<div class="grid gap-8 lg:grid-cols-3">
-  <div class="space-y-8 lg:col-span-2">
-    <section class="card">
-      <div class="card-header">
-        <h2 class="card-title">Platform capabilities</h2>
-        <span class="badge badge-neutral">10 modules</span>
-      </div>
-      <div class="card-body grid gap-4 sm:grid-cols-2">
-        {% for feature in features %}
-          <div class="flex items-start gap-3">
-            <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-link">
-              <i data-lucide="{{ feature.icon }}" class="h-5 w-5" aria-hidden="true"></i>
-            </span>
-            <div>
-              <p class="font-medium text-foreground">{{ feature.title }}</p>
-              <p class="text-sm text-muted-foreground">{{ feature.description }}</p>
-            </div>
-          </div>
-        {% endfor %}
-      </div>
-    </section>
+<div class="mt-6 grid gap-6 lg:grid-cols-3">
+  <div class="space-y-6 lg:col-span-2">
+    {% card title="Locations by type" subtitle="How your hierarchy is composed" icon="chart-column" %}
+      {% if locations_by_type %}
+        <ul class="space-y-4">
+          {% for row in locations_by_type %}
+            <li>
+              <div class="mb-1 flex items-baseline justify-between gap-3 text-sm">
+                <span class="font-medium text-foreground">{{ row.name }}</span>
+                <span class="text-muted-foreground">{{ row.count }} <span class="text-xs">({{ row.percent }}%)</span></span>
+              </div>
+              {% include "components/progress/progress.html" with value=row.percent label=row.name|add:" share of locations" %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        {% include "components/states/empty.html" with icon="network" title="No locations yet" message="Add location types and locations to see how your hierarchy is composed." action_url=types_url action_label="Set up location types" action_icon="tags" %}
+      {% endif %}
+    {% endcard %}
 
-    <section class="card">
-      <div class="card-header">
-        <h2 class="card-title">Domain architecture</h2>
-      </div>
-      <div class="card-body">
-        <pre class="overflow-x-auto rounded-lg bg-foreground p-4 text-xs leading-relaxed text-background"><code>Organization
-  └─ Locations
-      └─ Checklist Template ─▶ Version ─▶ Sections ─▶ Items ─▶ Answer Types / Options / Rules
-              │
-              └─ Execution ─▶ Responses ─▶ Evidence ─▶ Findings ─▶ Corrective Actions ─▶ Verification
-
-Cross-cutting: Users · Roles · Permissions · Workflow · Scoring · Notifications · Activity History</code></pre>
-      </div>
-    </section>
+    {% card title="Recent activity" subtitle="Latest events in the current organization" icon="history" %}
+      {% include "components/timeline/timeline.html" with days=activity_days %}
+    {% endcard %}
   </div>
 
-  <div class="space-y-8">
+  <div class="space-y-6">
+    {% card title="Location status" icon="circle-check" %}
+      {% if location_total %}
+        <p class="mb-2 text-sm text-muted-foreground">{{ location_active }} of {{ location_total }} locations are active.</p>
+        {% include "components/progress/progress.html" with value=active_percent label="Active locations" %}
+        <p class="mt-2 text-xs text-muted-foreground">{{ active_percent }}% active</p>
+      {% else %}
+        <p class="text-sm text-muted-foreground">Nothing to measure yet.</p>
+      {% endif %}
+    {% endcard %}
+
     <section class="card"
              hx-get="{% url 'core:health-widget' %}"
              hx-trigger="load, every 30s"
@@ -71,28 +69,17 @@ Cross-cutting: Users · Roles · Permissions · Workflow · Scoring · Notificat
         <i data-lucide="activity" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
       </div>
       <div class="card-body">
-        <div class="skeleton h-12 w-full"></div>
+        {% include "components/states/loading.html" with kind="text" %}
       </div>
     </section>
 
-    <section class="card" x-data="disclosure" data-open-label="Hide details" data-closed-label="Show details">
-      <div class="card-header">
-        <h2 class="card-title">Interactive foundation</h2>
-        <span class="badge badge-success">Alpine.js</span>
-      </div>
-      <div class="card-body">
-        <p class="text-sm text-muted-foreground">
-          Alpine.js and HTMX are wired into the shell with a strict, nonce-based CSP.
-        </p>
-        <button type="button" class="btn btn-secondary btn-sm mt-3" @click="toggle" :aria-expanded="open">
-          <i data-lucide="chevron-down" class="h-4 w-4" aria-hidden="true"></i>
-          <span x-text="label">Show details</span>
-        </button>
-        <div x-show="open" x-cloak class="mt-3 rounded-lg bg-muted p-3 text-sm text-muted-foreground">
-          Progressive web app, offline shell, REST API and a service layer are all part of the core.
-        </div>
-      </div>
-    </section>
+    {% card title="Getting started" icon="rocket" %}
+      <ol class="space-y-3 text-sm">
+        <li class="flex gap-3"><span class="step-number shrink-0">1</span><span><a href="{{ types_url }}">Define location types</a> - the levels of your hierarchy (any depth).</span></li>
+        <li class="flex gap-3"><span class="step-number shrink-0">2</span><span><a href="{{ locations_url }}">Add locations</a> under those types.</span></li>
+        <li class="flex gap-3"><span class="step-number shrink-0">3</span><span><a href="{% url 'themes:list' %}">Review the theme</a> so the app matches your brand.</span></li>
+      </ol>
+    {% endcard %}
   </div>
 </div>
 {% endblock %}

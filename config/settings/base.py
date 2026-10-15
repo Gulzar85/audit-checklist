@@ -138,6 +138,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.core.context_processors.site_context",
+                "apps.core.context_processors.shell_context",
                 "apps.themes.context_processors.theme_context",
                 "apps.accounts.context_processors.identity_context",
             ],

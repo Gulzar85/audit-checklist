@@ -1,29 +1,16 @@
 {% extends "base.html" %}
-{% load crispy_forms_tags %}
+{% load crispy_forms_tags ui %}
 
-{% block title %}{% if object %}Edit {{ form.initial.name|default:object.name }}{% else %}New location{% endif %} · {{ APP_NAME }}{% endblock %}
+{% block title %}{% if object %}Edit {{ form.initial.name|default:object.name }}{% else %}New location{% endif %} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-narrow{% endblock %}
+
+{% block breadcrumbs %}{% if object %}{% url 'locations:detail' object.pk as crumb_url_1 %}{% breadcrumbs "Home" "core:home" "Locations" "locations:tree" form.initial.name|default:object.name crumb_url_1 "Edit" %}{% else %}{% breadcrumbs "Home" "core:home" "Locations" "locations:tree" "New location" %}{% endif %}{% endblock %}
+
+{% block page_header %}{% if object %}{% page_header title="Edit location" subtitle="Change this location's details, type or position in the hierarchy." icon="map-pin" %}{% endpage_header %}{% else %}{% page_header title="Create location" subtitle="Add a place to your hierarchy under any parent, at any depth." icon="map-pin" %}{% endpage_header %}{% endif %}{% endblock %}
 
 {% block content %}
-<nav class="breadcrumbs mb-4" aria-label="Breadcrumbs">
-  <ol>
-    <li><a href="{% url 'core:home' %}">Home</a></li>
-    <li><a href="{% url 'locations:tree' %}">Locations</a></li>
-    {% if object %}
-      <li><a href="{% url 'locations:detail' object.pk %}">{{ form.initial.name|default:object.name }}</a></li>
-      <li aria-current="page">Edit</li>
-    {% else %}
-      <li aria-current="page">New location</li>
-    {% endif %}
-  </ol>
-</nav>
-
-<div class="mx-auto max-w-4xl">
-  <div class="card">
-    <div class="card-header">
-      <h1 class="card-title">{% if object %}Edit location{% else %}Create location{% endif %}</h1>
-      <i data-lucide="map-pin" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
-    </div>
-    <form method="post" novalidate data-htmx-scope>
+<div class="card">
+    <form method="post" novalidate data-htmx-scope x-data="formGuard" @submit="onSubmit" @input="markDirty" @beforeunload.window="warn" @pageshow.window="reset">
       <div class="card-body">
         {% csrf_token %}
         {% include "tailwind/errors.html" %}
@@ -34,7 +21,7 @@
         </div>
 
         <fieldset>
-          <legend class="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Basics</legend>
+          <legend class="form-section-title w-full">Basics</legend>
           <div class="grid gap-x-6 sm:grid-cols-2">
             <div class="sm:col-span-2">{{ form.organization|as_crispy_field }}</div>
             {# Re-scoped over HTMX when the organization changes; see LocationRelationsView. #}
@@ -47,8 +34,8 @@
           </div>
         </fieldset>
 
-        <fieldset class="mt-8 border-t border-border pt-6">
-          <legend class="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Address</legend>
+        <fieldset class="mt-8">
+          <legend class="form-section-title w-full">Address</legend>
           <div class="grid gap-x-6 sm:grid-cols-2">
             {% for field in form %}
               {% if field.name in address_fields %}
@@ -58,13 +45,10 @@
           </div>
         </fieldset>
       </div>
-      <div class="card-footer flex flex-wrap gap-3">
-        <button type="submit" class="btn btn-primary">
-          <i data-lucide="save" class="h-4 w-4" aria-hidden="true"></i> Save
-        </button>
-        <a href="{% if object %}{% url 'locations:detail' object.pk %}{% else %}{% url 'locations:tree' %}{% endif %}" class="btn btn-secondary">Cancel</a>
+      <div class="card-footer">
+        {% if object %}{% url 'locations:detail' object.pk as cancel_url %}{% else %}{% url 'locations:tree' as cancel_url %}{% endif %}
+        {% include "components/forms/actions.html" with submit_label="Save" submit_icon="save" cancel_url=cancel_url %}
       </div>
     </form>
-  </div>
 </div>
 {% endblock %}

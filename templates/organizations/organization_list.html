@@ -1,32 +1,20 @@
 {% extends "base.html" %}
-{% load django_tables2 %}
+{% load django_tables2 ui %}
 {% block title %}Organizations · {{ APP_NAME }}{% endblock %}
 
-{% block content %}
-<nav class="breadcrumbs mb-4" aria-label="Breadcrumbs">
-  <ol>
-    <li><a href="{% url 'core:home' %}">Home</a></li>
-    <li aria-current="page">Organizations</li>
-  </ol>
-</nav>
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Organizations" %}{% endblock %}
 
-<div class="mb-6 flex flex-wrap items-center justify-between gap-4">
-  <div class="flex items-center gap-3">
-    <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-      <i data-lucide="building-2" class="h-5 w-5" aria-hidden="true"></i>
-    </span>
-    <div>
-      <h1 class="text-2xl font-bold tracking-tight">Organizations</h1>
-      <p class="text-sm text-muted-foreground">Tenant organizations and their lifecycle.</p>
-    </div>
-  </div>
-  {% if can_create %}
+{% block page_header %}
+{% page_header title="Organizations" subtitle="Tenant organizations and their lifecycle." icon="building-2" %}
+{% if can_create %}
     <a href="{% url 'organizations:create' %}" class="btn btn-primary">
       <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i> New organization
     </a>
   {% endif %}
-</div>
+{% endpage_header %}
+{% endblock %}
 
+{% block content %}
 <div class="card mb-6">
   {% include "components/filter_bar.html" with filter=filter reset_url=request.path hidden=hidden_filters %}
 </div>

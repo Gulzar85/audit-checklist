@@ -1,41 +1,29 @@
 {% extends "base.html" %}
-{% load crispy_forms_tags %}
+{% load crispy_forms_tags ui %}
 
-{% block title %}{% if object %}Edit {{ form.initial.name|default:object.name }}{% else %}New location type{% endif %} · {{ APP_NAME }}{% endblock %}
+{% block title %}{% if object %}Edit {{ form.initial.name|default:object.name }}{% else %}New location type{% endif %} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-narrow{% endblock %}
+
+{% block breadcrumbs %}{% if object %}{% breadcrumbs "Home" "core:home" "Locations" "locations:list" "Types" "locations:type_list" "Edit" %}{% else %}{% breadcrumbs "Home" "core:home" "Locations" "locations:list" "Types" "locations:type_list" "New" %}{% endif %}{% endblock %}
+
+{% block page_header %}{% if object %}{% page_header title="Edit location type" subtitle="Rename or reorder this level of the hierarchy." icon="tags" %}{% endpage_header %}{% else %}{% page_header title="Create location type" subtitle="A location type is one kind of place in your hierarchy, such as Region, Branch or Department." icon="tags" %}{% endpage_header %}{% endif %}{% endblock %}
 
 {% block content %}
-<nav class="breadcrumbs mb-4" aria-label="Breadcrumbs">
-  <ol>
-    <li><a href="{% url 'core:home' %}">Home</a></li>
-    <li><a href="{% url 'locations:list' %}">Locations</a></li>
-    <li><a href="{% url 'locations:type_list' %}">Types</a></li>
-    <li aria-current="page">{% if object %}Edit{% else %}New{% endif %}</li>
-  </ol>
-</nav>
-
-<div class="mx-auto max-w-2xl">
-  <div class="card">
-    <div class="card-header">
-      <h1 class="card-title">{% if object %}Edit location type{% else %}Create location type{% endif %}</h1>
-      <i data-lucide="tags" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
+<div class="card">
+  <form method="post" novalidate x-data="formGuard" @submit="onSubmit" @input="markDirty" @beforeunload.window="warn" @pageshow.window="reset">
+    <div class="card-body">
+      {% csrf_token %}
+      {% include "tailwind/errors.html" %}
+      {{ form.organization|as_crispy_field }}
+      {{ form.name|as_crispy_field }}
+      {{ form.code|as_crispy_field }}
+      {{ form.description|as_crispy_field }}
+      {{ form.sort_order|as_crispy_field }}
     </div>
-    <form method="post" novalidate>
-      <div class="card-body">
-        {% csrf_token %}
-        {% include "tailwind/errors.html" %}
-        {{ form.organization|as_crispy_field }}
-        {{ form.name|as_crispy_field }}
-        {{ form.code|as_crispy_field }}
-        {{ form.description|as_crispy_field }}
-        {{ form.sort_order|as_crispy_field }}
-      </div>
-      <div class="card-footer flex flex-wrap gap-3">
-        <button type="submit" class="btn btn-primary">
-          <i data-lucide="save" class="h-4 w-4" aria-hidden="true"></i> Save
-        </button>
-        <a href="{% url 'locations:type_list' %}" class="btn btn-secondary">Cancel</a>
-      </div>
-    </form>
-  </div>
+    <div class="card-footer">
+      {% url 'locations:type_list' as cancel_url %}
+      {% include "components/forms/actions.html" with submit_label="Save" submit_icon="save" cancel_url=cancel_url %}
+    </div>
+  </form>
 </div>
 {% endblock %}

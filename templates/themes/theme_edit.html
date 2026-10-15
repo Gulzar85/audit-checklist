@@ -1,31 +1,17 @@
 {% extends "base.html" %}
-{% block title %}Edit {{ theme.name }} · {{ APP_NAME }}{% endblock %}
+{% load ui %}
+{% block title %}Edit {{ theme.name }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+
+{% block breadcrumbs %}{% url 'themes:detail' theme.pk as crumb_url_1 %}{% breadcrumbs "Home" "core:home" "Themes" "themes:list" theme.name crumb_url_1 "Edit" %}{% endblock %}
+
+{% block page_header %}{% with version_text=theme.version|stringformat:"d" %}{% with editor_sub=theme.name|add:" · v"|add:version_text|add:". Changes preview instantly and are saved only when you press Save." %}{% page_header title="Theme editor" subtitle=editor_sub icon="palette" status="draft" %}{% endpage_header %}{% endwith %}{% endwith %}{% endblock %}
 
 {% block content %}
-<nav class="breadcrumbs mb-4" aria-label="Breadcrumbs">
-  <ol>
-    <li><a href="{% url 'core:home' %}">Home</a></li>
-    <li><a href="{% url 'themes:list' %}">Themes</a></li>
-    <li><a href="{{ theme.get_absolute_url }}">{{ theme.name }}</a></li>
-    <li aria-current="page">Edit</li>
-  </ol>
+<nav aria-label="Editor sections" class="-mt-2 mb-6 flex flex-wrap gap-1 text-sm">
+  {% for section in form.editor_sections %}<a class="btn btn-ghost btn-sm" href="#section-{{ section.id }}">{{ section.title }}</a>{% endfor %}
+  <a class="btn btn-ghost btn-sm" href="#section-preview">Preview</a>
 </nav>
-
-<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
-  <div class="flex items-center gap-3">
-    <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-      <i data-lucide="palette" class="h-5 w-5" aria-hidden="true"></i>
-    </span>
-    <div>
-      <h1 class="text-2xl font-bold tracking-tight">Theme editor</h1>
-      <p class="text-sm text-muted-foreground">{{ theme.name }} · v{{ theme.version }} · draft. Changes preview instantly and are saved only when you press Save.</p>
-    </div>
-  </div>
-  <nav aria-label="Editor sections" class="flex flex-wrap gap-1 text-sm">
-    {% for section in form.editor_sections %}<a class="btn btn-ghost btn-sm" href="#section-{{ section.id }}">{{ section.title }}</a>{% endfor %}
-    <a class="btn btn-ghost btn-sm" href="#section-preview">Preview</a>
-  </nav>
-</div>
 
 <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,30rem)]" x-data="themePreview">
   <form id="theme-form" method="post" novalidate class="min-w-0"

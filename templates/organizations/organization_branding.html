@@ -1,63 +1,53 @@
 {% extends "base.html" %}
-{% load crispy_forms_tags %}
+{% load crispy_forms_tags ui %}
 
-{% block title %}Branding · {{ object.name }} · {{ APP_NAME }}{% endblock %}
+{% block title %}Branding &middot; {{ object.name }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-narrow{% endblock %}
+
+{% block breadcrumbs %}{% url 'organizations:detail' object.pk as crumb_url_1 %}{% breadcrumbs "Home" "core:home" "Organizations" "organizations:list" object.name crumb_url_1 "Branding" %}{% endblock %}
+
+{% block page_header %}{% page_header title="Branding" subtitle="The logo, favicon and brand colour shown for this organization." icon="palette" %}{% endpage_header %}{% endblock %}
 
 {% block content %}
-<nav class="breadcrumbs mb-4" aria-label="Breadcrumbs">
-  <ol>
-    <li><a href="{% url 'core:home' %}">Home</a></li>
-    <li><a href="{% url 'organizations:list' %}">Organizations</a></li>
-    <li><a href="{% url 'organizations:detail' object.pk %}">{{ object.name }}</a></li>
-    <li aria-current="page">Branding</li>
-  </ol>
-</nav>
+<div class="card">
+  <form method="post" enctype="multipart/form-data" novalidate x-data="formGuard" @submit="onSubmit" @input="markDirty" @beforeunload.window="warn" @pageshow.window="reset">
+    <div class="card-body">
+      {% csrf_token %}
+      {% include "tailwind/errors.html" %}
 
-<div class="mx-auto max-w-3xl">
-  <div class="card">
-    <div class="card-header">
-      <h1 class="card-title">Branding</h1>
-      <i data-lucide="palette" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
+      <div class="mb-6 flex flex-wrap items-center gap-4 rounded-lg border border-border p-4">
+        {% if object.logo %}
+          <img src="{{ object.logo.url }}" alt="Current logo of {{ object.name }}" class="h-14 max-w-48 rounded object-contain">
+        {% else %}
+          <span class="flex h-14 w-14 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <i data-lucide="building-2" class="h-7 w-7" aria-hidden="true"></i>
+          </span>
+        {% endif %}
+        <div>
+          <p class="font-medium">{{ object.name }}</p>
+          <p class="text-sm text-muted-foreground">Preview of the current branding.</p>
+        </div>
+        {% if object.primary_color %}
+          <span class="ml-auto inline-flex items-center gap-2 text-sm text-muted-foreground">
+            <span class="swatch" data-swatch="{{ object.primary_color }}" aria-hidden="true"></span>
+            {{ object.primary_color }}
+          </span>
+        {% endif %}
+      </div>
+
+      <h2 class="form-section-title">Images</h2>
+      <div class="grid gap-x-6 sm:grid-cols-2">
+        <div class="sm:col-span-2">{{ form.logo|as_crispy_field }}</div>
+        <div class="sm:col-span-2">{{ form.favicon|as_crispy_field }}</div>
+      </div>
+      <h2 class="form-section-title mt-4">Colour</h2>
+      <div class="grid gap-x-6 sm:grid-cols-2"><div>{{ form.primary_color|as_crispy_field }}</div></div>
+      <p class="help-text">Uploads are verified: only real PNG, JPEG, WebP or GIF images up to 2 MB are accepted; files are stored under a generated name.</p>
     </div>
-    <form method="post" enctype="multipart/form-data" novalidate>
-      <div class="card-body">
-        {% csrf_token %}
-        {% include "tailwind/errors.html" %}
-
-        <div class="mb-6 flex flex-wrap items-center gap-4 rounded-lg border border-border p-4">
-          {% if object.logo %}
-            <img src="{{ object.logo.url }}" alt="Current logo of {{ object.name }}" class="h-14 max-w-48 rounded object-contain">
-          {% else %}
-            <span class="flex h-14 w-14 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <i data-lucide="building-2" class="h-7 w-7" aria-hidden="true"></i>
-            </span>
-          {% endif %}
-          <div>
-            <p class="font-medium">{{ object.name }}</p>
-            <p class="text-sm text-muted-foreground">Preview of the current branding.</p>
-          </div>
-          {% if object.primary_color %}
-            <span class="ml-auto inline-flex items-center gap-2 text-sm text-muted-foreground">
-              <span class="h-6 w-6 rounded border border-border" data-swatch="{{ object.primary_color }}" aria-hidden="true"></span>
-              {{ object.primary_color }}
-            </span>
-          {% endif %}
-        </div>
-
-        <div class="grid gap-x-6 sm:grid-cols-2">
-          <div class="sm:col-span-2">{{ form.logo|as_crispy_field }}</div>
-          <div class="sm:col-span-2">{{ form.favicon|as_crispy_field }}</div>
-          <div>{{ form.primary_color|as_crispy_field }}</div>
-        </div>
-        <p class="help-text">Uploads are verified: only real PNG, JPEG, WebP or GIF images up to 2 MB are accepted; files are stored under a generated name.</p>
-      </div>
-      <div class="card-footer flex flex-wrap gap-3">
-        <button type="submit" class="btn btn-primary">
-          <i data-lucide="save" class="h-4 w-4" aria-hidden="true"></i> Save branding
-        </button>
-        <a href="{% url 'organizations:detail' object.pk %}" class="btn btn-secondary">Cancel</a>
-      </div>
-    </form>
-  </div>
+    <div class="card-footer">
+      {% url 'organizations:detail' object.pk as cancel_url %}
+      {% include "components/forms/actions.html" with submit_label="Save branding" submit_icon="save" cancel_url=cancel_url %}
+    </div>
+  </form>
 </div>
 {% endblock %}

@@ -221,3 +221,7 @@ All configuration is environment-driven via a dependency-free loader
   Jazzmin admin have been verified with the policy **enforced** and a clean console (ADR 0020).
 
 Each is captured as an ADR under [`docs/decisions/`](docs/decisions/).
+
+## UI design system
+
+See [docs/ui-design-system.md](docs/ui-design-system.md): layouts, components, tokens, accessibility, and how to build a new page. Platform staff can browse every component at `/ui/`.

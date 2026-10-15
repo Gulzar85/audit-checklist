@@ -1,0 +1,5 @@
+{% load ui %}{% comment %}
+List-page toolbar above a table: search + filters on the left, view/bulk actions on the right.  The page
+header carries the primary action.  Pass the django-filter `filter` object; on phones the filters collapse.
+{% endcomment %}
+{% include "components/filter_bar.html" with filter=filter reset_url=reset_url|default:request.path hidden=hidden htmx_target=htmx_target %}

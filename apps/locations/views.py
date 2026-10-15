@@ -428,3 +428,35 @@ class LocationRelationsView(LoginRequiredMixin, View):
             )
         form = LocationForm(user=request.user, organization=organization)
         return render(request, "locations/_relations_fields.html", {"form": form})
+
+
+class LocationBranchView(LocationScopedMixin, LoginRequiredMixin, View):
+    """HTMX: the direct children of one location, for lazily-expanded tree branches.
+
+    The parent is fetched through the scoped queryset (another organization's location is a 404), and
+    only its own children are returned, so a large tree is loaded one level at a time.
+    """
+
+    def get(self, request: HttpRequest, pk) -> HttpResponse:  # noqa: ANN001
+        from django.db.models import Count
+        from django.shortcuts import get_object_or_404
+
+        parent = get_object_or_404(self.get_queryset(), pk=pk)
+        children = (
+            Location.objects.filter(parent=parent)
+            .select_related("location_type")
+            .annotate(child_total=Count("children"))
+            .order_by("name")
+        )
+        return render(request, "components/tree/branch.html", {"parent": parent, "nodes": [
+            {
+                "label": child.name,
+                "meta": f"{child.location_type.name} - {child.code}",
+                "href": reverse("locations:detail", args=[child.pk]),
+                "status": "active" if child.is_active else "inactive",
+                "has_children": child.child_total > 0,
+                "children_url": reverse("locations:branch", args=[child.pk]),
+                "children": [],
+            }
+            for child in children[:200]
+        ]})

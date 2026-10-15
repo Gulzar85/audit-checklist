@@ -1,0 +1,12 @@
+{% load ui %}{% comment %}
+Form action bar: Cancel + the primary submit with a built-in submitting state.  Params: submit_label,
+cancel_url, submit_icon.  Place inside a `<form x-data="formGuard" @submit="onSubmit" @input="markDirty"
+@beforeunload.window="warn" @pageshow.window="reset">`.  On phones the bar sticks to the bottom.
+{% endcomment %}
+<div class="form-actions">
+  {% if cancel_url %}<a href="{{ cancel_url }}" class="btn btn-secondary">Cancel</a>{% endif %}
+  <button type="submit" class="btn btn-primary" :disabled="submitting" :aria-busy="submitting">
+    <span class="btn-spinner" aria-hidden="true"></span>
+    {% if submit_icon %}{% icon submit_icon %}{% endif %}{{ submit_label|default:"Save" }}
+  </button>
+</div>

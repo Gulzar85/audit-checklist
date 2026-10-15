@@ -1,0 +1,26 @@
+{% comment %}
+Toast region. Django messages are rendered here as toasts (server-side, so they exist without
+script); `window.cpToast(message, tone)` and HX-Trigger "toast" events add more.  Tones: success, info,
+warning, error.  Errors stay until dismissed; the rest dismiss themselves.
+{% endcomment %}
+<div class="toast-region" data-toast-region x-data="toasts" aria-label="Notifications">
+  {% for message in messages %}
+    {% if message.level_tag == "error" %}
+      <div class="toast toast-error" data-toast data-tone="error" role="alert">
+        <i data-lucide="circle-alert" class="h-5 w-5 shrink-0" aria-hidden="true"></i><span class="flex-1">{{ message }}</span>
+    {% elif message.level_tag == "warning" %}
+      <div class="toast toast-warning" data-toast data-tone="warning" role="status">
+        <i data-lucide="triangle-alert" class="h-5 w-5 shrink-0" aria-hidden="true"></i><span class="flex-1">{{ message }}</span>
+    {% elif message.level_tag == "success" %}
+      <div class="toast toast-success" data-toast data-tone="success" role="status">
+        <i data-lucide="circle-check" class="h-5 w-5 shrink-0" aria-hidden="true"></i><span class="flex-1">{{ message }}</span>
+    {% else %}
+      <div class="toast toast-info" data-toast data-tone="info" role="status">
+        <i data-lucide="info" class="h-5 w-5 shrink-0" aria-hidden="true"></i><span class="flex-1">{{ message }}</span>
+    {% endif %}
+      <button type="button" class="btn btn-ghost btn-icon btn-sm -my-1 shrink-0" data-toast-close @click="dismiss" aria-label="Dismiss notification">
+        <i data-lucide="x" class="h-4 w-4" aria-hidden="true"></i>
+      </button>
+    </div>
+  {% endfor %}
+</div>

@@ -1,0 +1,9 @@
+{% load ui %}{% comment %}
+File input in the design system.  Params: id, name, label, help (accepted types / limits), accept.
+Files are validated on the server (type, size, content) - the `accept` attribute is only a hint.
+{% endcomment %}
+<div>
+  <label for="{{ id }}" class="label">{{ label }}</label>
+  <input type="file" id="{{ id }}" name="{{ name }}" class="file-input"{% if accept %} accept="{{ accept }}"{% endif %}{% if help %} aria-describedby="{{ id }}-help"{% endif %}>
+  {% if help %}<p id="{{ id }}-help" class="help-text">{{ help }}</p>{% endif %}
+</div>

@@ -73,7 +73,7 @@ class TestStylesheet:
 class TestPageShell:
     def test_html_carries_the_mode_and_links_the_stylesheet(self, client, db):
         html = client.get("/").content.decode()
-        assert '<html lang="en" class="h-full" data-theme="system">' in html
+        assert re.search(r'<html lang="en" class="h-full" data-theme="system" data-sidebar="(expanded|collapsed)">', html)
         assert 'href="/themes/tokens.css?v=' in html
         assert "<style" not in html  # the theme never arrives as an inline style
 

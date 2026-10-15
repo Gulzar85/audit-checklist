@@ -1,40 +1,23 @@
 {% extends "base.html" %}
-{% load crispy_forms_tags %}
+{% load crispy_forms_tags ui %}
 
 {% block title %}Edit profile &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-narrow{% endblock %}
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Profile" "accounts:profile" "Edit" %}{% endblock %}
+{% block page_header %}{% page_header title="Edit profile" subtitle="Your name, email and job title come from your organization's Microsoft account and update automatically at sign-in." icon="user-round" %}{% endpage_header %}{% endblock %}
 
 {% block content %}
-<div class="mx-auto max-w-3xl">
-  <nav class="breadcrumbs mb-4" aria-label="Breadcrumb">
-    <ol class="flex items-center">
-      <li><a href="{% url 'core:home' %}">Home</a></li>
-      <li><a href="{% url 'accounts:profile' %}">Profile</a></li>
-      <li aria-current="page">Edit</li>
-    </ol>
-  </nav>
-
-  <div class="card">
-    <div class="card-header">
-      <h1 class="card-title">Edit profile</h1>
-      <i data-lucide="user-round" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
+<div class="card">
+  <form method="post" enctype="multipart/form-data" novalidate x-data="formGuard" @submit="onSubmit" @input="markDirty" @beforeunload.window="warn" @pageshow.window="reset">
+    <div class="card-body">
+      {% csrf_token %}
+      {% include "tailwind/errors.html" %}
+      {% for field in form %}{{ field|as_crispy_field }}{% endfor %}
     </div>
-    <form method="post" enctype="multipart/form-data" novalidate>
-      <div class="card-body">
-        {% csrf_token %}
-        {% include "tailwind/errors.html" %}
-        <p class="help-text mb-4">
-          Your name, email and job title come from your organization's Microsoft account and are
-          updated automatically at sign-in, so they cannot be changed here.
-        </p>
-        {% for field in form %}{{ field|as_crispy_field }}{% endfor %}
-      </div>
-      <div class="card-footer flex flex-wrap gap-3">
-        <button type="submit" class="btn btn-primary">
-          <i data-lucide="save" class="h-4 w-4" aria-hidden="true"></i> Save
-        </button>
-        <a href="{% url 'accounts:profile' %}" class="btn btn-secondary">Cancel</a>
-      </div>
-    </form>
-  </div>
+    <div class="card-footer">
+      {% url 'accounts:profile' as cancel_url %}
+      {% include "components/forms/actions.html" with submit_label="Save" submit_icon="save" cancel_url=cancel_url %}
+    </div>
+  </form>
 </div>
 {% endblock %}

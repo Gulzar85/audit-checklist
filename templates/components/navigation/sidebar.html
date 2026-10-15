@@ -1,0 +1,48 @@
+{% comment %}
+The application sidebar.  Desktop: expanded (labels) or collapsed (icons + tooltips); mobile: an
+off-canvas drawer opened from the top bar.  Content comes from `nav_sections`
+(apps/core/navigation.py) - never edit this file to add a menu entry.
+Hiding an entry is presentation only; every destination enforces its own authorization.
+{% endcomment %}
+<aside id="app-sidebar" class="app-sidebar" x-ref="sidebar" :data-open="drawerState" data-open="false"
+       aria-label="Application sidebar">
+  <a href="{% url 'core:home' %}" class="sidebar-brand" data-tooltip="{{ APP_NAME }}" data-tooltip-collapsed>
+    {% include "components/navigation/brand_mark.html" with size="md" %}
+    <span class="sidebar-brand-text min-w-0">
+      <span class="block truncate leading-tight">{{ APP_NAME }}</span>
+      {% if current_organization %}<span class="block truncate text-xs font-normal text-sidebar-foreground/70">{{ current_organization.name }}</span>{% endif %}
+    </span>
+  </a>
+
+  {% include "components/navigation/org_switcher.html" %}
+
+  <nav class="sidebar-nav" aria-label="Primary">
+    {% for section in nav_sections %}
+      <div class="sidebar-section">
+        <p class="sidebar-section-title">{{ section.label }}</p>
+        <ul class="space-y-0.5">
+          {% for item in section.items %}
+            <li>
+              <a href="{{ item.href }}" class="sidebar-link"{% if item.active %} aria-current="page"{% endif %}
+                 data-tooltip="{{ item.label }}" data-tooltip-collapsed @click="closeMobile"
+                 {% if item.external %}target="_blank" rel="noopener"{% endif %}>
+                <i data-lucide="{{ item.icon }}" class="h-5 w-5 shrink-0" aria-hidden="true"></i>
+                <span class="sidebar-label truncate">{{ item.label }}</span>
+                {% if item.badge %}<span class="sidebar-badge">{{ item.badge }}</span>{% endif %}
+                {% if item.external %}<i data-lucide="external-link" class="sidebar-label ml-auto h-3.5 w-3.5 opacity-60" aria-hidden="true"></i><span class="sr-only">(opens in a new tab)</span>{% endif %}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endfor %}
+  </nav>
+
+  <div class="sidebar-footer hidden lg:block">
+    <button type="button" class="sidebar-link w-full" @click="toggleCollapse" :aria-expanded="expanded"
+            aria-controls="app-sidebar" data-tooltip="Expand sidebar" data-tooltip-collapsed>
+      <i data-lucide="panel-left-close" class="h-5 w-5 shrink-0" aria-hidden="true"></i>
+      <span class="sidebar-label" x-text="collapseLabel">Collapse sidebar</span>
+    </button>
+  </div>
+</aside>

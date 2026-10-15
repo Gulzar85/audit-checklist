@@ -1,28 +1,13 @@
 {% extends "base.html" %}
+{% load ui %}
 
 {% block title %}Location tree · {{ APP_NAME }}{% endblock %}
 
-{% block content %}
-<nav class="breadcrumbs mb-4" aria-label="Breadcrumbs">
-  <ol>
-    <li><a href="{% url 'core:home' %}">Home</a></li>
-    <li><a href="{% url 'locations:list' %}">Locations</a></li>
-    <li aria-current="page">Tree</li>
-  </ol>
-</nav>
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Locations" "locations:list" "Tree" %}{% endblock %}
 
-<div class="mb-6 flex flex-wrap items-center justify-between gap-4">
-  <div class="flex items-center gap-3">
-    <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-      <i data-lucide="network" class="h-5 w-5" aria-hidden="true"></i>
-    </span>
-    <div>
-      <h1 class="text-2xl font-bold tracking-tight">Location tree</h1>
-      <p class="text-sm text-muted-foreground">Your hierarchy, at any depth. Searching keeps each match's parents visible.</p>
-    </div>
-  </div>
-  <div class="flex flex-wrap items-center gap-2">
-    <a href="{% url 'locations:list' %}" class="btn btn-secondary">
+{% block page_header %}
+{% page_header title="Location tree" subtitle="Your hierarchy, at any depth. Searching keeps each match's parents visible." icon="network" %}
+<a href="{% url 'locations:list' %}" class="btn btn-secondary">
       <i data-lucide="list" class="h-4 w-4" aria-hidden="true"></i> List view
     </a>
     <a href="{% url 'locations:type_list' %}" class="btn btn-secondary">
@@ -33,9 +18,10 @@
         <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i> New location
       </a>
     {% endif %}
-  </div>
-</div>
+{% endpage_header %}
+{% endblock %}
 
+{% block content %}
 <div data-htmx-scope>
   <div class="card mb-6">
     {% include "components/filter_bar.html" with filter=filter reset_url=request.path hidden=hidden_filters htmx_target="#tree-panel" %}

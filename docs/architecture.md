@@ -121,3 +121,7 @@ The shell links a root-scoped manifest and registers a service worker
 (`/service-worker.js`). The worker precaches an offline shell and static assets.
 The offline execution engine (IndexedDB persistence + background sync queue) is
 reserved as a documented extension point in `static/js/service-worker.js`.
+
+## UI design system
+
+The application shell, navigation, components and page patterns are documented in [ui-design-system.md](ui-design-system.md) (ADRs 0039-0041). The live component library is at `/ui/` for platform staff.

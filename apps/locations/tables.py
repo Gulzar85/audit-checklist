@@ -37,7 +37,7 @@ class LocationTypeTable(tables.Table):
         model = LocationType
         fields = ("name", "code", "scope", "sort_order", "is_active")
         template_name = "core/tables/table.html"
-        attrs = {"class": "table", "aria-label": "Location types"}
+        attrs = {"class": "table table-stack", "aria-label": "Location types"}
         empty_text = "No location types match your filters."
 
     def render_scope(self, record: LocationType) -> str:
@@ -67,5 +67,5 @@ class LocationTable(tables.Table):
         model = Location
         fields = ("name", "code", "organization", "location_type", "parent", "is_active", "city", "country")
         template_name = "core/tables/table.html"
-        attrs = {"class": "table", "aria-label": "Locations"}
+        attrs = {"class": "table table-stack", "aria-label": "Locations"}
         empty_text = "No locations match your filters."

@@ -1,0 +1,33 @@
+{% load ui %}{% comment %}
+The top bar.  Signed in: sidebar toggle on the left; search, notifications, help, theme, network status
+and the user menu on the right.  Signed out (error pages): just the brand, the theme menu and Sign in.
+Deliberately light: nothing here is page-specific.
+{% endcomment %}
+<header class="app-topbar">
+  {% if user.is_authenticated %}
+    <button type="button" class="btn btn-ghost btn-icon lg:hidden" @click="toggleMobile"
+            :aria-expanded="mobileOpen" aria-controls="app-sidebar" aria-label="Open navigation menu">
+      <i data-lucide="menu" class="h-5 w-5" aria-hidden="true"></i>
+    </button>
+    <button type="button" class="btn btn-ghost btn-icon hidden lg:inline-flex" @click="toggleCollapse"
+            :aria-expanded="expanded" aria-controls="app-sidebar" aria-label="Toggle sidebar width">
+      <i data-lucide="panel-left" class="h-5 w-5" aria-hidden="true"></i>
+    </button>
+    <a href="{% url 'core:home' %}" class="min-w-0 truncate text-sm font-semibold text-foreground lg:hidden">{{ APP_NAME }}</a>
+  {% else %}
+    <a href="{% url 'core:home' %}" class="flex items-center gap-2 font-semibold text-foreground">
+      {% include "components/navigation/brand_mark.html" with size="md" %}{{ APP_NAME }}
+    </a>
+  {% endif %}
+
+  <div class="ml-auto flex items-center gap-1">
+    {% if user.is_authenticated %}
+      {% include "components/navigation/search.html" %}
+      {% include "components/navigation/notifications.html" %}
+      {% include "components/navigation/help_menu.html" %}
+    {% endif %}
+    {% include "themes/_appearance_menu.html" %}
+    {% if user.is_authenticated %}{% include "components/feedback/network_status.html" %}{% endif %}
+    {% include "components/navigation/user_menu.html" %}
+  </div>
+</header>

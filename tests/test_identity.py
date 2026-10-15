@@ -407,7 +407,7 @@ class TestSignInViews:
         body = response.content.decode()
         assert response.status_code == 200
         assert reverse("accounts:microsoft_login") in body
-        assert body.index("Sign in with Microsoft") < body.index("local password")
+        assert body.index("Continue with Microsoft") < body.index("local password")
 
     def test_microsoft_login_redirects_to_the_authorization_endpoint(self, client, entra_settings, monkeypatch):
         fake = FakeMsalClient()

@@ -1,0 +1,2 @@
+{% comment %}Progress bar on the native <progress> element. Params: value, max (default 100), label (accessible name).{% endcomment %}
+<progress class="progress" value="{{ value }}" max="{{ max|default:100 }}" aria-label="{{ label }}">{{ value }}</progress>

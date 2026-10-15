@@ -1,37 +1,22 @@
 {% extends "base.html" %}
-{% load django_tables2 %}
+{% load django_tables2 ui %}
 {% block title %}Themes · {{ APP_NAME }}{% endblock %}
 
-{% block content %}
-<nav class="breadcrumbs mb-4" aria-label="Breadcrumbs">
-  <ol>
-    <li><a href="{% url 'core:home' %}">Home</a></li>
-    <li aria-current="page">Themes</li>
-  </ol>
-</nav>
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Themes" %}{% endblock %}
 
-<div class="mb-6 flex flex-wrap items-center justify-between gap-4">
-  <div class="flex items-center gap-3">
-    <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-      <i data-lucide="palette" class="h-5 w-5" aria-hidden="true"></i>
-    </span>
-    <div>
-      <h1 class="text-2xl font-bold tracking-tight">Themes</h1>
-      <p class="text-sm text-muted-foreground">
-        Currently showing
-        {% if resolved.theme %}<strong>{{ resolved.theme.name }}</strong> ({{ resolved.source }}){% else %}<strong>the built-in default</strong>{% endif %}.
-      </p>
-    </div>
-  </div>
-  <div class="flex flex-wrap gap-2">
-    <a href="{% url 'themes:gallery' %}" class="btn btn-secondary"><i data-lucide="layout-grid" class="h-4 w-4" aria-hidden="true"></i> Component gallery</a>
+{% block page_header %}
+{% with current_look=resolved.theme.name|default:"the built-in default" %}
+{% page_header title="Themes" subtitle="Currently showing "|add:current_look|add:" ("|add:resolved.source|add:")." icon="palette" %}
+<a href="{% url 'themes:gallery' %}" class="btn btn-secondary"><i data-lucide="layout-grid" class="h-4 w-4" aria-hidden="true"></i> Component gallery</a>
     {% if can_create %}
       <a href="{% url 'themes:import' %}" class="btn btn-secondary"><i data-lucide="upload" class="h-4 w-4" aria-hidden="true"></i> Import</a>
       <a href="{% url 'themes:create' %}" class="btn btn-primary"><i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i> New theme</a>
     {% endif %}
-  </div>
-</div>
+{% endpage_header %}
+{% endwith %}
+{% endblock %}
 
+{% block content %}
 <div class="card mb-6">
   {% include "components/filter_bar.html" with filter=filter reset_url=request.path hidden=hidden_filters %}
 </div>

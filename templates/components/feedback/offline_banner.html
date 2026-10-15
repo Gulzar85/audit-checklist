@@ -1,0 +1,7 @@
+{% comment %}Shown under the top bar while the browser is offline (no sync logic yet).{% endcomment %}
+<div x-data="networkStatus" x-show="offline" x-cloak class="banner-preview" role="status">
+  <div class="flex items-center gap-2 px-4 py-2 text-sm sm:px-6 lg:px-8">
+    <i data-lucide="wifi-off" class="h-4 w-4 shrink-0" aria-hidden="true"></i>
+    <span>You are offline. Pages you have already opened stay available; changes cannot be saved until you reconnect.</span>
+  </div>
+</div>

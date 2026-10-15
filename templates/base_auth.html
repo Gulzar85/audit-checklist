@@ -1,5 +1,2 @@
-{% extends "base_root.html" %}
-
-{# No navigation chrome: the sign-in screen is standalone. #}
-{% block chrome %}{% endblock %}
-{% block footer %}{% endblock %}
+{% extends "layouts/auth.html" %}
+{% comment %}Compatibility alias for standalone (signed-out) pages.{% endcomment %}

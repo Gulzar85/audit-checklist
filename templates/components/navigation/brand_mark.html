@@ -1,0 +1,12 @@
+{% load static %}{% comment %}
+The brand mark: the organization's logo when it has one, otherwise the application icon.
+Params: size (sm|md|lg).  No company is hard-coded: branding comes from the organization record
+and the theme.
+{% endcomment %}
+{% if current_organization.logo %}
+  <img src="{{ current_organization.logo.url }}" alt="" class="{% if size == 'lg' %}mx-auto h-14 w-14{% else %}h-8 w-8{% endif %} rounded-md object-contain">
+{% else %}
+  <span class="{% if size == 'lg' %}mx-auto h-14 w-14{% else %}h-8 w-8{% endif %} flex items-center justify-center rounded-lg bg-primary text-primary-foreground">
+    <i data-lucide="clipboard-check" class="{% if size == 'lg' %}h-7 w-7{% else %}h-5 w-5{% endif %}" aria-hidden="true"></i>
+  </span>
+{% endif %}

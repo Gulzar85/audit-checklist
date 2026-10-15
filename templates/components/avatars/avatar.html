@@ -1,0 +1,6 @@
+{% comment %}Avatar: the user's picture, or their initials. Params: user, size (sm|lg, optional).{% endcomment %}
+{% if user.avatar %}
+  <img src="{{ user.avatar.url }}" alt="" class="avatar {% if size == 'lg' %}avatar-lg{% elif size == 'sm' %}avatar-sm{% endif %} object-cover">
+{% else %}
+  <span class="avatar {% if size == 'lg' %}avatar-lg{% elif size == 'sm' %}avatar-sm{% endif %}" aria-hidden="true">{{ user.initials }}</span>
+{% endif %}

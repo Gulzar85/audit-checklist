@@ -1,0 +1,10 @@
+{% comment %}
+Bulk-actions bar for selectable tables.  Params: form_id, actions = list of {label, value, tone}.  Pair with
+checkbox cells named `selected`; the server re-validates every id against the scoped queryset.
+{% endcomment %}
+<div class="flex flex-wrap items-center gap-2 border-b border-border bg-muted px-4 py-2 text-sm" role="region" aria-label="Bulk actions">
+  <span class="font-medium text-foreground">With selected:</span>
+  {% for action in actions %}
+    <button type="submit" form="{{ form_id }}" name="action" value="{{ action.value }}" class="btn btn-{% if action.tone == 'danger' %}danger{% else %}secondary{% endif %} btn-sm">{{ action.label }}</button>
+  {% endfor %}
+</div>

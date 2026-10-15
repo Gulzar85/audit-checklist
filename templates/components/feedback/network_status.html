@@ -1,0 +1,5 @@
+{% comment %}Online/offline indicator (ready for offline execution; no sync logic).{% endcomment %}
+<span x-data="networkStatus" :class="stateClass" class="net-status net-online hidden md:inline-flex" role="status">
+  <i data-lucide="wifi" class="h-3.5 w-3.5" aria-hidden="true"></i>
+  <span x-text="label">Online</span>
+</span>

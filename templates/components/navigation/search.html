@@ -1,0 +1,41 @@
+{% comment %}
+Global search (command palette): UI foundation + a real, tenant-scoped endpoint over the domains
+that exist today (organizations, locations).  Open with the button, "/" or Ctrl/Cmd+K.
+New modules add a result group in `GlobalSearchView`; this markup does not change.
+{% endcomment %}
+<div x-data="commandPalette">
+  <button type="button" class="btn btn-ghost btn-icon sm:hidden" @click="show" aria-haspopup="dialog" aria-label="Search">
+    <i data-lucide="search" class="h-5 w-5" aria-hidden="true"></i>
+  </button>
+  <button type="button" class="btn btn-outline-quiet hidden h-9 min-w-52 justify-between gap-3 px-3 sm:inline-flex" @click="show"
+          aria-haspopup="dialog" aria-label="Search">
+    <span class="flex items-center gap-2 text-muted-foreground">
+      <i data-lucide="search" class="h-4 w-4" aria-hidden="true"></i> Search
+    </span>
+    <kbd class="rounded border border-border px-1.5 text-xs text-muted-foreground" aria-hidden="true">/</kbd>
+  </button>
+
+  <dialog x-ref="dialog" class="command-dialog" aria-labelledby="search-title" @click="onBackdrop" @keydown="onKeydown">
+    <h2 id="search-title" class="sr-only">Search</h2>
+    <div role="search">
+      <div class="flex items-center gap-2 border-b border-border px-3">
+        <i data-lucide="search" class="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true"></i>
+        <input x-ref="input" type="search" name="q" class="command-input" placeholder="Search organizations, locations..."
+               autocomplete="off" aria-label="Search" aria-controls="search-results"
+               hx-get="{% url 'core:search' %}" hx-trigger="input changed delay:250ms, search"
+               hx-target="#search-results" hx-indicator="#search-spinner" hx-sync="this:replace"
+               @input="onInput">
+        <span id="search-spinner" class="htmx-indicator" role="status">
+          <span class="spinner h-4 w-4 text-muted-foreground" aria-hidden="true"></span><span class="sr-only">Searching</span>
+        </span>
+        <button type="button" class="btn btn-ghost btn-icon btn-sm" x-show="hasQuery" x-cloak @click="clear" aria-label="Clear search">
+          <i data-lucide="x" class="h-4 w-4" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="btn btn-ghost btn-sm" data-modal-close>Esc</button>
+      </div>
+      <div id="search-results" x-ref="results" class="max-h-[60vh] overflow-y-auto p-2" aria-live="polite">
+        {% include "components/navigation/search_results.html" with too_short=True %}
+      </div>
+    </div>
+  </dialog>
+</div>

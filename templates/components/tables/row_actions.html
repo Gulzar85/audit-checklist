@@ -1,0 +1,22 @@
+{% load ui %}{% comment %}
+Row actions menu (the "kebab").  Params: label (accessible name, e.g. "Actions for Safety"), actions = list of
+dicts: label, href (link) | post_url (+ fields) (form), icon, tone ("danger").  Authorization is decided by the
+caller when building `actions`; the destination re-checks it.
+{% endcomment %}
+<div class="relative inline-block text-left" x-data="dropdown" @keydown.escape="closeAndFocus" @click.outside="close" @keydown="onKeydown">
+  <button type="button" class="btn btn-ghost btn-icon btn-sm" @click="toggle" :aria-expanded="open" aria-haspopup="true" aria-label="{{ label|default:'Row actions' }}">
+    <i data-lucide="ellipsis-vertical" class="h-4 w-4" aria-hidden="true"></i>
+  </button>
+  <div role="menu" x-show="open" x-cloak class="menu-panel absolute right-0 z-40 mt-1 w-48">
+    {% for action in actions %}
+      {% if action.href %}
+        <a href="{{ action.href }}" role="menuitem" class="menu-item{% if action.tone == 'danger' %} text-danger-text{% endif %}">{% if action.icon %}{% icon action.icon %}{% endif %}{{ action.label }}</a>
+      {% else %}
+        <form method="post" action="{{ action.post_url }}">{% csrf_token %}
+          {% for name, value in action.fields.items %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+          <button type="submit" role="menuitem" class="menu-item{% if action.tone == 'danger' %} text-danger-text{% endif %}">{% if action.icon %}{% icon action.icon %}{% endif %}{{ action.label }}</button>
+        </form>
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>

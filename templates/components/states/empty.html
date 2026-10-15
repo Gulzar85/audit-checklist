@@ -1,0 +1,15 @@
+{% load ui %}{% comment %}
+Empty state: what is missing, why it matters, what to do next.
+Params: icon, title, message, action_url + action_label (+ action_icon), secondary_url + secondary_label.
+{% endcomment %}
+<div class="state">
+  <span class="state-icon">{% icon icon|default:"inbox" "lg" %}</span>
+  <p class="text-base font-semibold text-foreground">{{ title|default:"Nothing here yet" }}</p>
+  {% if message %}<p class="max-w-md text-sm text-muted-foreground">{{ message }}</p>{% endif %}
+  {% if action_url or secondary_url %}
+    <div class="mt-3 flex flex-wrap items-center justify-center gap-2">
+      {% if action_url %}<a href="{{ action_url }}" class="btn btn-primary">{% icon action_icon|default:"plus" %}{{ action_label|default:"Get started" }}</a>{% endif %}
+      {% if secondary_url %}<a href="{{ secondary_url }}" class="btn btn-secondary">{{ secondary_label }}</a>{% endif %}
+    </div>
+  {% endif %}
+</div>

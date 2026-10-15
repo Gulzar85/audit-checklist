@@ -1,36 +1,14 @@
 {% extends "base.html" %}
+{% load ui %}
 
 {% block title %}{{ organization.name }} · {{ APP_NAME }}{% endblock %}
 
-{% block content %}
-<nav class="breadcrumbs mb-4" aria-label="Breadcrumbs">
-  <ol>
-    <li><a href="{% url 'core:home' %}">Home</a></li>
-    <li><a href="{% url 'organizations:list' %}">Organizations</a></li>
-    <li aria-current="page">{{ organization.name }}</li>
-  </ol>
-</nav>
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Organizations" "organizations:list" organization.name %}{% endblock %}
 
-<div class="mb-6 flex flex-wrap items-start justify-between gap-4">
-  <div class="flex items-center gap-3">
-    {% if organization.logo %}
-      <img src="{{ organization.logo.url }}" alt="Logo of {{ organization.name }}" class="h-12 max-w-40 rounded-lg object-contain">
-    {% else %}
-      <span class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-        <i data-lucide="building-2" class="h-6 w-6" aria-hidden="true"></i>
-      </span>
-    {% endif %}
-    <div>
-      <h1 class="text-2xl font-bold tracking-tight">{{ organization.name }}</h1>
-      <p class="text-sm text-muted-foreground">
-        Code <span class="font-mono">{{ organization.code }}</span> · Slug <span class="font-mono">{{ organization.slug }}</span>
-      </p>
-    </div>
-  </div>
-
-  <div class="flex flex-wrap items-center gap-2">
-    {% include "components/status_badge.html" with label=organization.get_status_display tone=organization.status %}
-    {% if can_manage %}
+{% block page_header %}
+{% with org_sub="Code "|add:organization.code|add:" · Slug "|add:organization.slug logo_alt="Logo of "|add:organization.name %}
+{% page_header title=organization.name subtitle=org_sub icon="building-2" image=organization.logo image_alt=logo_alt status=organization.status status_label=organization.get_status_display %}
+{% if can_manage %}
       <a href="{% url 'organizations:update' organization.pk %}" class="btn btn-secondary">
         <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i> Edit
       </a>
@@ -65,9 +43,11 @@
         </dialog>
       </div>
     {% endif %}
-  </div>
-</div>
+{% endpage_header %}
+{% endwith %}
+{% endblock %}
 
+{% block content %}
 {% if not organization.is_active %}
   <div class="alert alert-warning mb-6" role="status">
     <i data-lucide="triangle-alert" class="h-5 w-5 shrink-0" aria-hidden="true"></i>

@@ -5,6 +5,7 @@ from __future__ import annotations
 from django.urls import path
 
 from .views import (
+    LocationBranchView,
     LocationCreateView,
     LocationDetailView,
     LocationListView,
@@ -37,4 +38,5 @@ urlpatterns = [
     path("<uuid:pk>/", LocationDetailView.as_view(), name="detail"),
     path("<uuid:pk>/edit/", LocationUpdateView.as_view(), name="update"),
     path("<uuid:pk>/status/", LocationStatusView.as_view(), name="status"),
+    path("<uuid:pk>/children/", LocationBranchView.as_view(), name="branch"),
 ]

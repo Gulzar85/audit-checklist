@@ -1,0 +1,8 @@
+{% comment %}
+A list of tree nodes (the result of expanding one branch).  Params: nodes (dicts: label, href, meta, status,
+has_children, children_url, children).  Nodes with `children_url` load their children lazily through HTMX the
+first time they are opened - one level at a time, so any tree size stays fast.
+{% endcomment %}
+{% for node in nodes %}{% include "components/tree/node.html" %}{% empty %}
+  <li class="px-2 py-1.5 text-sm text-muted-foreground">Nothing in here.</li>
+{% endfor %}

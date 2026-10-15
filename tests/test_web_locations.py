@@ -120,11 +120,11 @@ class TestList:
         # Budget includes one bounded identity-context query per page (the
         # validated active-organization lookup for the header switcher); the
         # count still does not grow with the number of rows.
-        with django_assert_max_num_queries(15):
+        with django_assert_max_num_queries(16):
             client.get(self.url())
         for i in range(25):
             make_location(org_a, f"Q{i}", type=world["type_a"], code=f"Q{i}", parent=world["root"])
-        with django_assert_max_num_queries(15):
+        with django_assert_max_num_queries(16):
             assert client.get(self.url()).status_code == 200
 
 
@@ -194,12 +194,13 @@ class TestTree:
     def test_query_count_is_constant(self, client, admin_a, org_a, world, make_location, django_assert_max_num_queries):
         login(client, admin_a)
         client.get(self.url())
-        # See TestList: one bounded identity-context query is included here too.
-        with django_assert_max_num_queries(13):
+        # See TestList: bounded identity-context queries (active organization + the shell's
+        # organization switcher) are included here too.
+        with django_assert_max_num_queries(14):
             client.get(self.url())
         for i in range(60):
             make_location(org_a, f"T{i}", type=world["type_a"], code=f"T{i}", parent=world["root"] if i % 2 else world["child"])
-        with django_assert_max_num_queries(13):
+        with django_assert_max_num_queries(14):
             assert client.get(self.url()).status_code == 200
 
 

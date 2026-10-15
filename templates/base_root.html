@@ -1,5 +1,5 @@
 {% load static %}<!DOCTYPE html>
-<html lang="en" class="h-full" data-theme="{{ ui_theme.mode }}">
+<html lang="en" class="h-full" data-theme="{{ ui_theme.mode }}" data-sidebar="{{ sidebar_state|default:'expanded' }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -33,21 +33,15 @@
   <script src="{% static 'js/app.js' %}" defer {% csp_nonce_attr %}></script>
   {% block extra_head %}{% endblock %}
 </head>
-<body class="flex min-h-full flex-col" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+<body class="min-h-full" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
   <a href="#main" class="skip-link">Skip to main content</a>
-  {% block chrome %}{% endblock %}
-  <main id="main" class="flex-1 py-8">
-    <div class="container-page">
-      {% include "partials/messages.html" %}
-      {% block content %}{% endblock %}
-    </div>
-  </main>
-  {% block footer %}{% endblock %}
+  {% block shell %}{% endblock %}
   <noscript>
-    <div class="container-page pb-6">
+    <div class="px-4 pb-6">
       <div class="alert alert-warning">JavaScript is disabled. Interactive and offline features require it.</div>
     </div>
   </noscript>
+  {% include "components/feedback/toasts.html" %}
   {% block extra_body %}{% endblock %}
 </body>
 </html>

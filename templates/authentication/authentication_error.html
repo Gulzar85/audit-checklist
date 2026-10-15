@@ -1,25 +1,22 @@
-{% extends "base_auth.html" %}
+{% extends "layouts/auth.html" %}
+{% load ui %}
 
 {% block title %}Sign-in problem &middot; {{ APP_NAME }}{% endblock %}
+{% block auth_tagline %}<p class="mt-1 text-sm text-muted-foreground">Something stopped the sign-in</p>{% endblock %}
 
 {% block content %}
-<div class="mx-auto max-w-md">
-  <div class="card">
-    <div class="card-header">
-      <h1 class="card-title">We couldn&rsquo;t sign you in</h1>
-      <i data-lucide="circle-alert" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
+<div class="card">
+  <div class="card-body space-y-4">
+    <h1 class="text-lg font-semibold text-foreground">We couldn&rsquo;t sign you in</h1>
+    <div class="alert alert-danger" role="alert" aria-live="assertive">
+      <i data-lucide="circle-alert" class="h-5 w-5 shrink-0" aria-hidden="true"></i>
+      <span>{{ message }}</span>
     </div>
-    <div class="card-body space-y-4">
-      <div class="alert alert-danger" role="alert" aria-live="assertive">
-        <i data-lucide="circle-alert" class="h-5 w-5 shrink-0" aria-hidden="true"></i>
-        <span>{{ message }}</span>
-      </div>
-      <p class="help-text">
-        If this keeps happening, contact your administrator and mention that you were signing in
-        with Microsoft.
-      </p>
-      <a href="{% url 'accounts:login' %}" class="btn btn-primary w-full">Back to sign in</a>
-    </div>
+    <p class="help-text">
+      If this keeps happening, contact your administrator and mention that you were signing in
+      with Microsoft.
+    </p>
+    <a href="{% url 'accounts:login' %}" class="btn btn-primary w-full">Back to sign in</a>
   </div>
 </div>
 {% endblock %}

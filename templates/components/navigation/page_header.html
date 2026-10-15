@@ -1,0 +1,15 @@
+{% load ui %}{% comment %}
+The page header: icon + title (the page's only <h1>) + subtitle, with the actions on the right
+(primary action last).  Use via `{% page_header title="..." subtitle="..." icon="..." %}actions{% endpage_header %}`.
+{% endcomment %}
+<header class="page-header">
+  <div class="flex min-w-0 items-start gap-3">
+    {% if image_url %}<img src="{{ image_url }}" alt="{{ image_alt }}" class="h-10 max-w-32 shrink-0 rounded-md object-contain">{% elif icon %}<span class="page-icon">{% icon icon "md" %}</span>{% endif %}
+    <div class="min-w-0">
+      <h1 class="page-title">{{ title }}</h1>
+      {% if status %}<div class="mt-1.5">{% status_badge status status_label %}</div>{% endif %}
+      {% if subtitle %}<p class="page-subtitle">{{ subtitle }}</p>{% endif %}
+    </div>
+  </div>
+  {% if actions.strip %}<div class="page-actions">{{ actions }}</div>{% endif %}
+</header>

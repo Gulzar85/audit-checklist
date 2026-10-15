@@ -1,91 +1,68 @@
 {% extends "base.html" %}
-{% load crispy_forms_tags %}
+{% load crispy_forms_tags ui %}
 
 {% block title %}Preferences &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-narrow{% endblock %}
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Profile" "accounts:profile" "Preferences" %}{% endblock %}
+{% block page_header %}{% page_header title="Preferences" subtitle="Personal settings for how the application looks and behaves for you." icon="sliders-horizontal" %}{% endpage_header %}{% endblock %}
 
 {% block content %}
-<div class="mx-auto max-w-3xl">
-  <nav class="breadcrumbs mb-4" aria-label="Breadcrumb">
-    <ol class="flex items-center">
-      <li><a href="{% url 'core:home' %}">Home</a></li>
-      <li><a href="{% url 'accounts:profile' %}">Profile</a></li>
-      <li aria-current="page">Preferences</li>
-    </ol>
-  </nav>
-
-  <div class="card">
-    <div class="card-header">
-      <h1 class="card-title">Appearance</h1>
-      <i data-lucide="sun-moon" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
-    </div>
-    <div class="card-body flex items-center justify-between gap-4">
+<div class="space-y-6">
+  {% card title="Appearance" icon="sun-moon" %}
+    <div class="flex items-center justify-between gap-4">
       <div>
         <p class="font-medium">{{ appearance_mode|default:"System" }}</p>
         <p class="help-text">Light, dark, or follow your operating system.</p>
       </div>
       <a href="{% url 'accounts:appearance' %}" class="btn btn-secondary">Change</a>
     </div>
-  </div>
+  {% endcard %}
 
-  <div class="card mt-6">
+  <div class="card">
     <div class="card-header">
       <h2 class="card-title">Regional preferences</h2>
       <i data-lucide="globe" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
     </div>
-    <form method="post" novalidate>
+    <form method="post" novalidate x-data="formGuard" @submit="onSubmit" @input="markDirty" @beforeunload.window="warn" @pageshow.window="reset">
       {% csrf_token %}
       <div class="card-body">
         {% include "tailwind/errors.html" %}
         {% for field in form %}{{ field|as_crispy_field }}{% endfor %}
       </div>
-      <div class="card-footer"><button type="submit" class="btn btn-primary">Save preferences</button></div>
+      <div class="card-footer">
+        {% include "components/forms/actions.html" with submit_label="Save preferences" submit_icon="save" %}
+      </div>
     </form>
   </div>
 
-  <div class="card mt-6">
-    <div class="card-header">
-      <h2 class="card-title">Active organization</h2>
-      <i data-lucide="building-2" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
-    </div>
-    <div class="card-body flex items-center justify-between gap-4">
+  {% card title="Active organization" icon="building-2" %}
+    <div class="flex items-center justify-between gap-4">
       <div>
         <p class="font-medium">{{ current_organization.name|default:"None" }}</p>
         <p class="help-text">
-          {% if has_multiple_organizations %}
-            You belong to {{ memberships|length }} active organizations.
-          {% else %}
-            You are signed in to a single organization.
-          {% endif %}
+          {% if has_multiple_organizations %}You belong to {{ memberships|length }} active organizations.{% else %}You are signed in to a single organization.{% endif %}
         </p>
       </div>
-      {% if has_multiple_organizations %}
-        <a href="{% url 'orgcontext:select' %}" class="btn btn-secondary">Switch</a>
-      {% endif %}
+      {% if has_multiple_organizations %}<a href="{% url 'orgcontext:select' %}" class="btn btn-secondary">Switch</a>{% endif %}
     </div>
-  </div>
+  {% endcard %}
 
-  <div class="card mt-6">
-    <div class="card-header"><h2 class="card-title">Organization memberships</h2></div>
-    <div class="card-body">
-      {% if memberships %}
-        <ul class="space-y-2">
-          {% for membership in memberships %}
-            <li class="flex items-center justify-between gap-4">
-              <span class="text-foreground">{{ membership.organization.name }}</span>
-              <span class="flex items-center gap-2">
-                {% if membership.is_default %}<span class="badge badge-info">default</span>{% endif %}
-                {% include "components/active_badge.html" with is_active=membership.is_active %}
-              </span>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <div class="empty-state">
-          <i data-lucide="building-2" class="h-8 w-8 text-muted-foreground" aria-hidden="true"></i>
-          <p class="text-muted-foreground">No organization memberships yet.</p>
-        </div>
-      {% endif %}
-    </div>
-  </div>
+  {% card title="Organization memberships" icon="id-card" %}
+    {% if memberships %}
+      <ul class="space-y-2">
+        {% for membership in memberships %}
+          <li class="flex items-center justify-between gap-4">
+            <span class="text-foreground">{{ membership.organization.name }}</span>
+            <span class="flex items-center gap-2">
+              {% if membership.is_default %}<span class="badge badge-info">default</span>{% endif %}
+              {% status_badge membership.status %}
+            </span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      {% include "components/states/empty.html" with icon="building-2" title="No memberships yet" message="An administrator adds you to organizations." %}
+    {% endif %}
+  {% endcard %}
 </div>
 {% endblock %}

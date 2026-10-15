@@ -1,0 +1,16 @@
+{% comment %}
+Tabs, two flavours.
+
+1. URL-driven (separate pages or HTMX sections):  include with `tabs` (dicts: label, href, key, icon,
+   count) and `active` (the current key).  Renders links with aria-current.
+2. In-page (panels on the same page):  wrap in `x-data="tabs"` and use
+   `components/navigation/tab_buttons.html`; panels carry role="tabpanel" data-tab-panel="<key>".
+{% endcomment %}
+<nav class="tabs" aria-label="{{ label|default:'Sections' }}">
+  {% for tab in tabs %}
+    <a href="{{ tab.href }}" class="tab"{% if tab.key == active %} aria-current="page"{% endif %}>
+      {% if tab.icon %}<i data-lucide="{{ tab.icon }}" class="h-4 w-4" aria-hidden="true"></i>{% endif %}
+      {{ tab.label }}{% if tab.count %} <span class="badge badge-neutral">{{ tab.count }}</span>{% endif %}
+    </a>
+  {% endfor %}
+</nav>

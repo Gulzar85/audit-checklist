@@ -43,3 +43,6 @@ consequences. New records are appended; existing ones are superseded, not edited
 | [0036](0036-location-scope-foundation.md) | Location scope: a data foundation without an engine | Accepted |
 | [0037](0037-user-preferences-allow-list.md) | User preferences: an allow-listed key/value store; appearance stays in the theme engine | Accepted |
 | [0038](0038-session-lifetime-and-pwa.md) | Session lifetime, expiry responses and PWA behaviour | Accepted |
+| [0039](0039-application-shell-and-navigation.md) | The application shell: sidebar layout with configuration-driven navigation | Accepted |
+| [0040](0040-component-architecture-and-ui-rules.md) | Component architecture: partials + template tags, state in Alpine, rules enforced by tests | Accepted |
+| [0041](0041-status-vocabulary-and-responsive-tables.md) | One status vocabulary and responsive tables | Accepted |

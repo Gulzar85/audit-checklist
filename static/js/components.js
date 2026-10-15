@@ -72,6 +72,62 @@ window.cpAppearance = (function () {
   return { apply: apply, persist: persist };
 })();
 
+/* Toasts (global helpers).  Messages are inserted with textContent - never as HTML. */
+window.cpScheduleToast = function (item) {
+  "use strict";
+  var close = item.querySelector("[data-toast-close]");
+  if (close && !close.getAttribute("data-bound")) {
+    close.setAttribute("data-bound", "true");
+    close.addEventListener("click", function () {
+      item.remove();
+    });
+  }
+  if (item.getAttribute("data-tone") !== "error") {
+    window.setTimeout(function () {
+      item.remove();
+    }, 7000);
+  }
+};
+
+window.cpToast = function (message, tone) {
+  "use strict";
+  var region = document.querySelector("[data-toast-region]");
+  if (!region || !message) {
+    return;
+  }
+  var tones = { success: "circle-check", info: "info", warning: "triangle-alert", error: "circle-alert" };
+  var kind = tones[tone] ? tone : "info";
+  var item = document.createElement("div");
+  item.className = "toast toast-" + kind;
+  item.setAttribute("data-toast", "");
+  item.setAttribute("data-tone", kind);
+  item.setAttribute("role", kind === "error" ? "alert" : "status");
+  var icon = document.createElement("i");
+  icon.setAttribute("data-lucide", tones[kind]);
+  icon.setAttribute("class", "h-5 w-5 shrink-0");
+  icon.setAttribute("aria-hidden", "true");
+  var text = document.createElement("span");
+  text.className = "flex-1";
+  text.textContent = message;
+  var button = document.createElement("button");
+  button.type = "button";
+  button.className = "btn btn-ghost btn-icon btn-sm -my-1 shrink-0";
+  button.setAttribute("aria-label", "Dismiss notification");
+  button.setAttribute("data-toast-close", "");
+  var x = document.createElement("i");
+  x.setAttribute("data-lucide", "x");
+  x.setAttribute("class", "h-4 w-4");
+  x.setAttribute("aria-hidden", "true");
+  button.appendChild(x);
+  item.appendChild(icon);
+  item.appendChild(text);
+  item.appendChild(button);
+  region.appendChild(item);
+  if (window.lucide && typeof window.lucide.createIcons === "function") {
+    window.lucide.createIcons();
+  }
+  window.cpScheduleToast(item);
+};
 document.addEventListener("alpine:init", function () {
   "use strict";
 
@@ -261,6 +317,392 @@ document.addEventListener("alpine:init", function () {
     };
   });
 
+  /* ==========================================================================
+   * Application shell (Phase 0.5 design system).  All state is Alpine; markup lives in
+   * templates/layouts/app.html and templates/components/**.  No inline expressions.
+   * ========================================================================== */
+
+  function focusable(root, selector) {
+    return Array.prototype.slice.call(root.querySelectorAll(selector)).filter(function (node) {
+      return !node.disabled && node.offsetParent !== null;
+    });
+  }
+
+  /* The shell: mobile drawer + desktop collapse (persisted in a cookie the server reads) and a
+   * quiet session watcher that warns before the session ends. */
+  Alpine.data("shell", function () {
+    return {
+      mobileOpen: false,
+      collapsed: false,
+      watcher: null,
+      init: function () {
+        var self = this;
+        this.collapsed = document.documentElement.getAttribute("data-sidebar") === "collapsed";
+        window.matchMedia("(min-width: 1024px)").addEventListener("change", function (event) {
+          if (event.matches) {
+            self.closeMobile();
+          }
+        });
+        var url = this.$root.getAttribute("data-session-url");
+        if (url) {
+          this.watcher = window.setInterval(function () {
+            self.checkSession(url);
+          }, 60000);
+        }
+      },
+      get drawerState() {
+        return this.mobileOpen ? "true" : "false";
+      },
+      get expanded() {
+        return !this.collapsed;
+      },
+      get collapseLabel() {
+        return this.collapsed ? "Expand sidebar" : "Collapse sidebar";
+      },
+      toggleMobile: function () {
+        this.mobileOpen = !this.mobileOpen;
+        document.body.classList.toggle("overflow-hidden", this.mobileOpen);
+        if (this.mobileOpen) {
+          var self = this;
+          this.$nextTick(function () {
+            var links = focusable(self.$refs.sidebar, "a[href], button");
+            if (links.length) {
+              links[0].focus();
+            }
+          });
+        }
+      },
+      closeMobile: function () {
+        if (this.mobileOpen) {
+          this.mobileOpen = false;
+          document.body.classList.remove("overflow-hidden");
+        }
+      },
+      toggleCollapse: function () {
+        this.collapsed = !this.collapsed;
+        var state = this.collapsed ? "collapsed" : "expanded";
+        document.documentElement.setAttribute("data-sidebar", state);
+        var secure = window.location.protocol === "https:" ? "; Secure" : "";
+        document.cookie = "cp_sidebar=" + state + "; path=/; max-age=31536000; SameSite=Lax" + secure;
+      },
+      checkSession: function (url) {
+        if (document.hidden) {
+          return;
+        }
+        window
+          .fetch(url, { credentials: "same-origin", headers: { Accept: "application/json" } })
+          .then(function (response) {
+            return response.json();
+          })
+          .then(function (state) {
+            if (!state.authenticated) {
+              window.cpToast("Your session has ended. Sign in again to continue.", "error");
+            } else if (state.expires_in !== null && state.expires_in < 120) {
+              window.cpToast("Your session will expire soon. Save your work.", "warning");
+            }
+          })
+          .catch(function () {
+            /* offline or transient: the network indicator covers it */
+          });
+      },
+    };
+  });
+
+  /* A dropdown / menu button with arrow-key navigation.  Items carry role="menuitem". */
+  Alpine.data("dropdown", function () {
+    return {
+      open: false,
+      items: function () {
+        return focusable(this.$root, '[role="menuitem"], [role="menuitemradio"]');
+      },
+      toggle: function () {
+        this.open = !this.open;
+        if (this.open) {
+          var self = this;
+          this.$nextTick(function () {
+            var items = self.items();
+            if (items.length) {
+              items[0].focus();
+            }
+          });
+        }
+      },
+      close: function () {
+        this.open = false;
+      },
+      closeAndFocus: function () {
+        if (this.open) {
+          this.open = false;
+          var trigger = this.$root.querySelector("[aria-haspopup]");
+          if (trigger) {
+            trigger.focus();
+          }
+        }
+      },
+      onKeydown: function (event) {
+        if (!this.open) {
+          return;
+        }
+        var items = this.items();
+        var index = items.indexOf(document.activeElement);
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          items[(index + 1) % items.length].focus();
+        } else if (event.key === "ArrowUp") {
+          event.preventDefault();
+          items[(index - 1 + items.length) % items.length].focus();
+        } else if (event.key === "Home") {
+          event.preventDefault();
+          items[0].focus();
+        } else if (event.key === "End") {
+          event.preventDefault();
+          items[items.length - 1].focus();
+        } else if (event.key === "Tab") {
+          this.open = false;
+        }
+      },
+    };
+  });
+
+  /* In-page tabs (WAI-ARIA tabs pattern).  Panels carry role="tabpanel"; without script every
+   * panel simply stays visible.  The active tab is mirrored in the URL hash (#tab-<key>). */
+  Alpine.data("tabs", function () {
+    return {
+      active: "",
+      buttons: function () {
+        return Array.prototype.slice.call(this.$root.querySelectorAll('[role="tab"]'));
+      },
+      init: function () {
+        var buttons = this.buttons();
+        if (!buttons.length) {
+          return;
+        }
+        var wanted = (window.location.hash || "").replace("#tab-", "");
+        var known = buttons.map(function (button) {
+          return button.getAttribute("data-tab");
+        });
+        this.activate(known.indexOf(wanted) !== -1 ? wanted : known[0], false);
+      },
+      select: function (event) {
+        this.activate(event.currentTarget.getAttribute("data-tab"), true);
+      },
+      activate: function (key, updateHash) {
+        this.active = key;
+        this.buttons().forEach(function (button) {
+          var selected = button.getAttribute("data-tab") === key;
+          button.setAttribute("aria-selected", selected ? "true" : "false");
+          button.setAttribute("tabindex", selected ? "0" : "-1");
+        });
+        this.$root.querySelectorAll('[role="tabpanel"]').forEach(function (panel) {
+          panel.hidden = panel.getAttribute("data-tab-panel") !== key;
+        });
+        if (updateHash && window.history && window.history.replaceState) {
+          window.history.replaceState(null, "", "#tab-" + key);
+        }
+      },
+      onKeydown: function (event) {
+        var buttons = this.buttons();
+        var index = buttons.indexOf(document.activeElement);
+        if (index === -1) {
+          return;
+        }
+        var next = null;
+        if (event.key === "ArrowRight") {
+          next = buttons[(index + 1) % buttons.length];
+        } else if (event.key === "ArrowLeft") {
+          next = buttons[(index - 1 + buttons.length) % buttons.length];
+        } else if (event.key === "Home") {
+          next = buttons[0];
+        } else if (event.key === "End") {
+          next = buttons[buttons.length - 1];
+        }
+        if (next) {
+          event.preventDefault();
+          next.focus();
+          this.activate(next.getAttribute("data-tab"), true);
+        }
+      },
+    };
+  });
+
+  /* Server-rendered Django messages become toasts; each can be dismissed, success/info/warning
+   * also dismiss themselves (errors stay until closed).  Toasts raised from script go through
+   * window.cpToast (below), which is also what HX-Trigger "toast" events call. */
+  Alpine.data("toasts", function () {
+    return {
+      init: function () {
+        var region = this.$root;
+        region.querySelectorAll("[data-toast]").forEach(function (item) {
+          window.cpScheduleToast(item);
+        });
+        document.addEventListener("toast", function (event) {
+          var detail = event.detail || {};
+          window.cpToast(detail.message || detail.value || "", detail.tone || "info");
+        });
+      },
+      dismiss: function (event) {
+        var item = event.currentTarget.closest("[data-toast]");
+        if (item) {
+          item.remove();
+        }
+      },
+    };
+  });
+
+  /* The command palette (global search UI).  Ctrl/Cmd+K or "/" opens it; the input is an HTMX
+   * request to the search endpoint; results are server-rendered, grouped links. */
+  Alpine.data("commandPalette", function () {
+    return {
+      hasQuery: false,
+      init: function () {
+        var self = this;
+        document.addEventListener("keydown", function (event) {
+          var typing = /^(INPUT|TEXTAREA|SELECT)$/.test((event.target || {}).tagName || "") || (event.target || {}).isContentEditable;
+          if ((event.key === "k" && (event.ctrlKey || event.metaKey)) || (event.key === "/" && !typing && !event.ctrlKey && !event.metaKey)) {
+            event.preventDefault();
+            self.show();
+          }
+        });
+      },
+      show: function () {
+        if (!this.$refs.dialog.open) {
+          this.$refs.dialog.showModal();
+        }
+        this.$refs.input.focus();
+        this.$refs.input.select();
+      },
+      hide: function () {
+        this.$refs.dialog.close();
+      },
+      onBackdrop: function (event) {
+        if (event.target === this.$refs.dialog) {
+          this.$refs.dialog.close();
+        }
+      },
+      onInput: function () {
+        this.hasQuery = this.$refs.input.value.length > 0;
+      },
+      clear: function () {
+        this.$refs.input.value = "";
+        this.hasQuery = false;
+        this.$refs.input.dispatchEvent(new Event("input", { bubbles: true }));
+        this.$refs.input.focus();
+      },
+      onKeydown: function (event) {
+        if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+          return;
+        }
+        var stops = [this.$refs.input].concat(focusable(this.$refs.results, "a[href]"));
+        var index = stops.indexOf(document.activeElement);
+        var step = event.key === "ArrowDown" ? 1 : -1;
+        event.preventDefault();
+        stops[(index + step + stops.length) % stops.length].focus();
+      },
+    };
+  });
+
+  /* Online / offline indicator (ready for the offline checklist phase; no sync logic here). */
+  Alpine.data("networkStatus", function () {
+    return {
+      online: true,
+      init: function () {
+        var self = this;
+        this.online = window.navigator.onLine;
+        window.addEventListener("online", function () {
+          self.online = true;
+        });
+        window.addEventListener("offline", function () {
+          self.online = false;
+        });
+      },
+      get offline() {
+        return !this.online;
+      },
+      get label() {
+        return this.online ? "Online" : "Offline";
+      },
+      get stateClass() {
+        return this.online ? "net-online" : "net-offline";
+      },
+    };
+  });
+
+  /* Form chrome for ordinary (non-HTMX) forms: disables submit while submitting, and warns
+   * before leaving a form with unsaved changes. */
+  Alpine.data("formGuard", function () {
+    return {
+      submitting: false,
+      dirty: false,
+      markDirty: function () {
+        this.dirty = true;
+      },
+      onSubmit: function (event) {
+        if (this.submitting) {
+          event.preventDefault();
+          return;
+        }
+        this.submitting = true;
+        this.dirty = false;
+      },
+      reset: function () {
+        this.submitting = false;
+      },
+      warn: function (event) {
+        if (this.dirty && !this.submitting) {
+          event.preventDefault();
+          event.returnValue = "";
+        }
+      },
+    };
+  });
+
+  /* Arrow-key navigation for tree views (the nodes themselves are native <details>). */
+  Alpine.data("treeNav", function () {
+    return {
+      stops: function () {
+        return focusable(this.$root, "summary, a[data-tree-leaf]");
+      },
+      onKeydown: function (event) {
+        var stops = this.stops();
+        var index = stops.indexOf(document.activeElement);
+        if (index === -1 && event.target && event.target.closest) {
+          index = stops.indexOf(event.target.closest("summary"));
+        }
+        if (index === -1) {
+          return;
+        }
+        var current = stops[index];
+        var details = current.tagName === "SUMMARY" ? current.parentElement : null;
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          stops[Math.min(index + 1, stops.length - 1)].focus();
+        } else if (event.key === "ArrowUp") {
+          event.preventDefault();
+          stops[Math.max(index - 1, 0)].focus();
+        } else if (event.key === "ArrowRight" && details && !details.open) {
+          event.preventDefault();
+          details.open = true;
+        } else if (event.key === "ArrowLeft") {
+          if (details && details.open) {
+            event.preventDefault();
+            details.open = false;
+          } else {
+            var parent = current.closest("details") && current.closest("details").parentElement.closest("details");
+            if (parent) {
+              event.preventDefault();
+              parent.querySelector("summary").focus();
+            }
+          }
+        } else if (event.key === "Home") {
+          event.preventDefault();
+          stops[0].focus();
+        } else if (event.key === "End") {
+          event.preventDefault();
+          stops[stops.length - 1].focus();
+        }
+      },
+    };
+  });
   /* Searchable single-select (combobox) for locations.  The visible text input
    * queries an HTMX endpoint; choosing a result stores its id in the hidden
    * input.  The server re-validates the id against a scoped queryset - this

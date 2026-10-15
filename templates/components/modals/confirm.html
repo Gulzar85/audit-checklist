@@ -1,0 +1,28 @@
+{% load ui %}{% comment %}
+Confirmation dialog for destructive or high-impact actions.  Params: id, trigger (button label),
+trigger_icon, title, message, action (POST url), confirm_label, tone (danger|primary), fields (optional
+dict of hidden name -> value).  State the consequence in `message`.
+Uses the confirmDialog component (native <dialog>).
+{% endcomment %}
+<div x-data="confirmDialog" class="inline-block">
+  <button type="button" class="btn btn-{% if tone == 'danger' %}danger{% else %}secondary{% endif %}{% if size %} btn-{{ size }}{% endif %}" @click="show">
+    {% if trigger_icon %}{% icon trigger_icon %}{% endif %}{{ trigger }}
+  </button>
+  <dialog x-ref="dialog" id="{{ id }}" class="modal-dialog" @click="onBackdrop" aria-labelledby="{{ id }}-title" aria-describedby="{{ id }}-desc">
+    <form method="post" action="{{ action }}" class="p-6">
+      {% csrf_token %}
+      {% for name, value in fields.items %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+      <div class="flex items-start gap-3">
+        <span class="state-icon shrink-0 {% if tone == 'danger' %}state-icon-danger{% endif %}">{% if tone == "danger" %}{% icon "triangle-alert" "md" %}{% else %}{% icon "circle-help" "md" %}{% endif %}</span>
+        <div>
+          <h2 id="{{ id }}-title" class="text-lg font-semibold text-foreground">{{ title }}</h2>
+          <p id="{{ id }}-desc" class="mt-1 text-sm text-muted-foreground">{{ message }}</p>
+        </div>
+      </div>
+      <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <button type="button" class="btn btn-secondary" @click="hide">Cancel</button>
+        <button type="submit" class="btn btn-{% if tone == 'danger' %}danger{% else %}primary{% endif %}">{{ confirm_label|default:"Confirm" }}</button>
+      </div>
+    </form>
+  </dialog>
+</div>

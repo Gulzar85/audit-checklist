@@ -1,0 +1,13 @@
+{% comment %}
+Step indicator.  Params: steps = [{label, state}] with state done | current | todo.  The state is text-visible
+to assistive tech and shown by icon/number, not colour alone.
+{% endcomment %}
+<ol class="steps" aria-label="Progress">
+  {% for step in steps %}
+    <li class="step" data-state="{{ step.state }}"{% if step.state == "current" %} aria-current="step"{% endif %}>
+      <span class="step-number">{% if step.state == "done" %}<i data-lucide="check" class="h-3.5 w-3.5" aria-hidden="true"></i><span class="sr-only">Completed:</span>{% else %}{{ forloop.counter }}{% endif %}</span>
+      <span>{{ step.label }}</span>
+    </li>
+    {% if not forloop.last %}<li class="step-sep" aria-hidden="true"></li>{% endif %}
+  {% endfor %}
+</ol>

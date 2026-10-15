@@ -1,10 +1,2 @@
-{% extends "base_root.html" %}
-
-{% block chrome %}
-  {% include "partials/navbar.html" %}
-  {% include "themes/_preview_banner.html" %}
-{% endblock %}
-
-{% block footer %}
-  {% include "partials/footer.html" %}
-{% endblock %}
+{% extends "layouts/app.html" %}
+{% comment %}Compatibility alias: every existing page extends "base.html" and gets the application shell.{% endcomment %}

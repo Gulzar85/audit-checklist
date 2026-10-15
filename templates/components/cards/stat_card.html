@@ -1,0 +1,8 @@
+{% load ui %}{% comment %}
+A KPI tile. Params: label, value, icon (optional), hint (optional), href (optional), tone (optional).
+{% endcomment %}
+<{% if href %}a href="{{ href }}"{% else %}div{% endif %} class="stat-card block{% if href %} hover:bg-muted{% endif %}">
+  <p class="stat-label">{% if icon %}{% icon icon "sm" %}{% endif %}{{ label }}</p>
+  <p class="stat-value">{{ value }}</p>
+  {% if hint %}<p class="stat-hint">{{ hint }}</p>{% endif %}
+</{% if href %}a{% else %}div{% endif %}>

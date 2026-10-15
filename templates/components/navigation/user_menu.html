@@ -1,0 +1,33 @@
+{% comment %}The signed-in user's menu (avatar, identity, account links, sign out).{% endcomment %}
+{% if user.is_authenticated %}
+  <div class="relative" x-data="dropdown" @keydown.escape="closeAndFocus" @click.outside="close" @keydown="onKeydown">
+    <button type="button" class="btn btn-ghost h-10 gap-2 px-1.5" @click="toggle" :aria-expanded="open" aria-haspopup="true"
+            aria-controls="user-menu" aria-label="Account menu for {{ user.get_short_name|default:user.email }}">
+      {% include "components/avatars/avatar.html" with user=user %}
+      <span class="hidden max-w-32 truncate text-sm font-medium text-foreground md:inline">{{ user.get_short_name|default:user.email }}</span>
+      <i data-lucide="chevron-down" class="hidden h-4 w-4 md:inline" aria-hidden="true"></i>
+    </button>
+    <div id="user-menu" role="menu" aria-label="Account" x-show="open" x-cloak class="menu-panel absolute right-0 z-50 mt-2 w-72 max-w-[calc(100vw-1.5rem)] p-0">
+      <div class="flex items-center gap-3 border-b border-border px-4 py-3">
+        {% include "components/avatars/avatar.html" with user=user size="lg" %}
+        <div class="min-w-0">
+          <p class="truncate text-sm font-semibold text-foreground">{{ user.get_full_name|default:user.email }}</p>
+          <p class="truncate text-xs text-muted-foreground">{{ user.email }}</p>
+          {% if current_organization %}<p class="truncate text-xs text-muted-foreground">{{ current_organization.name }}</p>{% endif %}
+        </div>
+      </div>
+      <div class="p-1">
+        <a href="{% url 'accounts:profile' %}" role="menuitem" class="menu-item"><i data-lucide="user-round" class="h-4 w-4" aria-hidden="true"></i> Profile</a>
+        <a href="{% url 'accounts:preferences' %}" role="menuitem" class="menu-item"><i data-lucide="sliders-horizontal" class="h-4 w-4" aria-hidden="true"></i> Preferences</a>
+        <a href="{% url 'accounts:appearance' %}" role="menuitem" class="menu-item"><i data-lucide="sun-moon" class="h-4 w-4" aria-hidden="true"></i> Appearance</a>
+        <a href="/api/docs/" role="menuitem" class="menu-item" target="_blank" rel="noopener"><i data-lucide="circle-help" class="h-4 w-4" aria-hidden="true"></i> Help<span class="sr-only"> (opens in a new tab)</span></a>
+      </div>
+      <form method="post" action="{% url 'accounts:logout' %}" class="border-t border-border p-1">
+        {% csrf_token %}
+        <button type="submit" role="menuitem" class="menu-item"><i data-lucide="log-out" class="h-4 w-4" aria-hidden="true"></i> Sign out</button>
+      </form>
+    </div>
+  </div>
+{% else %}
+  <a href="{% url 'accounts:login' %}" class="btn btn-primary btn-sm">Sign in</a>
+{% endif %}

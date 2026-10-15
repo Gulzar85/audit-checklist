@@ -1,0 +1,8 @@
+{% load ui %}{% comment %}
+Inline alert. Params: tone (success|warning|danger|info), title (optional), message.  Icon + text, so the
+meaning never depends on colour.  `danger` uses role="alert", the others role="status".
+{% endcomment %}
+<div class="alert alert-{{ tone|default:'info' }}" role="{% if tone == 'danger' %}alert{% else %}status{% endif %}">
+  {% if tone == "success" %}{% icon "circle-check" "md" "shrink-0" %}{% elif tone == "warning" %}{% icon "triangle-alert" "md" "shrink-0" %}{% elif tone == "danger" %}{% icon "circle-alert" "md" "shrink-0" %}{% else %}{% icon "info" "md" "shrink-0" %}{% endif %}
+  <div>{% if title %}<p class="font-semibold">{{ title }}</p>{% endif %}<p>{{ message }}</p></div>
+</div>

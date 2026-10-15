@@ -1,36 +1,14 @@
 {% extends "base.html" %}
+{% load ui %}
 
 {% block title %}{{ location.name }} · {{ APP_NAME }}{% endblock %}
 
-{% block content %}
-<nav class="breadcrumbs mb-4" aria-label="Breadcrumbs">
-  <ol>
-    <li><a href="{% url 'core:home' %}">Home</a></li>
-    <li><a href="{% url 'locations:tree' %}">Locations</a></li>
-    {% for ancestor in ancestors %}
-      <li><a href="{% url 'locations:detail' ancestor.pk %}">{{ ancestor.name }}</a></li>
-    {% endfor %}
-    <li aria-current="page">{{ location.name }}</li>
-  </ol>
-</nav>
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Locations" "locations:tree" ancestors|as_crumbs:"locations:detail" location.name %}{% endblock %}
 
-<div class="mb-6 flex flex-wrap items-start justify-between gap-4">
-  <div class="flex items-center gap-3">
-    <span class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-      <i data-lucide="map-pin" class="h-6 w-6" aria-hidden="true"></i>
-    </span>
-    <div>
-      <h1 class="text-2xl font-bold tracking-tight">{{ location.name }}</h1>
-      <p class="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-        <span class="font-mono">{{ location.code }}</span>
-        <span class="badge badge-info">{{ location.location_type.name }}</span>
-        {% include "components/active_badge.html" with is_active=location.is_active %}
-      </p>
-    </div>
-  </div>
-
-  <div class="flex flex-wrap items-center gap-2">
-    {% if can_edit %}
+{% block page_header %}
+{% with loc_sub="Code "|add:location.code|add:" · "|add:location.location_type.name loc_status=location.is_active|yesno:"active,inactive" %}
+{% page_header title=location.name subtitle=loc_sub icon="map-pin" status=loc_status %}
+{% if can_edit %}
       <a href="{% url 'locations:update' location.pk %}" class="btn btn-secondary">
         <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i> Edit
       </a>
@@ -82,9 +60,11 @@
         </button>
       </form>
     {% endif %}
-  </div>
-</div>
+{% endpage_header %}
+{% endwith %}
+{% endblock %}
 
+{% block content %}
 {% if not location.is_active %}
   <div class="alert alert-warning mb-6" role="status">
     <i data-lucide="triangle-alert" class="h-5 w-5 shrink-0" aria-hidden="true"></i>

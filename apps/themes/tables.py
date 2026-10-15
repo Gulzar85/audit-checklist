@@ -20,5 +20,5 @@ class ThemeTable(tables.Table):
         model = Theme
         fields = ("name", "code", "scope", "organization", "version", "status", "default_appearance", "updated_at")
         template_name = "core/tables/table.html"
-        attrs = {"class": "table", "aria-label": "Themes"}
+        attrs = {"class": "table table-stack", "aria-label": "Themes"}
         empty_text = "No themes match your filters."

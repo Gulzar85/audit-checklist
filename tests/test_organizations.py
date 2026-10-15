@@ -114,9 +114,9 @@ class TestValidation:
         assert org.primary_color == "#4F46E5"
         assert org.effective_timezone == "Europe/London"
 
-    def test_effective_settings_fall_back_to_platform_defaults(self):
+    def test_effective_settings_fall_back_to_platform_defaults(self, settings):
         org = services.create_organization(name="Acme")
-        assert org.effective_timezone == "UTC"
+        assert org.effective_timezone == settings.TIME_ZONE  # the platform default (environment-driven)
         assert org.effective_currency == "USD"
         assert org.effective_date_format == "Y-m-d"
 

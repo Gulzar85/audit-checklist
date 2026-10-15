@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Permission denied &middot; {{ APP_NAME }}{% endblock %}
 {% block content %}
-<div class="mx-auto max-w-md py-16 text-center">
-  <p class="text-5xl font-bold text-link">403</p>
+<div class="mx-auto max-w-md py-12 text-center">
+  <p class="text-5xl font-bold text-link" aria-hidden="true">403</p>
   <h1 class="mt-2 text-2xl font-semibold text-foreground">Permission denied</h1>
-  <p class="mt-2 text-muted-foreground">You do not have permission to access this resource.</p>
+  <p class="mt-2 text-muted-foreground">You do not have permission to access this resource. If you think this is a mistake, contact your administrator.</p>
   <a href="{% url 'core:home' %}" class="btn btn-primary mt-6">Back to home</a>
 </div>
 {% endblock %}

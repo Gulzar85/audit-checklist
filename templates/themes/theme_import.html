@@ -1,30 +1,22 @@
 {% extends "base.html" %}
-{% load crispy_forms_tags %}
-{% block title %}Import theme · {{ APP_NAME }}{% endblock %}
+{% load crispy_forms_tags ui %}
+{% block title %}Import theme &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-narrow{% endblock %}
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Themes" "themes:list" "Import" %}{% endblock %}
+{% block page_header %}{% page_header title="Import a theme" subtitle="Only a theme file exported from this platform is accepted; every value is validated and the result is a draft." icon="upload" %}{% endpage_header %}{% endblock %}
 
 {% block content %}
-<nav class="breadcrumbs mb-4" aria-label="Breadcrumbs">
-  <ol>
-    <li><a href="{% url 'core:home' %}">Home</a></li>
-    <li><a href="{% url 'themes:list' %}">Themes</a></li>
-    <li aria-current="page">Import</li>
-  </ol>
-</nav>
-<div class="mx-auto max-w-2xl">
-  <div class="card">
-    <div class="card-header"><h1 class="card-title">Import a theme</h1><i data-lucide="upload" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i></div>
-    <form method="post" enctype="multipart/form-data" novalidate>
-      <div class="card-body">
-        {% csrf_token %}
-        {% include "tailwind/errors.html" %}
-        {% for field in form %}{{ field|as_crispy_field }}{% endfor %}
-        <p class="help-text">Only a theme file exported from this platform is accepted. Every value is validated; anything unknown is rejected. The result is a draft.</p>
-      </div>
-      <div class="card-footer flex flex-wrap gap-3">
-        <button type="submit" class="btn btn-primary">Import as draft</button>
-        <a href="{% url 'themes:list' %}" class="btn btn-secondary">Cancel</a>
-      </div>
-    </form>
-  </div>
+<div class="card">
+  <form method="post" enctype="multipart/form-data" novalidate x-data="formGuard" @submit="onSubmit" @input="markDirty" @beforeunload.window="warn" @pageshow.window="reset">
+    <div class="card-body">
+      {% csrf_token %}
+      {% include "tailwind/errors.html" %}
+      {% for field in form %}{{ field|as_crispy_field }}{% endfor %}
+    </div>
+    <div class="card-footer">
+      {% url 'themes:list' as cancel_url %}
+      {% include "components/forms/actions.html" with submit_label="Import as draft" submit_icon="upload" cancel_url=cancel_url %}
+    </div>
+  </form>
 </div>
 {% endblock %}

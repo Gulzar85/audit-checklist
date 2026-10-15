@@ -1,0 +1,48 @@
+{% comment %}
+Organization switcher.  Lists the organizations the user is a member of and switches through
+POST /organizations/switch/, where the *server* verifies membership and the organization's state.
+Nothing here is authorization: a forged id is a 404 on the server.
+{% endcomment %}
+{% with organizations=switchable_organizations %}
+  {% if current_organization %}
+    <div class="border-b border-sidebar-border px-3 py-2">
+      {% if organizations|length > 1 %}
+        <div class="relative" x-data="dropdown" @keydown.escape="closeAndFocus" @click.outside="close" @keydown="onKeydown">
+          <button type="button" class="sidebar-link sidebar-org w-full justify-between" @click="toggle"
+                  :aria-expanded="open" aria-haspopup="true" aria-controls="org-switcher-menu"
+                  data-tooltip="Switch organization" data-tooltip-collapsed>
+            <span class="flex min-w-0 items-center gap-3">
+              <i data-lucide="building-2" class="h-5 w-5 shrink-0" aria-hidden="true"></i>
+              <span class="sidebar-label truncate">{{ current_organization.name }}</span>
+            </span>
+            <i data-lucide="chevrons-up-down" class="sidebar-label h-4 w-4 shrink-0 opacity-70" aria-hidden="true"></i>
+          </button>
+          <div id="org-switcher-menu" role="menu" aria-label="Switch organization" x-show="open" x-cloak
+               class="menu-panel absolute left-0 top-full z-50 mt-1 w-64 max-w-[calc(100vw-2rem)]">
+            {% for organization in organizations|slice:":8" %}
+              <form method="post" action="{% url 'orgcontext:switch' %}">
+                {% csrf_token %}
+                <input type="hidden" name="organization" value="{{ organization.pk }}">
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" role="menuitemradio" class="menu-item"
+                        aria-checked="{% if organization.pk == current_organization.pk %}true{% else %}false{% endif %}">
+                  <i data-lucide="building-2" class="h-4 w-4 shrink-0" aria-hidden="true"></i>
+                  <span class="min-w-0 flex-1 truncate">{{ organization.name }}</span>
+                  {% if organization.pk == current_organization.pk %}<i data-lucide="check" class="h-4 w-4 shrink-0" aria-hidden="true"></i><span class="sr-only">(current)</span>{% endif %}
+                </button>
+              </form>
+            {% endfor %}
+            <a href="{% url 'orgcontext:select' %}" role="menuitem" class="menu-item border-t border-border text-link">
+              <i data-lucide="layout-list" class="h-4 w-4" aria-hidden="true"></i> All organizations
+            </a>
+          </div>
+        </div>
+      {% else %}
+        <p class="sidebar-link sidebar-org cursor-default hover:bg-transparent" data-tooltip="{{ current_organization.name }}" data-tooltip-collapsed>
+          <i data-lucide="building-2" class="h-5 w-5 shrink-0" aria-hidden="true"></i>
+          <span class="sidebar-label truncate">{{ current_organization.name }}</span>
+        </p>
+      {% endif %}
+    </div>
+  {% endif %}
+{% endwith %}

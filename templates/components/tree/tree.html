@@ -1,0 +1,7 @@
+{% comment %}
+A generic hierarchy (locations today; any parent/child data tomorrow).  Params: nodes, label (accessible name).
+Arrow keys move between rows, Right/Left expand/collapse; native <details> provides Enter/Space.
+{% endcomment %}
+<ul class="space-y-1" role="group" aria-label="{{ label|default:'Hierarchy' }}" x-data="treeNav" @keydown="onKeydown">
+  {% include "components/tree/branch.html" %}
+</ul>

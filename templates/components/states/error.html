@@ -1,0 +1,10 @@
+{% load ui %}{% comment %}
+Error state: plain language, never a stack trace.  Params: title, message, retry_url (a link that
+reloads the content) and/or retry_label.
+{% endcomment %}
+<div class="state" role="alert">
+  <span class="state-icon state-icon-danger">{% icon "circle-alert" "lg" %}</span>
+  <p class="text-base font-semibold text-foreground">{{ title|default:"Something went wrong" }}</p>
+  <p class="max-w-md text-sm text-muted-foreground">{{ message|default:"We couldn't load this information." }}</p>
+  {% if retry_url %}<a href="{{ retry_url }}" class="btn btn-secondary mt-3">{% icon "refresh-cw" %}{{ retry_label|default:"Try again" }}</a>{% endif %}
+</div>

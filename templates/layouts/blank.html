@@ -1,0 +1,9 @@
+{% extends "base_root.html" %}
+{% comment %}
+Blank layout: no chrome at all (embeds, print views, the offline fallback).  Provide `content`.
+{% endcomment %}
+{% block shell %}
+  <main id="main" class="p-4 sm:p-6">
+    {% block content %}{% endblock %}
+  </main>
+{% endblock %}

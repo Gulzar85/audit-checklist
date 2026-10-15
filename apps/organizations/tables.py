@@ -29,5 +29,5 @@ class OrganizationTable(tables.Table):
         model = Organization
         fields = ("name", "code", "status", "city", "country", "created_at")
         template_name = "core/tables/table.html"
-        attrs = {"class": "table", "aria-label": "Organizations"}
+        attrs = {"class": "table table-stack", "aria-label": "Organizations"}
         empty_text = "No organizations match your filters."

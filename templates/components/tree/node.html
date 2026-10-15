@@ -1,0 +1,31 @@
+{% load ui %}{% comment %}One tree node: a native <details> (expand/collapse, keyboard-accessible) or a leaf row.{% endcomment %}
+{% if node.has_children or node.children %}
+  <li>
+    <details class="tree-node group"{% if node.children_url and not node.children %} hx-get="{{ node.children_url }}" hx-trigger="toggle once" hx-target="find .tree-children" hx-swap="innerHTML"{% endif %}{% if node.open %} open{% endif %}>
+      <summary class="tree-row">
+        <i data-lucide="chevron-right" class="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" aria-hidden="true"></i>
+        <span class="flex min-w-0 flex-1 flex-wrap items-center gap-x-2">
+          {% if node.href %}<a href="{{ node.href }}" class="font-medium text-foreground hover:underline">{{ node.label }}</a>{% else %}<span class="font-medium">{{ node.label }}</span>{% endif %}
+          {% if node.meta %}<span class="text-xs text-muted-foreground">{{ node.meta }}</span>{% endif %}
+          {% if node.status %}{% status_badge node.status %}{% endif %}
+        </span>
+      </summary>
+      <ul class="tree-children" aria-live="polite">
+        {% if node.children %}{% include "components/tree/branch.html" with nodes=node.children %}{% else %}
+          <li class="px-2 py-1.5"><span class="skeleton-text block w-40"></span><span class="sr-only" role="status">Loading</span></li>
+        {% endif %}
+      </ul>
+    </details>
+  </li>
+{% else %}
+  <li>
+    <div class="tree-row">
+      <span class="inline-block h-4 w-4 shrink-0" aria-hidden="true"></span>
+      <span class="flex min-w-0 flex-1 flex-wrap items-center gap-x-2">
+        {% if node.href %}<a href="{{ node.href }}" data-tree-leaf class="font-medium text-foreground hover:underline">{{ node.label }}</a>{% else %}<span class="font-medium">{{ node.label }}</span>{% endif %}
+        {% if node.meta %}<span class="text-xs text-muted-foreground">{{ node.meta }}</span>{% endif %}
+        {% if node.status %}{% status_badge node.status %}{% endif %}
+      </span>
+    </div>
+  </li>
+{% endif %}
