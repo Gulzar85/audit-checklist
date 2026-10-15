@@ -155,3 +155,29 @@ class User(AbstractBaseUser, PermissionsMixin):
         source = self.get_full_name() or self.email
         parts = [part for part in source.replace("@", " ").split() if part]
         return "".join(part[0].upper() for part in parts[:2])
+
+
+class UserPreference(models.Model):
+    """One validated preference of one user (a small key/value store).
+
+    Only keys registered in :mod:`apps.accounts.preferences` can be stored, each with its
+    own validator, so this is not an arbitrary-JSON bucket and adding a preference never
+    needs a column or a migration.  Appearance (light/dark/system) is deliberately *not*
+    here: it belongs to the theme engine (``themes.UserAppearance``, ADR 0034).
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="preferences")
+    key = models.CharField(max_length=40)
+    value = models.JSONField()
+    updated_at = models.DateTimeField(auto_now=True, editable=False)
+
+    class Meta:
+        verbose_name = _("user preference")
+        verbose_name_plural = _("user preferences")
+        constraints = [
+            models.UniqueConstraint(fields=["user", "key"], name="unique_user_preference_key"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user_id}:{self.key}"

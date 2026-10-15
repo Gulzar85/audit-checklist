@@ -14,6 +14,7 @@ from .views import (
     MicrosoftLoginView,
     ProfileUpdateView,
     ProfileView,
+    SessionStatusView,
 )
 
 app_name = "accounts"
@@ -25,6 +26,7 @@ urlpatterns = [
     path("microsoft/callback/", MicrosoftCallbackView.as_view(), name="microsoft_callback"),
     path("error/", AuthenticationErrorView.as_view(), name="auth_error"),
     path("logout/", LogoutView.as_view(), name="logout"),
+    path("session/", SessionStatusView.as_view(), name="session"),
     # Account.
     path("profile/", ProfileView.as_view(), name="profile"),
     path("profile/edit/", ProfileUpdateView.as_view(), name="profile_edit"),

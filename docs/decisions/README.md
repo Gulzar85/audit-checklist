@@ -39,3 +39,7 @@ consequences. New records are appended; existing ones are superseded, not edited
 | [0032](0032-identity-provisioning-and-linking.md) | Identity provisioning and linking: default deny, approval before first sign-in | Accepted |
 | [0033](0033-session-authenticated-api.md) | The REST API authenticates the session (no separate API tokens yet) | Accepted |
 | [0034](0034-account-appearance-reuses-theme-engine.md) | The account appearance page reuses the theme engine, not a second preference store | Accepted |
+| [0035](0035-membership-status-lifecycle.md) | Membership lifecycle: one authoritative status, rows are kept | Accepted |
+| [0036](0036-location-scope-foundation.md) | Location scope: a data foundation without an engine | Accepted |
+| [0037](0037-user-preferences-allow-list.md) | User preferences: an allow-listed key/value store; appearance stays in the theme engine | Accepted |
+| [0038](0038-session-lifetime-and-pwa.md) | Session lifetime, expiry responses and PWA behaviour | Accepted |

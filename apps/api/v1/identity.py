@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import Any
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, serializers, viewsets
@@ -20,7 +21,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.accounts.selectors import users_visible_to
+from apps.accounts import services
+from apps.accounts.preferences import PREFERENCES
+from apps.accounts.selectors import get_preferences, users_visible_to
 from apps.api.permissions import IsActiveUser, PolicyPermission
 
 User = get_user_model()
@@ -135,3 +138,46 @@ class UserViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
 
     def get_serializer_class(self) -> Any:
         return UserSummarySerializer
+
+
+class MePreferencesView(APIView):
+    """``/api/v1/me/preferences/`` - the caller's own preferences.
+
+    One document: ``appearance`` (light/dark/system, stored by the theme engine) plus the
+    allow-listed identity preferences (``timezone``, ``language``).  ``null`` clears a value.
+    Unknown keys are rejected.
+    """
+
+    permission_classes = (IsAuthenticated, IsActiveUser)
+
+    @staticmethod
+    def _document(user: Any) -> dict[str, Any]:
+        from apps.themes.models import UserAppearance
+
+        stored = get_preferences(user)
+        mode = UserAppearance.objects.filter(user=user).values_list("mode", flat=True).first()
+        return {"appearance": mode, **{key: stored.get(key) for key in PREFERENCES}}
+
+    @extend_schema(responses=dict)
+    def get(self, request: Request) -> Response:
+        return Response(self._document(request.user))
+
+    @extend_schema(request=dict, responses=dict)
+    def patch(self, request: Request) -> Response:
+        from apps.themes import services as theme_services
+
+        data = request.data
+        if not isinstance(data, dict) or not data:
+            raise serializers.ValidationError({"detail": "Send an object of preferences to change."})
+        unknown = {key: "Unknown preference." for key in data if key != "appearance" and key not in PREFERENCES}
+        if unknown:
+            raise serializers.ValidationError(unknown)
+        try:
+            if "appearance" in data:
+                theme_services.set_user_appearance(request.user, data["appearance"], actor=request.user)
+            for key in PREFERENCES:
+                if key in data:
+                    services.set_preference(request.user, key, data[key], actor=request.user)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.message_dict if hasattr(exc, "error_dict") else exc.messages) from exc
+        return Response(self._document(request.user))

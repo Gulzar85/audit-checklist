@@ -208,7 +208,7 @@ class TestRenderedAdmin:
         data = {
             "name": org_a.name, "slug": org_a.slug, "memberships-TOTAL_FORMS": "1",
             "memberships-INITIAL_FORMS": "0", "memberships-MIN_NUM_FORMS": "0", "memberships-MAX_NUM_FORMS": "1000",
-            "memberships-0-user": str(user.pk), "memberships-0-is_active": "on", "_save": "Save",
+            "memberships-0-user": str(user.pk), "memberships-0-status": "active", "_save": "Save",
         }
         response = staff_client.post(f"/admin/organizations/organization/{org_a.pk}/change/", data)
         assert response.status_code == 302

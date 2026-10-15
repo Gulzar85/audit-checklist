@@ -146,3 +146,10 @@ def resolve_active_organization(user: Any, organization_id: str | None = None) -
         .first()
     ) or visible.first()
 
+
+
+def get_preferences(user: Any) -> dict[str, Any]:
+    """The user's stored preferences as ``{key: value}`` (appearance is the theme engine's)."""
+    from .models import UserPreference
+
+    return dict(UserPreference.objects.filter(user=user).values_list("key", "value"))

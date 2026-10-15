@@ -31,10 +31,13 @@ from .constants import (
     UserStatus,
 )
 from .entra import ExternalIdentity, tenant_is_allowed
+from .preferences import PREFERENCES, validate_preference
 from .exceptions import IdentityNotAllowed
+from .models import UserPreference
 from .selectors import get_user_by_email, get_user_by_entra_identity
 
 User = get_user_model()
+Membership = OrganizationMembership
 
 
 # ---------------------------------------------------------------------------
@@ -172,6 +175,37 @@ def link_external_identity(user: Any, identity: ExternalIdentity, *, actor: Any 
         target=current,
         description=f"Linked Microsoft Entra identity to {current.email}",
         metadata={"object_id": identity.object_id, "changes": changes},
+    )
+    return current
+
+
+@transaction.atomic
+def unlink_external_identity(user: Any, *, actor: Any = None, reason: str = "") -> Any:
+    """Detach the Entra identity from ``user`` (administrative; audited).
+
+    The account keeps its profile, memberships and history; it simply stops being
+    reachable through that Microsoft identity.  To avoid locking a person out for good,
+    a user left with *no* way to sign in must be an administrator-recoverable state:
+    the account is moved to ``inactive`` unless it still has a usable local password.
+    """
+    current = User.objects.select_for_update().get(pk=user.pk)
+    if not current.entra_object_id:
+        raise ValidationError(_("This account is not linked to a Microsoft identity."))
+    previous = {"object_id": current.entra_object_id, "tenant_id": current.entra_tenant_id}
+    current.entra_object_id = None
+    current.entra_tenant_id = ""
+    deactivated = False
+    if current.status == UserStatus.ACTIVE and not current.has_usable_password():
+        current.status = UserStatus.INACTIVE
+        deactivated = True
+    stamp_history(current, actor, IDENTITY_VERBS["identity_unlinked"])
+    current.save()
+    log_activity(
+        verb=IDENTITY_VERBS["identity_unlinked"],
+        actor=actor,
+        target=current,
+        description=f"Unlinked Microsoft Entra identity from {current.email}",
+        metadata={**previous, "reason": reason[:200], "deactivated": deactivated},
     )
     return current
 
@@ -319,13 +353,26 @@ def add_membership(
     is_default: bool = False,
     is_active: bool = True,
 ) -> OrganizationMembership:
-    """Grant ``user`` membership of ``organization`` (idempotent)."""
+    """Grant ``user`` membership of ``organization`` (idempotent).
+
+    A user who previously *left* is re-admitted by reusing the same row (it keeps its
+    history); the event is logged as ``organization_membership.created`` with
+    ``rejoined: true``.
+    """
+    status = Membership.Status.ACTIVE if is_active else Membership.Status.SUSPENDED
     membership, created = OrganizationMembership.objects.get_or_create(
         user=user,
         organization=organization,
-        defaults={"is_default": is_default, "is_active": is_active},
+        defaults={"is_default": is_default, "status": status},
     )
-    if created:
+    rejoined = False
+    if not created and membership.status == Membership.Status.LEFT:
+        membership = OrganizationMembership.objects.select_for_update().get(pk=membership.pk)
+        membership.status = status
+        membership.is_default = is_default
+        membership.save()
+        rejoined = True
+    if created or rejoined:
         if is_default:
             _clear_other_defaults(user, organization)
         log_activity(
@@ -334,27 +381,53 @@ def add_membership(
             actor=actor,
             target=membership,
             description=f"Added {user} to {organization}",
-            metadata={"is_default": is_default, "is_active": is_active},
+            metadata={"is_default": is_default, "status": membership.status, "rejoined": rejoined},
         )
     return membership
 
 
+_MEMBERSHIP_STATUS_VERBS = {
+    Membership.Status.ACTIVE: IDENTITY_VERBS["membership_updated"],
+    Membership.Status.SUSPENDED: IDENTITY_VERBS["membership_suspended"],
+    Membership.Status.LEFT: IDENTITY_VERBS["membership_removed"],
+}
+
+
 @transaction.atomic
-def set_membership_active(membership: OrganizationMembership, is_active: bool, *, actor: Any = None) -> OrganizationMembership:
-    current = OrganizationMembership.objects.select_for_update().get(pk=membership.pk)
-    if current.is_active == is_active:
+def set_membership_status(
+    membership: OrganizationMembership, status: str, *, actor: Any = None
+) -> OrganizationMembership:
+    """Move a membership between ``active``, ``suspended`` and ``left`` (audited).
+
+    Nothing is deleted: a membership that is not active simply stops granting access
+    (the tenant choke point filters on ``is_active``), and ``left_at`` records when the
+    user left.
+    """
+    if status not in Membership.Status.values:
+        raise ValidationError({"status": _("Unknown membership status “%(status)s”.") % {"status": status}})
+    current = OrganizationMembership.objects.select_for_update().select_related("organization", "user").get(pk=membership.pk)
+    if current.status == status:
         return current
-    current.is_active = is_active
-    current.save(update_fields=["is_active", "updated_at"])
+    previous = current.status
+    current.status = status
+    stamp_history(current, actor, _MEMBERSHIP_STATUS_VERBS[status])
+    current.save()
     log_activity(
-        verb=IDENTITY_VERBS["membership_updated"],
+        verb=_MEMBERSHIP_STATUS_VERBS[status],
         organization=current.organization,
         actor=actor,
         target=current,
-        description=f"{'Activated' if is_active else 'Deactivated'} membership of {current.user} in {current.organization}",
-        metadata={"is_active": is_active},
+        description=f"Membership of {current.user} in {current.organization} is now {status}",
+        metadata={"from": previous, "to": status, "user_id": str(current.user_id)},
     )
     return current
+
+
+def set_membership_active(membership: OrganizationMembership, is_active: bool, *, actor: Any = None) -> OrganizationMembership:
+    """Compatibility wrapper: ``True`` -> active, ``False`` -> suspended."""
+    return set_membership_status(
+        membership, Membership.Status.ACTIVE if is_active else Membership.Status.SUSPENDED, actor=actor
+    )
 
 
 @transaction.atomic
@@ -379,19 +452,9 @@ def set_default_organization(user: Any, organization: Any, *, actor: Any = None)
     return membership
 
 
-@transaction.atomic
-def remove_membership(membership: OrganizationMembership, *, actor: Any = None) -> None:
-    """Remove a membership entirely (nothing else is deleted)."""
-    user = membership.user
-    organization = membership.organization
-    membership.delete()
-    log_activity(
-        verb=IDENTITY_VERBS["membership_removed"],
-        organization=organization,
-        actor=actor,
-        description=f"Removed {user} from {organization}",
-        metadata={"user_id": str(user.pk)},
-    )
+def remove_membership(membership: OrganizationMembership, *, actor: Any = None) -> OrganizationMembership:
+    """The user *leaves* the organization: the row is kept (``status=left``, ``left_at``)."""
+    return set_membership_status(membership, Membership.Status.LEFT, actor=actor)
 
 
 # ---------------------------------------------------------------------------
@@ -468,3 +531,38 @@ def record_authentication(
         description=f"Microsoft Entra sign-in {'succeeded' if success else 'failed'}",
         metadata=payload,
     )
+
+
+# ---------------------------------------------------------------------------
+# User preferences (allow-listed; appearance belongs to the theme engine)
+# ---------------------------------------------------------------------------
+@transaction.atomic
+def set_preference(user: Any, key: str, value: Any, *, actor: Any = None) -> Any:
+    """Set (or, with ``None``/``""``, clear) one validated preference; audited on change."""
+    if key not in PREFERENCES:
+        raise ValidationError({key: _("Unknown preference.")})
+    existing = UserPreference.objects.select_for_update().filter(user=user, key=key).first()
+    if value in (None, ""):
+        if existing is None:
+            return None
+        previous = existing.value
+        existing.delete()
+        new = None
+    else:
+        new = validate_preference(key, value)
+        previous = existing.value if existing else None
+        if previous == new:
+            return existing
+        if existing:
+            existing.value = new
+            existing.save(update_fields=["value", "updated_at"])
+        else:
+            existing = UserPreference.objects.create(user=user, key=key, value=new)
+    log_activity(
+        verb=IDENTITY_VERBS["preference_changed"],
+        actor=actor or user,
+        target=user,
+        description=f"Preference {key} changed",
+        metadata={"key": key, "from": previous, "to": new},
+    )
+    return existing if new is not None else None

@@ -25,6 +25,7 @@ from pathlib import Path
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from simple_history.models import HistoricalRecords
@@ -277,12 +278,25 @@ class OrganizationMembership(BaseModel):
         on_delete=models.CASCADE,
         related_name="memberships",
     )
+    class Status(models.TextChoices):
+        ACTIVE = "active", _("Active")
+        SUSPENDED = "suspended", _("Suspended")
+        LEFT = "left", _("Left")
+
+    #: Authoritative lifecycle (ADR 0035).  ``left`` keeps the row (history, audit and
+    #: later checklist data reference it) and ``left_at`` records when.
+    status = models.CharField(
+        max_length=12, choices=Status.choices, default=Status.ACTIVE, db_index=True
+    )
+    #: Stored mirror of ``status == active``: every existing ``is_active`` filter (the
+    #: tenant choke point) keeps working.  Derived in ``save()``; never set independently.
     is_active = models.BooleanField(default=True, db_index=True)
     is_default = models.BooleanField(
         default=False,
         help_text=_("Preferred organization for the user."),
     )
     joined_at = models.DateTimeField(auto_now_add=True, editable=False)
+    left_at = models.DateTimeField(null=True, blank=True, editable=False)
 
     history = HistoricalRecords()
 
@@ -294,6 +308,20 @@ class OrganizationMembership(BaseModel):
                 fields=["user", "organization"],
                 name="unique_user_organization_membership",
             ),
+            models.CheckConstraint(
+                condition=models.Q(status="active", is_active=True)
+                | (~models.Q(status="active") & models.Q(is_active=False)),
+                name="membership_status_matches_is_active",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(status="left", left_at__isnull=False)
+                | (~models.Q(status="left") & models.Q(left_at__isnull=True)),
+                name="membership_left_at_matches_status",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(status__in=["active", "suspended", "left"]),
+                name="membership_status_valid",
+            ),
         ]
         indexes = [
             models.Index(fields=["organization", "is_active"]),
@@ -301,3 +329,32 @@ class OrganizationMembership(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.user} @ {self.organization}"
+
+    @classmethod
+    def from_db(cls, db, field_names, values, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003, ANN206
+        instance = super().from_db(db, field_names, values, *args, **kwargs)
+        instance._loaded_status = instance.status
+        return instance
+
+    def save(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
+        """Keep ``status``, its ``is_active`` mirror and ``left_at`` consistent.
+
+        A legacy write that only flips ``is_active`` to ``False`` (status untouched) is
+        read as *suspended*, so older callers cannot create the contradiction.
+        """
+        status_changed = not self._state.adding and self.status != getattr(
+            self, "_loaded_status", self.status
+        )
+        if not status_changed and not self.is_active and self.status == self.Status.ACTIVE:
+            self.status = self.Status.SUSPENDED
+        self.is_active = self.status == self.Status.ACTIVE
+        if self.status == self.Status.LEFT:
+            self.left_at = self.left_at or timezone.now()
+            self.is_default = False
+        else:
+            self.left_at = None
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            kwargs["update_fields"] = {*update_fields, "status", "is_active", "left_at", "is_default"}
+        super().save(*args, **kwargs)
+        self._loaded_status = self.status

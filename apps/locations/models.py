@@ -414,3 +414,52 @@ class Location(FieldLevelConstraintErrors, BaseModel):
 
     def get_absolute_url(self) -> str:
         return reverse("locations:detail", kwargs={"pk": self.pk})
+
+
+class MembershipLocationScope(BaseModel):
+    """A location root a membership is *intended* to cover (Phase 2 foundation, data only).
+
+    Records ``User -> Organization -> allowed location (subtree)`` so the later scope phase
+    has somewhere to attach.  **Nothing enforces it yet**: no selector, policy or API reads
+    it to restrict access, and an organization member with no rows is not restricted (ADR 0036).
+    The location must belong to the membership's organization (service, ``clean`` and a
+    PostgreSQL trigger all enforce it).
+    """
+
+    membership = models.ForeignKey(
+        "organizations.OrganizationMembership",
+        on_delete=models.PROTECT,
+        related_name="location_scopes",
+    )
+    location = models.ForeignKey(
+        Location, on_delete=models.PROTECT, related_name="membership_scopes"
+    )
+    include_descendants = models.BooleanField(
+        default=True, help_text=_("Cover the whole subtree below this location.")
+    )
+
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = _("membership location scope")
+        verbose_name_plural = _("membership location scopes")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["membership", "location"], name="unique_membership_location_scope"
+            ),
+        ]
+        indexes = [
+            # "Which memberships are scoped to this location?" (reverse lookup, later phases).
+            models.Index(fields=["location"], name="locscope_location_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.membership} -> {self.location}"
+
+    def clean(self) -> None:
+        super().clean()
+        if self.membership_id and self.location_id:
+            if self.membership.organization_id != self.location.organization_id:
+                raise ValidationError(
+                    {"location": _("The location must belong to the membership's organization.")}
+                )

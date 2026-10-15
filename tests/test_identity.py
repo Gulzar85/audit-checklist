@@ -363,8 +363,10 @@ class TestMembershipServices:
 
     def test_remove_membership(self, user, org_a):
         membership = services.add_membership(user, org_a)
-        services.remove_membership(membership)
-        assert not OrganizationMembership.objects.filter(user=user, organization=org_a).exists()
+        left = services.remove_membership(membership)
+        row = OrganizationMembership.objects.get(user=user, organization=org_a)  # kept, not deleted
+        assert (row.status, row.is_active, row.is_default) == ("left", False, False)
+        assert row.left_at is not None and left.pk == row.pk
 
 
 # ---------------------------------------------------------------------------

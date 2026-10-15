@@ -36,7 +36,7 @@ from .constants import (
 )
 from .context import get_active_organization
 from .exceptions import REASON_MESSAGES, IdentityNotAllowed
-from .forms import EmailAuthenticationForm, UserProfileUpdateForm
+from .forms import EmailAuthenticationForm, PreferencesForm, UserProfileUpdateForm
 from .policies import can_switch_organization
 from .selectors import get_memberships
 
@@ -295,10 +295,23 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
         return response
 
 
-class AccountPreferencesView(LoginRequiredMixin, TemplateView):
-    """Preferences landing page (appearance + organization overview)."""
+class AccountPreferencesView(LoginRequiredMixin, FormView):
+    """Preferences page: allow-listed preferences, appearance link and organization overview."""
 
     template_name = "account/preferences.html"
+    form_class = PreferencesForm
+    success_url = reverse_lazy("accounts:preferences")
+
+    def get_initial(self) -> dict[str, Any]:
+        from .selectors import get_preferences
+
+        return {key: value for key, value in get_preferences(self.request.user).items()}
+
+    def form_valid(self, form: Any) -> HttpResponse:
+        for key in ("timezone", "language"):
+            services.set_preference(self.request.user, key, form.cleaned_data.get(key) or None)
+        messages.success(self.request, "Preferences saved.")
+        return super().form_valid(form)
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
@@ -407,3 +420,35 @@ class OrganizationSwitchView(LoginRequiredMixin, View):
             "accounts:profile"
         )
         return HttpResponseRedirect(target)
+
+
+class SessionStatusView(View):
+    """``GET /auth/session/`` - is the caller still signed in, and for how long?
+
+    For the PWA / front end: distinguishes *authenticated* from *session expired* without
+    side effects (the middleware does not treat this call as activity).  Never cached; it
+    returns no identity data beyond the boolean and the remaining seconds.
+    """
+
+    def get(self, request: HttpRequest) -> HttpResponse:
+        import time
+
+        from django.http import JsonResponse
+
+        from .middleware import AUTH_STARTED_KEY, LAST_ACTIVITY_KEY
+
+        authenticated = bool(request.user.is_authenticated and getattr(request.user, "can_sign_in", False))
+        remaining = None
+        if authenticated:
+            now = time.time()
+            started = request.session.get(AUTH_STARTED_KEY, now)
+            last = request.session.get(LAST_ACTIVITY_KEY, started)
+            limits = []
+            if settings.SESSION_ABSOLUTE_TIMEOUT_SECONDS:
+                limits.append(started + settings.SESSION_ABSOLUTE_TIMEOUT_SECONDS - now)
+            if settings.SESSION_IDLE_TIMEOUT_SECONDS:
+                limits.append(last + settings.SESSION_IDLE_TIMEOUT_SECONDS - now)
+            remaining = max(0, int(min(limits))) if limits else None
+        response = JsonResponse({"authenticated": authenticated, "expires_in": remaining})
+        response["Cache-Control"] = "no-store"
+        return response

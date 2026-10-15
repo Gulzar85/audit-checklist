@@ -273,7 +273,7 @@ class TestPlatformStaffAreTheOnlyCrossTenantActors:
     def test_deactivated_membership_removes_access(self, client, tenants):
         from apps.organizations.models import OrganizationMembership
 
-        OrganizationMembership.objects.filter(user=tenants["a"]["user"]).update(is_active=False)
+        OrganizationMembership.objects.filter(user=tenants["a"]["user"]).update(status="suspended", is_active=False)
         client.force_login(tenants["a"]["user"])
         assert client.get(reverse("locations:detail", args=[tenants["a"]["root"].pk])).status_code == 404
         assert SENTINEL_A not in client.get(reverse("locations:tree")).content.decode()

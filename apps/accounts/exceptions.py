@@ -41,4 +41,12 @@ REASON_MESSAGES = {
     "account_suspended": "Your account has been suspended. Contact your administrator.",
     "account_inactive": "Your account is inactive. Contact your administrator.",
     "rate_limited": "Too many sign-in attempts. Please wait a few minutes and try again.",
+    # Provider / flow failures: deliberately generic, never echoing what Microsoft sent.
+    "invalid_state": "Your sign-in attempt could not be verified or has expired. Please start again.",
+    "authentication_failed": "We could not sign you in. Please try again.",
+    "access_denied": "Sign-in was cancelled or access was not granted.",
+    "invalid_request": "The sign-in request was not valid. Please start again.",
+    "invalid_client": "Sign-in is temporarily unavailable. Contact your administrator.",
+    "membership_missing": "Your account is not a member of any organization yet. Contact your administrator.",
+    "user_not_allowed": "You are not permitted to sign in to this application.",
 }

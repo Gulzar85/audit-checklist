@@ -32,16 +32,27 @@ def _window_seconds() -> int:
     return int(getattr(settings, "AUTH_THROTTLE_WINDOW_SECONDS", 300))
 
 
-def _client_identifier(request: HttpRequest) -> str:
-    """A stable, privacy-preserving key for the caller.
+def client_address(request: HttpRequest) -> str:
+    """The caller's address, without trusting a header the caller can forge.
 
-    The client address is hashed so the cache never stores raw IPs; behind a
-    trusted proxy the forwarded client address is used (``SECURE_PROXY_SSL_HEADER``
-    deployments terminate TLS upstream, where ``REMOTE_ADDR`` is the proxy).
+    ``X-Forwarded-For`` is a list each proxy appends to; a client can pre-fill the *left*
+    side.  Only the entries added by *our* proxies (``TRUSTED_PROXY_COUNT`` from the right)
+    are believable, so the address is read that many hops from the end.  With no trusted
+    proxy (the default) the header is ignored and ``REMOTE_ADDR`` is used.
     """
-    forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
-    address = forwarded.split(",")[0].strip() or request.META.get("REMOTE_ADDR", "")
-    return hashlib.sha256(address.encode("utf-8")).hexdigest()
+    remote = request.META.get("REMOTE_ADDR", "")
+    hops = int(getattr(settings, "TRUSTED_PROXY_COUNT", 0))
+    if hops <= 0:
+        return remote
+    forwarded = [part.strip() for part in request.META.get("HTTP_X_FORWARDED_FOR", "").split(",") if part.strip()]
+    if len(forwarded) < hops:
+        return remote  # fewer hops than expected: the header is not from our proxies
+    return forwarded[-hops]
+
+
+def _client_identifier(request: HttpRequest) -> str:
+    """A stable, privacy-preserving key for the caller (the address is hashed)."""
+    return hashlib.sha256(client_address(request).encode("utf-8")).hexdigest()
 
 
 def _cache_key(request: HttpRequest, scope: str) -> str:

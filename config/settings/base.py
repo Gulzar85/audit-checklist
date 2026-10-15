@@ -248,6 +248,17 @@ MICROSOFT_AUTH_CONFIGURED = bool(
 #: the counters live in the configured cache (no new infrastructure).
 AUTH_THROTTLE_MAX_ATTEMPTS = env_int("AUTH_THROTTLE_MAX_ATTEMPTS", 10)
 AUTH_THROTTLE_WINDOW_SECONDS = env_int("AUTH_THROTTLE_WINDOW_SECONDS", 300)
+#: How many reverse proxies sit in front of the app.  The throttle then reads the client
+#: address that many hops from the *right* of X-Forwarded-For (the part a client cannot
+#: forge).  0 = no trusted proxy: only REMOTE_ADDR is used and the header is ignored.
+TRUSTED_PROXY_COUNT = env_int("TRUSTED_PROXY_COUNT", 0)
+
+#: Session lifetime (ADR 0038).  Absolute: a sign-in never outlives this, however active.
+#: Idle: no request for this long ends the session (0 disables).  Both are enforced by
+#: IdentityMiddleware; SESSION_COOKIE_AGE is kept aligned so the browser cookie expires too.
+SESSION_ABSOLUTE_TIMEOUT_SECONDS = env_int("SESSION_ABSOLUTE_TIMEOUT_SECONDS", 8 * 60 * 60)
+SESSION_IDLE_TIMEOUT_SECONDS = env_int("SESSION_IDLE_TIMEOUT_SECONDS", 30 * 60)
+SESSION_COOKIE_AGE = SESSION_ABSOLUTE_TIMEOUT_SECONDS
 
 # ---------------------------------------------------------------------------
 # Internationalization
@@ -472,6 +483,7 @@ JAZZMIN_SETTINGS = {
         "locations",
         "locations.location",
         "locations.locationtype",
+        "locations.membershiplocationscope",
         "themes",
         "themes.theme",
         "themes.themeactivation",
@@ -518,6 +530,7 @@ JAZZMIN_SETTINGS = {
         "locations": "fas fa-location-dot",
         "locations.Location": "fas fa-location-dot",
         "locations.LocationType": "fas fa-tags",
+        "locations.MembershipLocationScope": "fas fa-bullseye",
         "themes": "fas fa-palette",
         "themes.Theme": "fas fa-palette",
         "themes.ThemeActivation": "fas fa-clock-rotate-left",

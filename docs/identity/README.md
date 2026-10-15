@@ -18,6 +18,11 @@ local password ──(Django auth)───────────────�
 
 ## Contents
 
+Start with [`architecture.md`](architecture.md). Phase 2 reference documents:
+[`authentication-flow.md`](authentication-flow.md), [`microsoft-entra.md`](microsoft-entra.md),
+[`organization-membership.md`](organization-membership.md), [`session-security.md`](session-security.md),
+[`api-authentication.md`](api-authentication.md). The earlier notes below remain as detail.
+
 * [`authentication.md`](authentication.md) - the Entra sign-in flow, configuration, failure
   handling and sign-in throttling.
 * [`user-lifecycle.md`](user-lifecycle.md) - the `status` model, provisioning, linking, syncing
@@ -45,4 +50,5 @@ templates never contain auth logic, and no view hard-codes a role check.
 ## Decisions
 
 The choices behind this phase are recorded as ADRs
-[0029](../decisions/0029-msal-for-entra-sign-in.md)-[0034](../decisions/0034-account-appearance-reuses-theme-engine.md).
+[0029](../decisions/0029-msal-for-entra-sign-in.md)-[0034](../decisions/0034-account-appearance-reuses-theme-engine.md) and
+[0035](../decisions/0035-membership-status-lifecycle.md)-[0038](../decisions/0038-session-lifetime-and-pwa.md).

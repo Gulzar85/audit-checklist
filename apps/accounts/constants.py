@@ -58,9 +58,11 @@ IDENTITY_VERBS = {
     "identity_unlinked": "identity.unlinked",
     "membership_created": "organization_membership.created",
     "membership_updated": "organization_membership.updated",
+    "membership_suspended": "organization_membership.suspended",
     "membership_removed": "organization_membership.removed",
     "auth_success": "authentication.success",
     "auth_failure": "authentication.failure",
+    "preference_changed": "user.preference_changed",
     "logout": "logout",
     "organization_switched": "organization.switched",
 }

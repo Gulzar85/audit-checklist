@@ -17,20 +17,24 @@ from simple_history.admin import SimpleHistoryAdmin
 from apps.organizations.models import OrganizationMembership
 
 from . import services
+from .admin_mixins import MembershipFormsetServiceMixin
 from .constants import UserStatus
 from .models import User
 
 
 class MembershipInline(admin.TabularInline):
+    """Memberships are never deleted: set the status to *left* (kept for history/audit)."""
+
     model = OrganizationMembership
     extra = 0
-    fields = ("organization", "is_active", "is_default", "joined_at")
-    readonly_fields = ("joined_at",)
+    can_delete = False
+    fields = ("organization", "status", "is_default", "joined_at", "left_at")
+    readonly_fields = ("joined_at", "left_at")
     autocomplete_fields = ("organization",)
 
 
 @admin.register(User)
-class UserAdmin(BaseUserAdmin, SimpleHistoryAdmin):
+class UserAdmin(MembershipFormsetServiceMixin, BaseUserAdmin, SimpleHistoryAdmin):
     ordering = ("email",)
     list_display = ("email", "display_name", "status", "is_staff", "last_login")
     list_filter = ("status", "is_staff", "is_superuser", "entra_tenant_id")
@@ -52,7 +56,7 @@ class UserAdmin(BaseUserAdmin, SimpleHistoryAdmin):
     )
     filter_horizontal = ("groups", "user_permissions")
     inlines = (MembershipInline,)
-    actions = ("approve_users", "suspend_users", "deactivate_users")
+    actions = ("approve_users", "suspend_users", "deactivate_users", "unlink_identities")
 
     fieldsets = (
         (None, {"fields": ("id", "email", "password", "status")}),
@@ -101,10 +105,17 @@ class UserAdmin(BaseUserAdmin, SimpleHistoryAdmin):
     def deactivate_users(self, request, queryset):  # noqa: ANN001
         self._apply_status(request, queryset, UserStatus.INACTIVE)
 
-    @staticmethod
-    def _apply_status(request, queryset, status) -> None:  # noqa: ANN001
+    @admin.action(description=_("Unlink Microsoft identity from selected users"))
+    def unlink_identities(self, request, queryset):  # noqa: ANN001
+        done = 0
+        for user in queryset.exclude(entra_object_id__isnull=True):
+            services.unlink_external_identity(user, actor=request.user, reason="admin action")
+            done += 1
+        self.message_user(request, _("%(count)d identity link(s) removed.") % {"count": done})
+
+    def _apply_status(self, request, queryset, status) -> None:  # noqa: ANN001
         changed = 0
         for user in queryset:
             if services.set_user_status(user, status, actor=request.user) is not None:
                 changed += 1
-        self.message_user(request, _(f"{changed} user(s) set to {status}."))
+        self.message_user(request, _("%(count)d user(s) set to %(status)s.") % {"count": changed, "status": status})

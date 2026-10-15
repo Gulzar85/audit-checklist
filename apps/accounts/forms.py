@@ -32,3 +32,35 @@ class UserProfileUpdateForm(DesignSystemFormMixin, forms.ModelForm):
         widgets = {
             "phone_number": forms.TextInput(attrs={"autocomplete": "tel"}),
         }
+
+
+class PreferencesForm(DesignSystemFormMixin, forms.Form):
+    """Self-service preferences (the allow-listed ones; appearance has its own page)."""
+
+    timezone = forms.CharField(
+        required=False, max_length=64, label="Time zone",
+        help_text="IANA name such as Asia/Karachi. Leave empty to use your organization's.",
+    )
+    language = forms.CharField(
+        required=False, max_length=10, label="Language",
+        help_text="Language code such as en. Leave empty to use your organization's.",
+    )
+
+    def _clean_preference(self, key: str) -> str:
+        from django.core.exceptions import ValidationError
+
+        from .preferences import validate_preference
+
+        value = (self.cleaned_data.get(key) or "").strip()
+        if not value:
+            return ""
+        try:
+            return validate_preference(key, value)
+        except ValidationError as exc:
+            raise forms.ValidationError(exc.message_dict.get(key) or exc.messages) from exc
+
+    def clean_timezone(self) -> str:
+        return self._clean_preference("timezone")
+
+    def clean_language(self) -> str:
+        return self._clean_preference("language")

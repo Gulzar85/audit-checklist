@@ -19,7 +19,7 @@
  */
 "use strict";
 
-const CACHE_VERSION = "cp-static-v4";
+const CACHE_VERSION = "cp-static-v5";
 const OFFLINE_URL = "/offline/";
 const THEME_STYLESHEET = "/themes/tokens.css";
 const PRECACHE_URLS = [
@@ -38,6 +38,10 @@ const PRECACHE_URLS = [
 // Admin and API responses are authenticated and server-rendered; the admin's
 // own CSS/JS/fonts live under these static prefixes.
 const BYPASS_PREFIXES = [
+  // Sign-in, sign-out and the session probe are never served from (or written to) the cache:
+  // a cached login page or session answer would hide an expired session.
+  "/auth/",
+  "/organizations/switch/",
   "/admin/",
   "/api/",
   "/static/admin/",

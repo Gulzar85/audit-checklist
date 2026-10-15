@@ -20,7 +20,7 @@ from simple_history.admin import SimpleHistoryAdmin
 from apps.core.admin import ActivityLogAdminMixin
 from apps.core.utils import parse_uuid
 
-from .models import Location, LocationType
+from .models import Location, LocationType, MembershipLocationScope
 from .resources import LocationResource, LocationTypeResource
 from .selectors import get_descendants
 
@@ -135,3 +135,32 @@ class LocationAdmin(ActivityLogAdminMixin, ImportExportModelAdmin, SimpleHistory
         if change and "parent" in form.changed_data:
             events.append(("location.parent_changed", {"to_parent": str(obj.parent_id) if obj.parent_id else None}))
         return events
+
+
+@admin.register(MembershipLocationScope)
+class MembershipLocationScopeAdmin(SimpleHistoryAdmin):
+    """Data-only scope foundation (ADR 0036): writes go through ``scope.py``; nothing enforces it yet."""
+
+    list_display = ("membership", "location", "include_descendants", "created_at")
+    list_filter = ("include_descendants", "membership__organization")
+    search_fields = ("membership__user__email", "location__name", "location__code")
+    autocomplete_fields = ("location",)
+    raw_id_fields = ("membership",)
+    readonly_fields = ("id", "created_at", "updated_at")
+
+    def get_readonly_fields(self, request, obj=None):  # noqa: ANN001, ANN201
+        base = super().get_readonly_fields(request, obj)
+        return (*base, "membership", "location") if obj is not None else base
+
+    def save_model(self, request, obj, form, change) -> None:  # noqa: ANN001
+        from . import scope
+
+        saved = scope.add_membership_scope(
+            obj.membership, obj.location, include_descendants=obj.include_descendants, actor=request.user
+        )
+        obj.__dict__.update(saved.__dict__)
+
+    def delete_model(self, request, obj) -> None:  # noqa: ANN001
+        from . import scope
+
+        scope.remove_membership_scope(obj, actor=request.user)

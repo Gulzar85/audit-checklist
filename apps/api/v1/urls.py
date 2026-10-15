@@ -6,7 +6,7 @@ from django.urls import include, path
 from rest_framework.routers import SimpleRouter
 
 from .locations import LocationTypeViewSet, LocationViewSet
-from .identity import MeView, UserViewSet
+from .identity import MePreferencesView, MeView, UserViewSet
 from .organizations import OrganizationViewSet
 from .themes import AppearancePreferenceView, ThemeViewSet
 from .views import APIRootView, HealthCheckView
@@ -25,6 +25,7 @@ urlpatterns = [
     path("", APIRootView.as_view(), name="root"),
     path("health/", HealthCheckView.as_view(), name="health"),
     path("me/", MeView.as_view(), name="me"),
+    path("me/preferences/", MePreferencesView.as_view(), name="me-preferences"),
     path("preferences/appearance/", AppearancePreferenceView.as_view(), name="appearance"),
     path("", include(router.urls)),
 ]

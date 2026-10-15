@@ -201,7 +201,10 @@ All configuration is environment-driven via a dependency-free loader
   `MICROSOFT_REDIRECT_URI` - Entra sign-in; when absent, only the local password fallback runs
 - `AUTH_PROVISIONING_MODE`, `AUTH_EMAIL_LINKING`, `ENABLE_PASSWORD_LOGIN`,
   `MICROSOFT_FEDERATED_LOGOUT` - identity policy
-- `AUTH_THROTTLE_MAX_ATTEMPTS` / `AUTH_THROTTLE_WINDOW_SECONDS` - sign-in throttling
+- `AUTH_THROTTLE_MAX_ATTEMPTS` / `AUTH_THROTTLE_WINDOW_SECONDS` / `TRUSTED_PROXY_COUNT` - sign-in throttling
+  (`TRUSTED_PROXY_COUNT` = reverse proxies you trust for `X-Forwarded-For`; default 0)
+- `SESSION_ABSOLUTE_TIMEOUT_SECONDS` (8 h) / `SESSION_IDLE_TIMEOUT_SECONDS` (30 min, 0 = off) - session lifetime
+- `ENABLE_PASSWORD_LOGIN` **must be `False` in production** - the production settings refuse to start otherwise
 - `DJANGO_SECURE_*` - HSTS / SSL redirect in production
 
 ## Notable decisions
