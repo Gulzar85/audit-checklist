@@ -29,8 +29,12 @@ if apps.is_installed("django.contrib.admindocs"):
 urlpatterns += [
     path("", include("apps.core.urls", namespace="core")),
     path("auth/", include("apps.accounts.urls", namespace="accounts")),
+    # Organization context (identity concern) shares the /organizations/ prefix;
+    # it is matched first, and unmatched paths fall through to the domain routes.
+    path("organizations/", include("apps.accounts.org_urls", namespace="orgcontext")),
     path("organizations/", include("apps.organizations.urls", namespace="organizations")),
     path("locations/", include("apps.locations.urls", namespace="locations")),
+    path("themes/", include("apps.themes.urls", namespace="themes")),
     # Versioned REST API.
     path("api/v1/", include(("apps.api.v1.urls", "v1"), namespace="v1")),
     # API documentation / schema.

@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}{{ organization.name }} · {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<nav class="breadcrumbs mb-4" aria-label="Breadcrumbs">
+  <ol>
+    <li><a href="{% url 'core:home' %}">Home</a></li>
+    <li><a href="{% url 'organizations:list' %}">Organizations</a></li>
+    <li aria-current="page">{{ organization.name }}</li>
+  </ol>
+</nav>
+
+<div class="mb-6 flex flex-wrap items-start justify-between gap-4">
+  <div class="flex items-center gap-3">
+    {% if organization.logo %}
+      <img src="{{ organization.logo.url }}" alt="Logo of {{ organization.name }}" class="h-12 max-w-40 rounded-lg object-contain">
+    {% else %}
+      <span class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+        <i data-lucide="building-2" class="h-6 w-6" aria-hidden="true"></i>
+      </span>
+    {% endif %}
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">{{ organization.name }}</h1>
+      <p class="text-sm text-muted-foreground">
+        Code <span class="font-mono">{{ organization.code }}</span> · Slug <span class="font-mono">{{ organization.slug }}</span>
+      </p>
+    </div>
+  </div>
+
+  <div class="flex flex-wrap items-center gap-2">
+    {% include "components/status_badge.html" with label=organization.get_status_display tone=organization.status %}
+    {% if can_manage %}
+      <a href="{% url 'organizations:update' organization.pk %}" class="btn btn-secondary">
+        <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i> Edit
+      </a>
+      <a href="{% url 'organizations:branding' organization.pk %}" class="btn btn-secondary">
+        <i data-lucide="palette" class="h-4 w-4" aria-hidden="true"></i> Branding
+      </a>
+    {% endif %}
+    {% if can_change_status %}
+      <div x-data="confirmDialog">
+        <button type="button" class="btn btn-secondary" @click="show">
+          <i data-lucide="refresh-cw" class="h-4 w-4" aria-hidden="true"></i> Change status
+        </button>
+        <dialog x-ref="dialog" class="modal-dialog" @click="onBackdrop" aria-labelledby="status-dialog-title">
+          <form method="post" action="{% url 'organizations:status' organization.pk %}" class="p-6">
+            {% csrf_token %}
+            <h2 id="status-dialog-title" class="text-lg font-semibold">Change status</h2>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Inactive and suspended organizations are hidden from their members and refuse changes.
+              Nothing is deleted, and the organization can be reactivated at any time.
+            </p>
+            <label class="label mt-4" for="status-select">Status</label>
+            <select id="status-select" name="status" class="select">
+              {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if organization.status == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            <div class="mt-6 flex justify-end gap-2">
+              <button type="button" class="btn btn-secondary" @click="hide">Cancel</button>
+              <button type="submit" class="btn btn-primary">Update status</button>
+            </div>
+          </form>
+        </dialog>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if not organization.is_active %}
+  <div class="alert alert-warning mb-6" role="status">
+    <i data-lucide="triangle-alert" class="h-5 w-5 shrink-0" aria-hidden="true"></i>
+    <span>This organization is <strong>{{ organization.get_status_display|lower }}</strong>. Its locations and location types cannot be changed until it is reactivated.</span>
+  </div>
+{% endif %}
+
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="space-y-6 lg:col-span-2">
+    <section class="card" aria-labelledby="overview-title">
+      <div class="card-header">
+        <h2 id="overview-title" class="card-title">Overview</h2>
+        <i data-lucide="info" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
+      </div>
+      <dl class="card-body grid gap-4 sm:grid-cols-2">
+        <div><dt class="text-sm text-muted-foreground">Legal name</dt><dd class="mt-1 font-medium">{{ organization.legal_name|default:"—" }}</dd></div>
+        <div><dt class="text-sm text-muted-foreground">Website</dt>
+          <dd class="mt-1">{% if organization.website %}<a href="{{ organization.website }}" class="text-link hover:underline" target="_blank" rel="noopener noreferrer">{{ organization.website }}</a>{% else %}—{% endif %}</dd></div>
+        <div><dt class="text-sm text-muted-foreground">Email</dt><dd class="mt-1">{{ organization.email|default:"—" }}</dd></div>
+        <div><dt class="text-sm text-muted-foreground">Phone</dt><dd class="mt-1">{{ organization.phone|default:"—" }}</dd></div>
+        {% if organization.description %}
+          <div class="sm:col-span-2"><dt class="text-sm text-muted-foreground">Description</dt>
+            <dd class="mt-1 whitespace-pre-line text-foreground">{{ organization.description }}</dd></div>
+        {% endif %}
+      </dl>
+    </section>
+
+    <section class="card" aria-labelledby="regional-title">
+      <div class="card-header">
+        <h2 id="regional-title" class="card-title">Address &amp; regional settings</h2>
+        <i data-lucide="map-pin" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
+      </div>
+      <dl class="card-body grid gap-4 sm:grid-cols-2">
+        <div class="sm:col-span-2"><dt class="text-sm text-muted-foreground">Address</dt>
+          <dd class="mt-1 text-foreground">
+            {% if organization.address_line1 or organization.city or organization.country %}
+              {% if organization.address_line1 %}{{ organization.address_line1 }}<br>{% endif %}
+              {% if organization.address_line2 %}{{ organization.address_line2 }}<br>{% endif %}
+              {% if organization.city or organization.state or organization.postal_code %}{{ organization.city }} {{ organization.state }} {{ organization.postal_code }}<br>{% endif %}
+              {% if organization.country %}{{ organization.country }}{% endif %}
+            {% else %}—{% endif %}
+          </dd></div>
+        <div><dt class="text-sm text-muted-foreground">Time zone</dt><dd class="mt-1">{{ organization.effective_timezone }}{% if not organization.timezone %} <span class="text-xs text-muted-foreground">(platform default)</span>{% endif %}</dd></div>
+        <div><dt class="text-sm text-muted-foreground">Currency</dt><dd class="mt-1">{{ organization.effective_currency }}{% if not organization.currency %} <span class="text-xs text-muted-foreground">(platform default)</span>{% endif %}</dd></div>
+        <div><dt class="text-sm text-muted-foreground">Language</dt><dd class="mt-1">{{ organization.effective_language }}{% if not organization.language %} <span class="text-xs text-muted-foreground">(platform default)</span>{% endif %}</dd></div>
+        <div><dt class="text-sm text-muted-foreground">Date format</dt><dd class="mt-1">{{ organization.effective_date_format_label }}{% if not organization.date_format %} <span class="text-xs text-muted-foreground">(platform default)</span>{% endif %}</dd></div>
+      </dl>
+    </section>
+
+    <section class="card" aria-labelledby="activity-title">
+      <div class="card-header">
+        <h2 id="activity-title" class="card-title">Recent activity</h2>
+        <i data-lucide="activity" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
+      </div>
+      <div class="card-body">
+        {% include "components/activity_list.html" with entries=recent_activity %}
+      </div>
+    </section>
+  </div>
+
+  <aside class="space-y-6">
+    <section class="card" aria-labelledby="counts-title">
+      <div class="card-header">
+        <h2 id="counts-title" class="card-title">At a glance</h2>
+        <i data-lucide="bar-chart-3" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
+      </div>
+      <div class="card-body grid gap-3 text-center sm:grid-cols-3 lg:grid-cols-1">
+        <div class="rounded-lg border border-border p-3">
+          <p class="text-2xl font-semibold">{{ membership_count }}</p>
+          <p class="text-sm text-muted-foreground">Members</p>
+        </div>
+        <a href="{% url 'locations:list' %}?organization={{ organization.pk }}" class="rounded-lg border border-border p-3 hover:bg-muted">
+          <p class="text-2xl font-semibold">{{ location_count }}</p>
+          <p class="text-sm text-muted-foreground">Locations</p>
+        </a>
+        <a href="{% url 'locations:type_list' %}?organization={{ organization.pk }}" class="rounded-lg border border-border p-3 hover:bg-muted">
+          <p class="text-2xl font-semibold">{{ location_type_count }}</p>
+          <p class="text-sm text-muted-foreground">Location types</p>
+        </a>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="branding-title">
+      <div class="card-header">
+        <h2 id="branding-title" class="card-title">Branding</h2>
+        <i data-lucide="palette" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
+      </div>
+      <div class="card-body space-y-3">
+        <div class="flex items-center gap-3">
+          {% if organization.favicon %}
+            <img src="{{ organization.favicon.url }}" alt="Favicon" class="h-9 w-9 rounded object-contain">
+          {% else %}
+            <span class="flex h-9 w-9 items-center justify-center rounded bg-muted text-muted-foreground"><i data-lucide="image" class="h-5 w-5" aria-hidden="true"></i></span>
+          {% endif %}
+          <span class="text-sm text-muted-foreground">{% if organization.favicon %}Favicon set{% else %}No favicon{% endif %}</span>
+        </div>
+        <div class="flex items-center gap-3">
+          {% if organization.primary_color %}
+            <span class="h-9 w-9 rounded border border-border" data-swatch="{{ organization.primary_color }}" aria-hidden="true"></span>
+            <span class="font-mono text-sm">{{ organization.primary_color }}</span>
+          {% else %}
+            <span class="text-sm text-muted-foreground">No brand colour</span>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+  </aside>
+</div>
+{% endblock %}

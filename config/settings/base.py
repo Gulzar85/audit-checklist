@@ -57,6 +57,9 @@ DJANGO_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.postgres",
+    # Lets custom form widgets live in the project's templates/ directory
+    # (see FORM_RENDERER below).
+    "django.forms",
 ]
 
 THIRD_PARTY_APPS = [
@@ -75,6 +78,7 @@ LOCAL_APPS = [
     "apps.core",
     "apps.organizations",
     "apps.locations",
+    "apps.themes",
     "apps.accounts",
     "apps.permissions",
     "apps.checklists",
@@ -96,12 +100,18 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.csp.ContentSecurityPolicyMiddleware",
+    # Must come after the CSP middleware: responses unwind in reverse order, so this
+    # attaches the admin policy before Django turns it into a header.
+    "apps.core.middleware.AdminContentSecurityPolicyMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    # Enforces the user lifecycle on every request (force sign-out when an
+    # account is suspended/deactivated mid-session).  After auth + messages.
+    "apps.accounts.middleware.IdentityMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -128,6 +138,8 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.core.context_processors.site_context",
+                "apps.themes.context_processors.theme_context",
+                "apps.accounts.context_processors.identity_context",
             ],
         },
     },
@@ -153,9 +165,17 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
 
 AUTHENTICATION_BACKENDS = [
-    "django.contrib.auth.backends.ModelBackend",
+    # Microsoft Entra ID (MSAL authorization-code flow) - the primary provider.
+    "apps.accounts.backends.EntraOIDCBackend",
+    # django-guardian object-level permissions.
     "guardian.backends.ObjectPermissionBackend",
 ]
+# The local email/password backend is an administrative fallback.  It is listed
+# only when explicitly enabled (development/test by default; production should
+# disable it - see ENABLE_PASSWORD_LOGIN below).
+_ENABLE_PASSWORD_LOGIN = env_bool("ENABLE_PASSWORD_LOGIN", True)
+if _ENABLE_PASSWORD_LOGIN:
+    AUTHENTICATION_BACKENDS.insert(1, "django.contrib.auth.backends.ModelBackend")
 
 # Object-level permissions are enabled via django-guardian, but the anonymous
 # user account is not required for a generic platform. Disable auto-creation to
@@ -172,7 +192,62 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "core:home"
-LOGOUT_REDIRECT_URL = "core:home"
+LOGOUT_REDIRECT_URL = "accounts:login"
+
+# ---------------------------------------------------------------------------
+# Identity: Microsoft Entra ID (OpenID Connect / OAuth 2.0 via MSAL)
+# ---------------------------------------------------------------------------
+# Every value comes from the environment; no tenant id, client id or secret is
+# ever hard-coded (ADR 0029).  ``.env.example`` carries placeholders only.
+MICROSOFT_CLIENT_ID = env("MICROSOFT_CLIENT_ID", "")
+MICROSOFT_CLIENT_SECRET = env("MICROSOFT_CLIENT_SECRET", "")
+MICROSOFT_TENANT_ID = env("MICROSOFT_TENANT_ID", "")
+# Absolute callback registered in the Entra app registration, e.g.
+# https://app.example.com/auth/microsoft/callback/
+MICROSOFT_REDIRECT_URI = env("MICROSOFT_REDIRECT_URI", "")
+MICROSOFT_POST_LOGOUT_REDIRECT_URI = env("MICROSOFT_POST_LOGOUT_REDIRECT_URI", "")
+MICROSOFT_AUTHORITY_HOST = env("MICROSOFT_AUTHORITY_HOST", "https://login.microsoftonline.com")
+# Scopes requested at sign-in.  Deliberately narrow: we need identity claims,
+# not Graph access, and we never store the resulting tokens.
+MICROSOFT_SCOPES = env_list("MICROSOFT_SCOPES", ["openid", "profile", "email"])
+# An allow-list of directory (tenant) ids permitted to sign in.  Empty means
+# "whatever the configured authority resolves to" (single-tenant deployments).
+MICROSOFT_ALLOWED_TENANTS = env_list("MICROSOFT_ALLOWED_TENANTS", [])
+
+#: The OIDC authority MSAL talks to (tenant-specific unless left blank).
+MICROSOFT_AUTHORITY = (
+    f"{MICROSOFT_AUTHORITY_HOST}/{MICROSOFT_TENANT_ID}" if MICROSOFT_TENANT_ID else ""
+)
+MICROSOFT_END_SESSION_ENDPOINT = (
+    f"{MICROSOFT_AUTHORITY}/oauth2/v2.0/logout" if MICROSOFT_AUTHORITY else ""
+)
+
+#: First-login behaviour for an unknown-but-valid Entra identity: "pending"
+#: (create a user awaiting approval - the secure enterprise default) or "active".
+AUTH_PROVISIONING_MODE = env("AUTH_PROVISIONING_MODE", "pending")
+
+#: Whether a first-time Entra sign-in may be linked to an existing local account
+#: by matching email.  "non_staff" (default) never links a privileged account, so
+#: a matching email can never inherit administrator rights; "all" opts in;
+#: "disabled" refuses (spec §13 / §32).
+AUTH_EMAIL_LINKING = env("AUTH_EMAIL_LINKING", "non_staff")
+
+#: Whether logout also signs the browser out of Microsoft (federated sign-out).
+#: Off by default: local sign-out is sufficient and less surprising.
+MICROSOFT_FEDERATED_LOGOUT = env_bool("MICROSOFT_FEDERATED_LOGOUT", False)
+
+#: Whether the email/password fallback backend and its form are available.
+ENABLE_PASSWORD_LOGIN = _ENABLE_PASSWORD_LOGIN
+
+#: Whether Entra sign-in is fully configured (all required values present).
+MICROSOFT_AUTH_CONFIGURED = bool(
+    MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET and MICROSOFT_TENANT_ID
+)
+
+#: Sign-in throttling (spec §31).  Failed attempts per client address per window;
+#: the counters live in the configured cache (no new infrastructure).
+AUTH_THROTTLE_MAX_ATTEMPTS = env_int("AUTH_THROTTLE_MAX_ATTEMPTS", 10)
+AUTH_THROTTLE_WINDOW_SECONDS = env_int("AUTH_THROTTLE_WINDOW_SECONDS", 300)
 
 # ---------------------------------------------------------------------------
 # Internationalization
@@ -320,11 +395,25 @@ SPECTACULAR_SETTINGS = {
     "SCHEMA_PATH_PREFIX": "/api/v1",
     "COMPONENT_SPLIT_REQUEST": True,
     "SORT_OPERATIONS": False,
+    # Several resources share field names (``status``, ``mode`` ...) with different choice
+    # sets; naming them keeps the generated schema stable and readable.
+    "ENUM_NAME_OVERRIDES": {
+        "AppearanceEnum": "apps.themes.constants.Appearance",
+        "PreviewModeEnum": "apps.themes.constants.PREVIEW_MODES",
+        "ThemeStatusEnum": "apps.themes.constants.ThemeStatus",
+        "ThemeScopeEnum": "apps.themes.constants.ThemeScope",
+        "OrganizationStatusEnum": "apps.organizations.models.Organization.Status",
+        "UserStatusEnum": "apps.accounts.constants.UserStatus",
+    },
 }
 
 # ---------------------------------------------------------------------------
 # Third-party app configuration
 # ---------------------------------------------------------------------------
+# Render form widgets with the project's template engine so custom widgets can
+# use templates under ``templates/`` and share the design system.
+FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
+
 CRISPY_ALLOWED_TEMPLATE_PACKS = "tailwind"
 CRISPY_TEMPLATE_PACK = "tailwind"
 
@@ -337,35 +426,112 @@ SIMPLE_HISTORY_HISTORY_ID_USE_UUID = True
 SIMPLE_HISTORY_REVERSION_LIMIT = 20
 
 # ---------------------------------------------------------------------------
-# Jazzmin (admin theme) — branding foundation only in Phase 0
+# Admin (Jazzmin, AdminLTE 4 / Bootstrap 5.3)
 # ---------------------------------------------------------------------------
+# See docs/architecture/admin.md and ADR 0020.
+#
+# Principles
+#   * Nothing is fetched from a third party: Google Fonts are off, every asset is
+#     served from our own static files (strict CSP, privacy, offline-friendly).
+#   * The admin is the *platform operator's* console. Day-to-day users work in the
+#     application UI, so the admin links back to it and vice-versa.
+#   * Branding comes from CSS variables (static/css/admin-brand.css) because the
+#     bundled AdminLTE 4 ignores the old AdminLTE 3 colour classes.
 JAZZMIN_SETTINGS = {
-    "site_title": "Checklist Platform",
+    # --- Identity ---------------------------------------------------------
+    "site_title": "Checklist Platform Admin",
     "site_header": "Checklist Platform",
     "site_brand": "Checklist Platform",
-    "welcome_sign": "Enterprise Checklist & Inspection Platform",
+    # One image drives the sidebar logo, the login logo and the favicon.
+    "site_logo": "icons/icon-192.png",
+    "site_logo_classes": "rounded",
+    "site_icon": "icons/icon-192.png",
+    "welcome_sign": "Platform administration",
     "copyright": "Checklist Platform",
-    "search_model": ["accounts.User", "organizations.Organization"],
+    # --- Third-party requests: none ---------------------------------------
+    "use_google_fonts_cdn": False,
+    # The related-object popup renders an <iframe>; X-Frame-Options is DENY.
+    "related_modal_active": False,
     "show_ui_builder": False,
+    "show_theme_chooser": False,
+    "language_chooser": False,
+    "custom_css": "css/admin-brand.css",
+    "custom_js": "js/admin-compat.js",  # works around a Jazzmin import-page bug; see the file
+    # --- Search & navigation ---------------------------------------------
+    # One global search box (one per model would crowd the navbar): locations are the
+    # largest, most-searched table. Organizations/users have list search + filters.
+    "search_model": ["locations.Location"],
+    # Deliberately no ``user_avatar``: for users without an uploaded picture Jazzmin
+    # falls back to a stock *photograph*; its neutral user icon is the right default.
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "order_with_respect_to": [
+        "organizations",
+        "organizations.organization",
+        "organizations.organizationmembership",
+        "locations",
+        "locations.location",
+        "locations.locationtype",
+        "themes",
+        "themes.theme",
+        "themes.themeactivation",
+        "themes.userappearance",
+        "accounts",
+        "permissions",
+        "permissions.role",
+        "permissions.rolescope",
+        "permissions.userrole",
+        "auth",
+        "core",
+    ],
     "topmenu_links": [
-        {"name": "Home", "url": "admin:index", "permissions": ["auth.view_user"]},
-        {"name": "API", "url": "/api/v1/", "new_window": True},
-        {"name": "Docs", "url": "/api/docs/", "new_window": True},
+        {"name": "Dashboard", "url": "admin:index"},
+        {"name": "Open application", "url": "core:home"},
+        {
+            "name": "Organizations",
+            "url": "organizations:list",
+            "permissions": ["organizations.view_organization"],
+        },
+        {
+            "name": "Location tree",
+            "url": "locations:tree",
+            "permissions": ["locations.view_location"],
+        },
+        {
+            "name": "Themes",
+            "url": "themes:list",
+            "permissions": ["themes.view_theme"],
+        },
+        {"name": "API docs", "url": "/api/docs/", "new_window": True},
     ],
     "usermenu_links": [
-        {"name": "API Schema", "url": "/api/schema/", "new_window": True},
+        {"name": "My profile", "url": "accounts:profile", "icon": "fas fa-id-badge"},
+        {"name": "API schema", "url": "/api/schema/", "new_window": True, "icon": "fas fa-code"},
     ],
-    # Icon keys map to Font Awesome (bundled with Jazzmin); Lucide is used in
-    # the application UI. Kept minimal on purpose — populated further in later
-    # phases as modules are delivered.
+    # --- Icons (Font Awesome 6 Free, bundled) -----------------------------
+    "default_icon_parents": "fas fa-folder",
+    "default_icon_children": "fas fa-circle",
     "icons": {
-        "accounts.User": "fas fa-users",
-        "auth.Group": "fas fa-user-shield",
+        "organizations": "fas fa-building",
         "organizations.Organization": "fas fa-building",
         "organizations.OrganizationMembership": "fas fa-id-badge",
-        "locations.LocationType": "fas fa-sitemap",
+        "locations": "fas fa-location-dot",
         "locations.Location": "fas fa-location-dot",
+        "locations.LocationType": "fas fa-tags",
+        "themes": "fas fa-palette",
+        "themes.Theme": "fas fa-palette",
+        "themes.ThemeActivation": "fas fa-clock-rotate-left",
+        "themes.UserAppearance": "fas fa-circle-half-stroke",
+        "accounts": "fas fa-users",
+        "accounts.User": "fas fa-user",
+        "permissions": "fas fa-user-shield",
         "permissions.Role": "fas fa-user-tag",
+        "permissions.RoleScope": "fas fa-sitemap",
+        "permissions.UserRole": "fas fa-user-lock",
+        "auth": "fas fa-users-cog",
+        "auth.Group": "fas fa-users",
+        "core": "fas fa-gear",
+        "core.ActivityLog": "fas fa-clock-rotate-left",
         "checklists": "fas fa-clipboard-check",
         "executions": "fas fa-play-circle",
         "findings": "fas fa-triangle-exclamation",
@@ -375,41 +541,64 @@ JAZZMIN_SETTINGS = {
         "notifications": "fas fa-bell",
         "reporting": "fas fa-chart-line",
     },
+    # --- Change forms -----------------------------------------------------
+    "changeform_format": "horizontal_tabs",
+    "changeform_format_overrides": {
+        "accounts.user": "collapsible",
+        "auth.group": "vertical_tabs",
+    },
 }
 
+# Only the options that exist in AdminLTE 4 / Bootstrap 5.3.  The old AdminLTE 3
+# colour classes (``accent-*``, ``navbar-*``, ``sidebar-dark-*``) are not in the
+# bundled stylesheet and had no effect; brand colours live in admin-brand.css.
 JAZZMIN_UI_TWEAKS = {
-    "navbar_small_text": False,
-    "footer_small_text": False,
-    "body_small_text": False,
-    "brand_small_text": False,
-    "brand_colour": False,
-    "accent": "accent-primary",
-    "navbar": "navbar-dark",
-    "no_navbar_border": False,
-    "navbar_fixed": True,
-    "layout_boxed": False,
-    "footer_fixed": False,
-    "sidebar_fixed": True,
-    "sidebar": "sidebar-dark-primary",
-    "sidebar_nav_small_text": False,
-    "sidebar_disable_expand": False,
-    "sidebar_nav_child_indent": False,
-    "sidebar_nav_compact_style": False,
-    "sidebar_nav_legacy_style": False,
-    "sidebar_nav_flat_style": True,
     "theme": "default",
-    # Jazzmin 3.x controls light/dark via ``data-bs-theme``; the old
-    # ``dark_mode_theme`` key is deprecated and ignored.
+    # Follow the operating-system preference (set before first paint by Jazzmin).
     "default_theme_mode": "auto",
+    "navbar_fixed": True,
+    "sidebar_fixed": True,
+    "sidebar_nav_flat_style": True,
+    "actions_sticky_top": True,
+    # Button roles on the dashboard and forms: "Add" is the primary action and "Change" a
+    # quiet outline, so the admin reads as one product with the application (brand indigo).
     "button_classes": {
         "primary": "btn-primary",
         "secondary": "btn-secondary",
-        "info": "btn-info",
+        "info": "btn-outline-primary",
         "warning": "btn-warning",
         "danger": "btn-danger",
-        "success": "btn-success",
+        "success": "btn-primary",
     },
 }
+
+# ---------------------------------------------------------------------------
+# Admin Content-Security-Policy
+# ---------------------------------------------------------------------------
+# Every page keeps the strict BASE_CSP; /admin/ gets this narrowly-widened variant
+# (apps.core.middleware.AdminContentSecurityPolicyMiddleware):
+#
+#   * script-src  - Jazzmin renders a few small *static* inline scripts (theme
+#                   bootstrap, changelist filter config, password forms).  They are
+#                   allowed by SHA-256 hash, not by 'unsafe-inline'.  A Jazzmin upgrade
+#                   that changes one makes tests/test_admin_theme.py fail and names the
+#                   new hash to review and add here.
+#   * style-src-attr - Django admin/Jazzmin emit a handful of ``style="..."``
+#                   attributes (margins, widths).  Only *attributes* are allowed
+#                   inline; <style> blocks and external CSS stay under the strict rule.
+#
+# Nothing else is relaxed: no third-party origins, no eval, no inline <style>.
+ADMIN_CSP_SCRIPT_HASHES: list[str] = [
+    # admin/base.html + registration/base.html: sets data-bs-theme before first paint.
+    "sha256-oufyiLq9heVNX0RFs532lnKzrs2pHgVyLVsyRlTCfQg=",
+    # admin/change_list.html: window.filterInputLength defaults.
+    "sha256-F7GVayJMLy0KHikNUhjbBcBE0ax/V4knxuE9lJsuA6A=",
+    # registration/password_change_form.html: marks required fields.
+    "sha256-DT/ci/z/ofx36DBKYq8ZBDQ2sgAnvO+SmuKGfcZ95UU=",
+    # admin/auth/user/change_password.html: marks required fields.
+    "sha256-OQlLsGYyiAVVwdHnkEraaS+8yfFm7rTeYMfelN7RwuE=",
+]
+ADMIN_CSP_STYLE_ATTR = [CSP.UNSAFE_INLINE]
 
 # ---------------------------------------------------------------------------
 # Logging

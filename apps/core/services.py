@@ -14,12 +14,80 @@ logic.
 
 from __future__ import annotations
 
+import datetime
+import decimal
+import uuid
 from typing import TYPE_CHECKING, Any
+
+from django.db import models
 
 from .models import ActivityLog
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
     from apps.organizations.models import Organization
+
+
+def _jsonable(value: Any) -> Any:
+    """Return a JSON-safe representation of a field value for the activity log."""
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    if isinstance(value, (uuid.UUID, decimal.Decimal)):
+        return str(value)
+    if isinstance(value, (datetime.datetime, datetime.date)):
+        return value.isoformat()
+    return str(value)
+
+
+def apply_changes(instance: models.Model, data: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Assign changed values from ``data`` onto ``instance``.
+
+    Returns ``{field: {"from": old, "to": new}}`` for the fields that actually
+    changed, in a JSON-safe form suitable for ``ActivityLog.metadata``.  Nothing
+    is saved.  Relations are compared by primary key, and file fields by file
+    name (an uploaded file is recorded as ``"(new file)"`` because its final
+    storage name is not known until it is saved).
+    """
+    changes: dict[str, dict[str, Any]] = {}
+    for name, new in data.items():
+        field = instance._meta.get_field(name)
+
+        if field.is_relation and field.many_to_one:
+            old_pk = getattr(instance, field.attname)
+            new_pk = getattr(new, "pk", new)
+            if old_pk == new_pk:
+                continue
+            setattr(instance, name, new)
+            changes[name] = {"from": _jsonable(old_pk), "to": _jsonable(new_pk)}
+        elif isinstance(field, models.FileField):
+            old_name = getattr(instance, name).name or ""
+            if new is False:  # the form's "clear" box was ticked
+                if old_name:
+                    setattr(instance, name, None)
+                    changes[name] = {"from": old_name, "to": ""}
+            elif new is None or getattr(new, "_committed", False):
+                continue  # nothing supplied, or an already-stored file handed back
+            else:
+                setattr(instance, name, new)
+                changes[name] = {"from": old_name, "to": "(new file)"}
+        else:
+            old = getattr(instance, name)
+            if old == new:
+                continue
+            setattr(instance, name, new)
+            changes[name] = {"from": _jsonable(old), "to": _jsonable(new)}
+    return changes
+
+
+def stamp_history(instance: models.Model, actor: Any = None, reason: str = "") -> None:
+    """Tell django-simple-history who made the change and why.
+
+    Inside a request the history middleware already knows the user; this also
+    covers services called from commands, imports and tests.
+    """
+    if getattr(actor, "is_authenticated", False):
+        instance._history_user = actor  # type: ignore[attr-defined]
+    if reason:
+        instance._change_reason = reason[:100]  # type: ignore[attr-defined]
 
 
 def log_activity(

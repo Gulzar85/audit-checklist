@@ -21,13 +21,13 @@ class OrganizationTable(tables.Table):
     actions = tables.TemplateColumn(
         template_name="organizations/_row_actions.html",
         orderable=False,
-        verbose_name="",
-        attrs={"td": {"class": "text-right"}},
+        verbose_name="Actions",
+        attrs={"td": {"class": "text-right"}, "th": {"class": "text-right"}},
     )
 
     class Meta:
         model = Organization
         fields = ("name", "code", "status", "city", "country", "created_at")
         template_name = "core/tables/table.html"
-        attrs = {"class": "table", "aria": {"label": "Organizations"}}
-        empty_text = "No organizations match your search."
+        attrs = {"class": "table", "aria-label": "Organizations"}
+        empty_text = "No organizations match your filters."

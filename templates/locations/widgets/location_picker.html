@@ -1,0 +1,31 @@
+{% comment %}
+Searchable location combobox (see apps/locations/widgets.py and the "picker"
+Alpine component). The hidden input carries the value; the visible input has no
+`name`, so it is never submitted. Results are loaded over HTMX.
+{% endcomment %}
+<div x-data="picker" @keydown="onKeydown" @click.outside="hide" data-picker class="relative">
+  <input type="hidden" name="{{ widget.name }}" value="{{ widget.value|default_if_none:'' }}" x-ref="value">
+  <div class="relative">
+    <input type="text" id="{{ widget.attrs.id }}" class="input pr-16" x-ref="input"
+           role="combobox" aria-autocomplete="list" aria-haspopup="listbox" autocomplete="off"
+           aria-controls="{{ widget.attrs.id }}_results" :aria-expanded="open"
+           {% if widget.aria_invalid %}aria-invalid="true"{% endif %}
+           {% if widget.aria_describedby %}aria-describedby="{{ widget.aria_describedby }}"{% endif %}
+           {% if widget.attrs.disabled %}disabled{% endif %}
+           placeholder="Search by name or code…" value="{{ widget.selected_label }}"
+           data-picker-input @input="onInput" @focus="show"
+           hx-get="{{ widget.search_url }}" hx-trigger="input changed delay:250ms, focus"
+           hx-target="#{{ widget.attrs.id }}_results" hx-swap="innerHTML"
+           hx-indicator="#{{ widget.attrs.id }}_spinner"
+           {% if widget.organization_source %}hx-include="{{ widget.organization_source }}"{% endif %}
+           {% if widget.static_params %}hx-vals="{{ widget.static_params }}"{% endif %}>
+    <div class="absolute inset-y-0 right-1 flex items-center gap-1">
+      <span id="{{ widget.attrs.id }}_spinner" class="htmx-indicator spinner text-muted-foreground" role="status" aria-label="Searching"></span>
+      <button type="button" class="btn btn-ghost btn-sm !px-1.5 !py-1" @click="clear" aria-label="Clear selection">
+        <i data-lucide="x" class="h-4 w-4" aria-hidden="true"></i>
+      </button>
+    </div>
+  </div>
+  <ul id="{{ widget.attrs.id }}_results" role="listbox" x-ref="results" x-show="open" x-cloak @click="choose"
+      class="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-lg border border-border bg-surface shadow-lg"></ul>
+</div>

@@ -1,0 +1,39 @@
+{% comment %}
+A responsive filter form for django-filter filtersets.
+Params: filter (the filterset), reset_url, hidden (optional: field names to omit),
+        htmx_target (optional: renders the form as an HTMX-driven live filter).
+Every field is rendered through crispy so labels, errors and styling are uniform.
+On phones the form collapses behind a toggle (the "filterPanel" Alpine component);
+without JavaScript it is always visible.
+{% endcomment %}
+{% load crispy_forms_tags %}
+<div x-data="filterPanel">
+  <div class="px-5 pt-4 md:hidden">
+    <button type="button" class="btn btn-secondary btn-sm w-full" @click="toggle"
+            :aria-expanded="open" aria-controls="filter-form">
+      <i data-lucide="sliders-horizontal" class="h-4 w-4" aria-hidden="true"></i>
+      <span x-text="label">Filters</span>
+    </button>
+  </div>
+  <form id="filter-form" method="get" class="card-body" role="search" aria-label="Filters" :hidden="collapsed"
+        {% if htmx_target %}hx-get="{{ reset_url }}" hx-target="{{ htmx_target }}" hx-trigger="submit, input delay:350ms, change" hx-push-url="true" hx-indicator="#filter-spinner"{% endif %}>
+    <div class="grid gap-x-4 sm:grid-cols-2 lg:grid-cols-4">
+      {% for field in filter.form %}
+        {% if field.name not in hidden %}
+          {{ field|as_crispy_field }}
+        {% endif %}
+      {% endfor %}
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <button class="btn btn-primary" type="submit">
+        <i data-lucide="search" class="h-4 w-4" aria-hidden="true"></i> Apply filters
+      </button>
+      <a href="{{ reset_url }}" class="btn btn-secondary">Reset</a>
+      {% if htmx_target %}
+        <span id="filter-spinner" class="htmx-indicator inline-flex items-center gap-2 text-sm text-muted-foreground" role="status">
+          <span class="spinner" aria-hidden="true"></span> Updating…
+        </span>
+      {% endif %}
+    </div>
+  </form>
+</div>

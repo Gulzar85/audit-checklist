@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Location tree · {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<nav class="breadcrumbs mb-4" aria-label="Breadcrumbs">
+  <ol>
+    <li><a href="{% url 'core:home' %}">Home</a></li>
+    <li><a href="{% url 'locations:list' %}">Locations</a></li>
+    <li aria-current="page">Tree</li>
+  </ol>
+</nav>
+
+<div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+  <div class="flex items-center gap-3">
+    <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+      <i data-lucide="network" class="h-5 w-5" aria-hidden="true"></i>
+    </span>
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Location tree</h1>
+      <p class="text-sm text-muted-foreground">Your hierarchy, at any depth. Searching keeps each match's parents visible.</p>
+    </div>
+  </div>
+  <div class="flex flex-wrap items-center gap-2">
+    <a href="{% url 'locations:list' %}" class="btn btn-secondary">
+      <i data-lucide="list" class="h-4 w-4" aria-hidden="true"></i> List view
+    </a>
+    <a href="{% url 'locations:type_list' %}" class="btn btn-secondary">
+      <i data-lucide="tags" class="h-4 w-4" aria-hidden="true"></i> Location types
+    </a>
+    {% if can_create %}
+      <a href="{% url 'locations:create' %}" class="btn btn-primary">
+        <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i> New location
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+<div data-htmx-scope>
+  <div class="card mb-6">
+    {% include "components/filter_bar.html" with filter=filter reset_url=request.path hidden=hidden_filters htmx_target="#tree-panel" %}
+  </div>
+
+  <div x-data="treeControls">
+    <div class="mb-3 flex flex-wrap items-center gap-2">
+      <button type="button" class="btn btn-secondary btn-sm" @click="expandAll">
+        <i data-lucide="chevrons-down" class="h-4 w-4" aria-hidden="true"></i> Expand all
+      </button>
+      <button type="button" class="btn btn-secondary btn-sm" @click="collapseAll">
+        <i data-lucide="chevrons-up" class="h-4 w-4" aria-hidden="true"></i> Collapse all
+      </button>
+    </div>
+
+    <div data-htmx-error hidden class="alert alert-danger mb-3" role="alert">
+      <i data-lucide="circle-alert" class="h-5 w-5 shrink-0" aria-hidden="true"></i>
+      <span>The tree could not be loaded. Check your connection and try again.</span>
+    </div>
+
+    <div id="tree-panel" class="card" aria-live="polite">
+      {% include "locations/_tree_panel.html" %}
+    </div>
+  </div>
+</div>
+{% endblock %}

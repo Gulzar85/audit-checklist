@@ -1,0 +1,53 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en" class="h-full" data-theme="{{ ui_theme.mode }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}{{ APP_NAME }}{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Generic enterprise checklist and inspection platform.{% endblock %}">
+  {# Browser-chrome colours come from the active theme's tokens; `media` follows the colour mode. #}
+  <meta name="theme-color" content="{{ ui_theme.theme_color_light }}" data-scheme="light" media="{% if ui_theme.mode == 'light' %}all{% elif ui_theme.mode == 'dark' %}not all{% else %}(prefers-color-scheme: light){% endif %}">
+  <meta name="theme-color" content="{{ ui_theme.theme_color_dark }}" data-scheme="dark" media="{% if ui_theme.mode == 'dark' %}all{% elif ui_theme.mode == 'light' %}not all{% else %}(prefers-color-scheme: dark){% endif %}">
+  <meta name="color-scheme" content="{{ ui_theme.color_scheme }}">
+  {% comment %}
+    HTMX under the strict CSP: no eval, no injected indicator styles, no script tags in
+    swapped content.  "style" is dropped from attributesToSettle because HTMX would
+    otherwise set it during a swap, which style-src without 'unsafe-inline' blocks.
+  {% endcomment %}
+  <meta name="htmx-config" content='{"allowEval": false, "includeIndicatorStyles": false, "allowScriptTags": false, "attributesToSettle": ["class", "width", "height"]}'>
+
+  <link rel="manifest" href="{% url 'core:manifest' %}" crossorigin="use-credentials" {% csp_nonce_attr %}>
+  <link rel="icon" href="{% static 'icons/favicon.ico' %}" sizes="any">
+  <link rel="icon" type="image/png" href="{% static 'icons/icon-192.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'icons/apple-touch-icon.png' %}">
+
+  {# Tailwind compiled output (with built-in token defaults), then the active theme's tokens. #}
+  <link rel="stylesheet" href="{% static 'css/app.css' %}" {% csp_nonce_attr %}>
+  <link rel="stylesheet" href="{{ ui_theme.css_url }}" {% csp_nonce_attr %}>
+
+  <script src="{% static 'vendor/htmx.min.js' %}" defer {% csp_nonce_attr %}></script>
+  {# components.js must load before alpine.min.js so its `alpine:init` listener is registered. #}
+  <script src="{% static 'js/components.js' %}" defer {% csp_nonce_attr %}></script>
+  <script src="{% static 'vendor/alpine.min.js' %}" defer {% csp_nonce_attr %}></script>
+  <script src="{% static 'vendor/lucide.min.js' %}" defer {% csp_nonce_attr %}></script>
+  <script src="{% static 'js/app.js' %}" defer {% csp_nonce_attr %}></script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="flex min-h-full flex-col" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  <a href="#main" class="skip-link">Skip to main content</a>
+  {% block chrome %}{% endblock %}
+  <main id="main" class="flex-1 py-8">
+    <div class="container-page">
+      {% include "partials/messages.html" %}
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+  {% block footer %}{% endblock %}
+  <noscript>
+    <div class="container-page pb-6">
+      <div class="alert alert-warning">JavaScript is disabled. Interactive and offline features require it.</div>
+    </div>
+  </noscript>
+  {% block extra_body %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,25 @@
+{% extends "base_auth.html" %}
+
+{% block title %}Sign-in problem &middot; {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-md">
+  <div class="card">
+    <div class="card-header">
+      <h1 class="card-title">We couldn&rsquo;t sign you in</h1>
+      <i data-lucide="circle-alert" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
+    </div>
+    <div class="card-body space-y-4">
+      <div class="alert alert-danger" role="alert" aria-live="assertive">
+        <i data-lucide="circle-alert" class="h-5 w-5 shrink-0" aria-hidden="true"></i>
+        <span>{{ message }}</span>
+      </div>
+      <p class="help-text">
+        If this keeps happening, contact your administrator and mention that you were signing in
+        with Microsoft.
+      </p>
+      <a href="{% url 'accounts:login' %}" class="btn btn-primary w-full">Back to sign in</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -6,23 +6,37 @@ the tenant root; locations, checklists, executions and so on all hang off it.
 
 Lifecycle is modelled with a single authoritative ``status`` field.  There is no
 separate ``is_active`` column: a boolean plus a status would be two sources of
-truth, and ``is_active`` is exposed as a derived property instead (see ADR
-0011).  Suspended/inactive organizations keep all of their data — nothing is
-deleted — they simply cannot perform normal operations.
+truth, and ``is_active`` is exposed as a derived property instead (ADR 0011).
+Suspended/inactive organizations keep all of their data - nothing is deleted -
+they simply cannot perform normal operations.
+
+Identity: ``id`` (UUID) is what URLs and foreign keys use, so renaming an
+organization never breaks a reference.  ``code`` is the stable, human-friendly
+business key (used by imports and integrations) and is immutable once the
+organization exists; ``slug`` is a unique, readable handle.
 """
 
 from __future__ import annotations
 
 import re
+import uuid
+from pathlib import Path
 
 from django.conf import settings
-from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
+from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from simple_history.models import HistoricalRecords
 
 from apps.core.models import BaseModel
+from apps.core.validators import (
+    validate_country_code,
+    validate_currency_code,
+    validate_hex_color,
+    validate_language_code,
+    validate_timezone,
+)
 
 from .validators import validate_branding_image
 
@@ -32,6 +46,25 @@ _CODE_SANITIZER = re.compile(r"[^A-Za-z0-9]+")
 def normalize_organization_code(value: str) -> str:
     """Return a canonical, upper-case organization code (``acme-co`` → ``ACME_CO``)."""
     return _CODE_SANITIZER.sub("_", (value or "").strip()).strip("_").upper()
+
+
+def _branding_path(instance: "Organization", filename: str, folder: str) -> str:
+    """Store uploads under a server-generated name.
+
+    The client-supplied filename is never used: only its (already validated)
+    extension survives, so path tricks, odd unicode and double extensions in the
+    original name cannot reach the storage backend.
+    """
+    extension = Path(filename).suffix.lower()
+    return f"organizations/{instance.pk}/{folder}/{uuid.uuid4().hex}{extension}"
+
+
+def organization_logo_path(instance: "Organization", filename: str) -> str:
+    return _branding_path(instance, filename, "logo")
+
+
+def organization_favicon_path(instance: "Organization", filename: str) -> str:
+    return _branding_path(instance, filename, "favicon")
 
 
 class OrganizationQuerySet(models.QuerySet):
@@ -50,16 +83,23 @@ class Organization(BaseModel):
         INACTIVE = "inactive", _("Inactive")
         SUSPENDED = "suspended", _("Suspended")
 
+    class DateFormat(models.TextChoices):
+        ISO = "Y-m-d", "YYYY-MM-DD"
+        DAY_FIRST = "d/m/Y", "DD/MM/YYYY"
+        MONTH_FIRST = "m/d/Y", "MM/DD/YYYY"
+        DOTTED = "d.m.Y", "DD.MM.YYYY"
+        TEXTUAL = "d M Y", "DD Mon YYYY"
+
     # --- Identity ---------------------------------------------------------
     name = models.CharField(max_length=255)
-    #: Stable, human-friendly unique code used for references/imports.
+    #: Stable, human-friendly unique business key. Immutable after creation.
     code = models.CharField(
         max_length=32,
         unique=True,
         blank=True,
-        help_text=_("Stable unique code (auto-derived from the slug when left empty)."),
+        help_text=_("Stable unique code. Derived from the slug when left empty; cannot change later."),
     )
-    slug = models.SlugField(max_length=255, unique=True)
+    slug = models.SlugField(max_length=255, unique=True, blank=True)
     legal_name = models.CharField(max_length=255, blank=True)
     description = models.TextField(blank=True)
 
@@ -68,21 +108,26 @@ class Organization(BaseModel):
         max_length=20,
         choices=Status.choices,
         default=Status.ACTIVE,
-        db_index=True,
     )
 
     # --- Branding & contact ----------------------------------------------
     logo = models.ImageField(
-        upload_to="organizations/logos/",
+        upload_to=organization_logo_path,
         blank=True,
         null=True,
         validators=[validate_branding_image],
     )
     favicon = models.ImageField(
-        upload_to="organizations/favicons/",
+        upload_to=organization_favicon_path,
         blank=True,
         null=True,
         validators=[validate_branding_image],
+    )
+    primary_color = models.CharField(
+        max_length=7,
+        blank=True,
+        validators=[validate_hex_color],
+        help_text=_("Brand colour as #RRGGBB."),
     )
     website = models.URLField(max_length=255, blank=True)
     email = models.EmailField(blank=True)
@@ -97,18 +142,30 @@ class Organization(BaseModel):
     country = models.CharField(
         max_length=2,
         blank=True,
+        validators=[validate_country_code],
         help_text=_("ISO 3166-1 alpha-2 country code, e.g. 'GB'."),
     )
 
-    # --- Regional preferences (overridable per tenant) --------------------
-    timezone = models.CharField(max_length=64, blank=True)
-    currency = models.CharField(max_length=3, blank=True, help_text=_("ISO 4217, e.g. 'USD'."))
-    language = models.CharField(max_length=10, blank=True, help_text=_("e.g. 'en'."))
-    date_format = models.CharField(max_length=32, blank=True, help_text=_("e.g. 'Y-m-d'."))
-
-    #: Extension point for future non-queryable settings. Typed fields are
-    #: preferred; keep this small.
-    configuration = models.JSONField(default=dict, blank=True)
+    # --- Regional preferences (overridable per tenant; blank = platform default) ---
+    timezone = models.CharField(
+        max_length=64,
+        blank=True,
+        validators=[validate_timezone],
+        help_text=_("IANA time zone, e.g. 'Europe/London'."),
+    )
+    currency = models.CharField(
+        max_length=3,
+        blank=True,
+        validators=[validate_currency_code],
+        help_text=_("ISO 4217, e.g. 'USD'."),
+    )
+    language = models.CharField(
+        max_length=10,
+        blank=True,
+        validators=[validate_language_code],
+        help_text=_("e.g. 'en'."),
+    )
+    date_format = models.CharField(max_length=10, blank=True, choices=DateFormat.choices)
 
     history = HistoricalRecords()
     objects = OrganizationQuerySet.as_manager()
@@ -122,24 +179,50 @@ class Organization(BaseModel):
                 condition=models.Q(code__regex=r"^[A-Z0-9][A-Z0-9_]*$"),
                 name="organization_code_format",
             ),
+            models.CheckConstraint(
+                condition=models.Q(status__in=["active", "inactive", "suspended"]),
+                name="organization_status_valid",
+            ),
+            models.CheckConstraint(
+                condition=~models.Q(slug=""),
+                name="organization_slug_not_empty",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(country="") | models.Q(country__regex=r"^[A-Z]{2}$"),
+                name="organization_country_format",
+            ),
         ]
         indexes = [
-            models.Index(fields=["status", "name"]),
+            # Serves "organizations in state X, by name" (admin + list filters).
+            models.Index(fields=["status", "name"], name="organizatio_status_7242eb_idx"),
         ]
 
     def __str__(self) -> str:
         return self.name
 
-    def save(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
-        # Keep the code canonical; derive it from the slug when omitted.
-        self.code = normalize_organization_code(self.code or self.slug or self.name)
-        super().save(*args, **kwargs)
+    # --- Normalisation / validation --------------------------------------
+    def normalize(self) -> None:
+        """Bring identity and regional fields to canonical form.
 
-    def clean(self) -> None:
-        super().clean()
-        # Derive a code when omitted so the uniqueness/format constraints hold
-        # even before ``save()`` runs (``full_clean`` validates constraints).
+        Runs *before* field validators (see :meth:`clean_fields`) so that, for
+        example, ``gb`` is accepted as ``GB`` rather than rejected.
+        """
+        self.name = (self.name or "").strip()
+        self.slug = (self.slug or "").strip().lower() or slugify(self.name)
         self.code = normalize_organization_code(self.code or self.slug or self.name)
+        self.country = (self.country or "").strip().upper()
+        self.currency = (self.currency or "").strip().upper()
+        self.language = (self.language or "").strip().lower()
+        self.primary_color = (self.primary_color or "").strip().upper()
+        self.timezone = (self.timezone or "").strip()
+
+    def clean_fields(self, exclude=None) -> None:  # noqa: ANN001
+        self.normalize()
+        super().clean_fields(exclude=exclude)
+
+    def save(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
+        self.normalize()
+        super().save(*args, **kwargs)
 
     # --- Derived state ----------------------------------------------------
     @property
@@ -166,7 +249,12 @@ class Organization(BaseModel):
 
     @property
     def effective_date_format(self) -> str:
-        return self.date_format or "Y-m-d"
+        return self.date_format or self.DateFormat.ISO
+
+    @property
+    def effective_date_format_label(self) -> str:
+        """Human-readable form of the effective date format (``YYYY-MM-DD``)."""
+        return dict(self.DateFormat.choices).get(self.effective_date_format, self.effective_date_format)
 
     def get_absolute_url(self) -> str:
         return reverse("organizations:detail", kwargs={"pk": self.pk})

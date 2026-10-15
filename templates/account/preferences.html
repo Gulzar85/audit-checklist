@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Preferences &middot; {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-3xl">
+  <nav class="breadcrumbs mb-4" aria-label="Breadcrumb">
+    <ol class="flex items-center">
+      <li><a href="{% url 'core:home' %}">Home</a></li>
+      <li><a href="{% url 'accounts:profile' %}">Profile</a></li>
+      <li aria-current="page">Preferences</li>
+    </ol>
+  </nav>
+
+  <div class="card">
+    <div class="card-header">
+      <h1 class="card-title">Appearance</h1>
+      <i data-lucide="sun-moon" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
+    </div>
+    <div class="card-body flex items-center justify-between gap-4">
+      <div>
+        <p class="font-medium">{{ appearance_mode|default:"System" }}</p>
+        <p class="help-text">Light, dark, or follow your operating system.</p>
+      </div>
+      <a href="{% url 'accounts:appearance' %}" class="btn btn-secondary">Change</a>
+    </div>
+  </div>
+
+  <div class="card mt-6">
+    <div class="card-header">
+      <h2 class="card-title">Active organization</h2>
+      <i data-lucide="building-2" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
+    </div>
+    <div class="card-body flex items-center justify-between gap-4">
+      <div>
+        <p class="font-medium">{{ current_organization.name|default:"None" }}</p>
+        <p class="help-text">
+          {% if has_multiple_organizations %}
+            You belong to {{ memberships|length }} active organizations.
+          {% else %}
+            You are signed in to a single organization.
+          {% endif %}
+        </p>
+      </div>
+      {% if has_multiple_organizations %}
+        <a href="{% url 'orgcontext:select' %}" class="btn btn-secondary">Switch</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card mt-6">
+    <div class="card-header"><h2 class="card-title">Organization memberships</h2></div>
+    <div class="card-body">
+      {% if memberships %}
+        <ul class="space-y-2">
+          {% for membership in memberships %}
+            <li class="flex items-center justify-between gap-4">
+              <span class="text-foreground">{{ membership.organization.name }}</span>
+              <span class="flex items-center gap-2">
+                {% if membership.is_default %}<span class="badge badge-info">default</span>{% endif %}
+                {% include "components/active_badge.html" with is_active=membership.is_active %}
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="empty-state">
+          <i data-lucide="building-2" class="h-8 w-8 text-muted-foreground" aria-hidden="true"></i>
+          <p class="text-muted-foreground">No organization memberships yet.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

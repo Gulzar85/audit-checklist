@@ -2,9 +2,9 @@
 {% block title %}Server error &middot; {{ APP_NAME }}{% endblock %}
 {% block content %}
 <div class="mx-auto max-w-md py-16 text-center">
-  <p class="text-5xl font-bold text-brand-600">500</p>
-  <h1 class="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">Something went wrong</h1>
-  <p class="mt-2 text-slate-600 dark:text-slate-300">An unexpected error occurred. The issue has been logged.</p>
+  <p class="text-5xl font-bold text-link">500</p>
+  <h1 class="mt-2 text-2xl font-semibold text-foreground">Something went wrong</h1>
+  <p class="mt-2 text-muted-foreground">An unexpected error occurred. The issue has been logged.</p>
   <a href="{% url 'core:home' %}" class="btn btn-primary mt-6">Back to home</a>
 </div>
 {% endblock %}

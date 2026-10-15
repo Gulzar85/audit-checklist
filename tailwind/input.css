@@ -1,37 +1,64 @@
 /* ==========================================================================
-   Checklist Platform - design system foundation
+   Checklist Platform - design system
    Tailwind CSS v4 entrypoint. Compiled to static/css/app.css.
+
+   Theme contract (docs/themes/frontend-integration.md):
+
+     Theme -> validated tokens -> CSS custom properties -> Tailwind semantic
+     utilities (bg-primary, text-foreground, border-border ...) -> components.
+
+   Nothing below names a brand colour.  Every colour, radius, shadow, font and spacing
+   value is a token, so the active theme (served as /themes/tokens.css) restyles the whole
+   application at runtime - no rebuild, no template edits.  The built-in token defaults
+   come from tailwind/theme-defaults.css (generated from apps/themes/tokens.py).
    ========================================================================== */
 
 @import "tailwindcss";
+@import "./theme-defaults.css";
 
 /* Scan application sources for utility classes. */
 @source "../templates/**/*.html";
 @source "../apps/**/*.py";
 @source "../static/js/**/*.js";
 
-/* Class-based dark mode so a theme toggle (and later, organization branding)
-   can control the palette. */
-@custom-variant dark (&:where(.dark, .dark *));
+/* Dark variant follows the document's colour mode: explicit dark, or "system" while the
+   OS prefers dark.  Prefer semantic tokens over `dark:` - they switch automatically. */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where([data-theme="system"], [data-theme="system"] *) {
+      @slot;
+    }
+  }
+}
 
-@theme {
-  /* Brand scale (indigo). */
-  --color-brand-50: #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-200: #c7d2fe;
-  --color-brand-300: #a5b4fc;
-  --color-brand-400: #818cf8;
-  --color-brand-500: #6366f1;
-  --color-brand-600: #4f46e5;
-  --color-brand-700: #4338ca;
-  --color-brand-800: #3730a3;
-  --color-brand-900: #312e81;
-  --color-brand-950: #1e1b4b;
+/* Token -> Tailwind scale wiring (value-level mapping, not colours). */
+@theme static {
+  --font-sans: var(--font-family);
 
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-    Roboto, Helvetica, Arial, sans-serif;
+  --text-xs: calc(var(--font-size-small) * 0.857);
+  --text-xs--line-height: var(--line-height);
+  --text-sm: var(--font-size-small);
+  --text-sm--line-height: var(--line-height);
+  --text-base: var(--font-size-base);
+  --text-base--line-height: var(--line-height);
+  --text-lg: var(--font-size-large);
+  --text-lg--line-height: var(--line-height);
+  --text-xl: calc(var(--font-size-large) * 1.11);
+  --text-xl--line-height: 1.3;
+  --text-2xl: calc(var(--font-size-large) * 1.33);
+  --text-2xl--line-height: 1.25;
+  --text-3xl: calc(var(--font-size-large) * 1.67);
+  --text-3xl--line-height: 1.2;
 
-  --radius-card: 0.75rem;
+  --radius-xs: calc(var(--radius-sm) * 0.5);
+  --radius-xl: calc(var(--radius-lg) * 1.5);
+  --radius-2xl: calc(var(--radius-lg) * 2);
+  --radius-full: 9999px;
+
+  --spacing: calc(0.25rem * var(--spacing-scale));
 
   /* Safe-area support for installed PWAs. */
   --spacing-safe-top: env(safe-area-inset-top, 0px);
@@ -44,18 +71,54 @@
     text-size-adjust: 100%;
   }
 
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-border);
+  }
+
   body {
-    @apply bg-slate-100 text-slate-800 antialiased;
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    font-weight: var(--body-weight);
+    line-height: var(--line-height);
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
-  .dark body {
-    @apply bg-slate-950 text-slate-100;
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: var(--heading-weight);
   }
 
+  /* Links follow the theme's link colour. */
+  a:where(:not([class])),
+  .link,
+  .table a:where(:not(.btn)),
+  .breadcrumbs a {
+    color: var(--color-link);
+  }
+  a:where(:not([class])):hover,
+  .link:hover,
+  .breadcrumbs a:hover {
+    text-decoration: underline;
+  }
+
+  /* One focus indicator, drawn from the focus token (WCAG 2.4.7 / 1.4.11). */
   :focus-visible {
-    @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-950;
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-accent) 30%, transparent);
   }
 
   /* HTMX request indicator affordance. */
@@ -71,36 +134,61 @@
   [x-cloak] {
     display: none !important;
   }
+
+  /* Respect the user's motion preference: no animation or smooth scrolling. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::after,
+    ::before {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 @layer components {
   /* --- Buttons ---------------------------------------------------------- */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-transparent
-      px-4 py-2.5 text-sm font-semibold leading-5 transition-colors
+    @apply inline-flex items-center justify-center gap-2 border border-transparent px-4
+      text-sm font-semibold leading-5 transition-colors
       focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50;
+    padding-block: var(--control-padding-y);
+    border-radius: var(--button-radius);
+  }
+  .btn:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
   }
   .btn-primary {
-    @apply bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800;
+    @apply bg-primary text-primary-foreground hover:bg-primary-hover active:bg-primary-active;
   }
   .btn-secondary {
-    @apply border-slate-300 bg-white text-slate-700 hover:bg-slate-50
-      dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700;
+    @apply border-border bg-secondary text-secondary-foreground hover:bg-muted;
   }
   .btn-danger {
-    @apply bg-red-600 text-white hover:bg-red-700;
+    @apply bg-danger text-danger-foreground;
   }
   .btn-success {
-    @apply bg-emerald-600 text-white hover:bg-emerald-700;
+    @apply bg-success text-success-foreground;
+  }
+  .btn-danger:hover:not(:disabled) {
+    background-color: color-mix(in srgb, var(--color-danger) 85%, var(--color-foreground));
+  }
+  .btn-success:hover:not(:disabled) {
+    background-color: color-mix(in srgb, var(--color-success) 85%, var(--color-foreground));
   }
   .btn-ghost {
-    @apply text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800;
+    @apply text-muted-foreground hover:bg-muted hover:text-foreground;
   }
   .btn-sm {
-    @apply px-3 py-1.5 text-xs;
+    @apply px-3 text-xs;
+    padding-block: calc(var(--control-padding-y) * 0.6);
   }
   .btn-lg {
-    @apply px-5 py-3 text-base;
+    @apply px-5 text-base;
+    padding-block: calc(var(--control-padding-y) * 1.2);
   }
   .btn-icon {
     @apply h-10 w-10 p-0;
@@ -108,66 +196,73 @@
 
   /* --- Form controls ---------------------------------------------------- */
   .label {
-    @apply mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300;
+    @apply mb-1.5 block text-sm font-medium text-foreground;
   }
   .input,
   .select,
   .textarea {
-    @apply block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm
-      text-slate-900 shadow-sm placeholder:text-slate-400
-      focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30
-      disabled:cursor-not-allowed disabled:bg-slate-100
-      dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500;
+    @apply block w-full border border-border bg-surface px-3 text-sm text-foreground
+      placeholder:text-muted-foreground
+      focus:border-focus focus:outline-none focus:ring-2 focus:ring-focus/30
+      disabled:cursor-not-allowed disabled:bg-muted;
+    padding-block: var(--control-padding-y);
+    border-radius: var(--input-radius);
+    box-shadow: var(--shadow-sm);
   }
   .checkbox,
   .radio {
-    @apply h-5 w-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500
-      dark:border-slate-600 dark:bg-slate-900;
+    @apply h-5 w-5 rounded border-border text-primary focus:ring-focus;
+    accent-color: var(--color-primary);
   }
   .help-text {
-    @apply mt-1 text-xs text-slate-500 dark:text-slate-400;
+    @apply mt-1 text-xs text-muted-foreground;
   }
   .errorlist {
-    @apply mt-1 list-none space-y-1 p-0 text-xs font-medium text-red-600 dark:text-red-400;
+    @apply mt-1 list-none space-y-1 p-0 text-xs font-medium text-danger-text;
   }
 
   /* --- Surfaces --------------------------------------------------------- */
   .card {
-    @apply rounded-xl border border-slate-200 bg-white shadow-sm
-      dark:border-slate-800 dark:bg-slate-900;
+    @apply border border-border bg-surface text-foreground;
+    border-radius: var(--card-radius);
+    box-shadow: var(--shadow-sm);
   }
   .card-header {
-    @apply flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4
-      dark:border-slate-800;
+    @apply flex items-center justify-between gap-4 border-b border-border px-5 py-4;
   }
   .card-title {
-    @apply text-base font-semibold text-slate-900 dark:text-slate-100;
+    @apply text-base font-semibold text-foreground;
   }
   .card-body {
     @apply px-5 py-4;
   }
   .card-footer {
-    @apply border-t border-slate-200 px-5 py-4 dark:border-slate-800;
+    @apply border-t border-border px-5 py-4;
   }
 
   /* --- Badges ----------------------------------------------------------- */
   .badge {
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
   }
-  .badge-neutral {
-    @apply bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300;
+  /* Status vocabulary: success | warning | danger | info | neutral, plus the lifecycle
+     aliases pending (warning), active (success) and inactive (neutral). */
+  .badge-neutral,
+  .badge-inactive {
+    @apply bg-neutral-soft text-neutral-text;
   }
-  .badge-success {
-    @apply bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300;
+  .badge-success,
+  .badge-active {
+    @apply bg-success-soft text-success-text;
   }
-  .badge-warning {
-    @apply bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300;
+  .badge-warning,
+  .badge-pending {
+    @apply bg-warning-soft text-warning-text;
   }
   .badge-danger {
-    @apply bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300;
+    @apply bg-danger-soft text-danger-text;
   }
   .badge-info {
-    @apply bg-brand-100 text-brand-800 dark:bg-brand-900/40 dark:text-brand-300;
+    @apply bg-info-soft text-info-text;
   }
 
   /* --- Alerts ----------------------------------------------------------- */
@@ -175,35 +270,38 @@
     @apply flex items-start gap-3 rounded-lg border px-4 py-3 text-sm;
   }
   .alert-success {
-    @apply border-emerald-200 bg-emerald-50 text-emerald-800
-      dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200;
+    @apply border-success-border bg-success-soft text-success-text;
   }
   .alert-warning {
-    @apply border-amber-200 bg-amber-50 text-amber-800
-      dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-200;
+    @apply border-warning-border bg-warning-soft text-warning-text;
   }
   .alert-danger {
-    @apply border-red-200 bg-red-50 text-red-800
-      dark:border-red-900 dark:bg-red-950/50 dark:text-red-200;
+    @apply border-danger-border bg-danger-soft text-danger-text;
   }
   .alert-info {
-    @apply border-brand-200 bg-brand-50 text-brand-800
-      dark:border-brand-900 dark:bg-brand-950/50 dark:text-brand-200;
+    @apply border-info-border bg-info-soft text-info-text;
   }
 
   /* --- Tables ----------------------------------------------------------- */
+  .table-wrap {
+    border-radius: var(--table-radius);
+  }
   .table {
     @apply w-full border-collapse text-left text-sm;
   }
   .table thead th {
-    @apply border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase
-      tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400;
+    @apply border-b border-border bg-muted px-4 py-3 text-xs font-semibold uppercase
+      tracking-wide text-muted-foreground;
   }
   .table tbody td {
-    @apply border-b border-slate-100 px-4 py-3 text-slate-700 dark:border-slate-800 dark:text-slate-300;
+    @apply border-b border-border px-4 py-3 text-foreground;
   }
   .table tbody tr:hover {
-    @apply bg-slate-50 dark:bg-slate-800/50;
+    @apply bg-muted;
+  }
+  .table tbody tr[aria-selected="true"],
+  .table tbody tr.is-selected {
+    background-color: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
   }
 
   /* --- Pagination ------------------------------------------------------- */
@@ -212,56 +310,128 @@
   }
   .pagination a,
   .pagination span {
-    @apply inline-flex h-9 min-w-9 items-center justify-center rounded-md border border-slate-200
-      px-3 text-sm text-slate-600 hover:bg-slate-50
-      dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800;
+    @apply inline-flex h-9 min-w-9 items-center justify-center rounded-md border border-border
+      px-3 text-sm text-muted-foreground hover:bg-muted;
   }
   .pagination .current {
-    @apply border-brand-600 bg-brand-600 text-white;
+    @apply border-primary bg-primary text-primary-foreground;
   }
 
   /* --- Breadcrumbs ------------------------------------------------------ */
   .breadcrumbs {
-    @apply flex flex-wrap items-center gap-1 text-sm text-slate-500 dark:text-slate-400;
+    @apply flex flex-wrap items-center gap-1 text-sm text-muted-foreground;
   }
   .breadcrumbs li:not(:last-child)::after {
     content: "/";
-    @apply mx-1 text-slate-300 dark:text-slate-600;
+    @apply mx-1 text-muted-foreground;
   }
 
   /* --- Empty / loading states ------------------------------------------ */
   .empty-state {
     @apply flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed
-      border-slate-300 px-6 py-12 text-center dark:border-slate-700;
+      border-border px-6 py-12 text-center;
   }
   .spinner {
     @apply inline-block h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent;
   }
   .skeleton {
-    @apply animate-pulse rounded bg-slate-200 dark:bg-slate-800;
+    @apply animate-pulse rounded bg-muted;
   }
 
   /* --- Modal ------------------------------------------------------------ */
   .modal-backdrop {
-    @apply fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm;
+    @apply fixed inset-0 z-40 bg-foreground/50 backdrop-blur-sm;
   }
   .modal-panel {
     @apply fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2
-      rounded-xl border border-slate-200 bg-white p-6 shadow-xl
-      dark:border-slate-800 dark:bg-slate-900;
+      border border-border bg-surface-elevated p-6 text-foreground;
+    border-radius: var(--modal-radius);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Modal built on the native <dialog> element (focus trap + Escape + backdrop
+     come from the browser). The padding lives on an inner wrapper so a click on
+     the dialog element itself can only ever mean a click on the backdrop. */
+  .modal-dialog {
+    @apply m-auto w-[calc(100%-2rem)] max-w-lg border border-border bg-surface-elevated p-0
+      text-foreground;
+    border-radius: var(--modal-radius);
+    box-shadow: var(--shadow-lg);
+  }
+  .modal-dialog::backdrop {
+    @apply bg-foreground/50 backdrop-blur-sm;
+  }
+
+  /* --- Form states ------------------------------------------------------ */
+  .input[aria-invalid="true"],
+  .select[aria-invalid="true"],
+  .textarea[aria-invalid="true"] {
+    @apply border-danger focus:border-danger focus:ring-danger/30;
+  }
+  .file-input {
+    @apply block w-full text-sm text-foreground file:mr-3 file:cursor-pointer file:rounded-lg
+      file:border-0 file:bg-primary/10 file:px-4 file:py-2 file:text-sm file:font-semibold
+      file:text-link hover:file:bg-primary/20;
+  }
+
+  /* --- Location tree ---------------------------------------------------- */
+  .tree-row {
+    @apply flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted;
+  }
+  summary.tree-row {
+    list-style: none;
+  }
+  summary.tree-row::-webkit-details-marker {
+    display: none;
+  }
+
+  /* --- Navigation (the sidebar tokens drive the application navigation) --- */
+  .app-nav {
+    @apply border-b border-sidebar-border bg-sidebar-background text-sidebar-foreground;
+  }
+  .nav-link {
+    @apply inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium
+      text-sidebar-foreground hover:bg-sidebar-hover;
+  }
+  .nav-link[aria-current="page"] {
+    @apply text-sidebar-active;
+  }
+  .nav-brand {
+    @apply flex items-center gap-2 font-semibold text-sidebar-foreground;
+  }
+
+  /* --- Menus (dropdown panels) ------------------------------------------ */
+  .menu-panel {
+    @apply border border-border bg-surface-elevated p-1 text-foreground;
+    border-radius: var(--card-radius);
+    box-shadow: var(--shadow-md);
+  }
+  .menu-item {
+    @apply flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-foreground
+      hover:bg-muted;
+  }
+  .menu-item[aria-checked="true"] {
+    @apply font-semibold;
+  }
+
+  /* --- Theme editor / preview ------------------------------------------- */
+  .swatch {
+    @apply inline-block h-4 w-4 shrink-0 rounded border border-border align-middle;
+  }
+  .preview-frame {
+    @apply border border-border bg-background p-4 text-foreground;
+    border-radius: var(--card-radius);
+  }
+  .banner-preview {
+    @apply bg-warning-soft text-warning-text border-b border-warning-border;
   }
 
   /* --- Layout helpers --------------------------------------------------- */
   .container-page {
     @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
   }
-  .nav-link {
-    @apply inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium
-      text-slate-600 hover:bg-slate-100 hover:text-slate-900
-      dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white;
-  }
   .skip-link {
     @apply sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50
-      focus:rounded-md focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-white;
+      focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground;
   }
 }

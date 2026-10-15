@@ -1,0 +1,17 @@
+{% comment %}Recent business activity. Params: entries (ActivityLog queryset/list).{% endcomment %}
+{% if entries %}
+  <ul class="divide-y divide-border">
+    {% for entry in entries %}
+      <li class="flex flex-wrap items-start justify-between gap-2 py-3 first:pt-0 last:pb-0">
+        <div>
+          <p class="font-mono text-sm font-medium">{{ entry.verb }}</p>
+          {% if entry.description %}<p class="text-sm text-muted-foreground">{{ entry.description }}</p>{% endif %}
+          {% if entry.actor %}<p class="text-xs text-muted-foreground">by {{ entry.actor.get_short_name }}</p>{% endif %}
+        </div>
+        <time class="text-sm text-muted-foreground" datetime="{{ entry.created_at|date:'c' }}">{{ entry.created_at|date:"M d, Y H:i" }}</time>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="text-sm text-muted-foreground">No activity recorded yet.</p>
+{% endif %}

@@ -1,0 +1,7 @@
+{# Display hint only (Django perms); the views re-authorise through policies. #}
+<div class="flex justify-end gap-1">
+  <a href="{% url 'locations:detail' record.pk %}" class="btn btn-ghost btn-sm">View</a>
+  {% if perms.locations.change_location %}
+    <a href="{% url 'locations:update' record.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+  {% endif %}
+</div>

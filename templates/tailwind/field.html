@@ -1,0 +1,38 @@
+{% comment %}
+Overrides crispy-tailwind's field template so forms use the platform design
+system (`label`, `input`, `select`, `help-text`, `errorlist`) - and so share dark
+mode and focus styles - instead of crispy's built-in utility classes, which are
+not part of the compiled stylesheet.
+
+Accessibility: the label is bound to the control; help text and errors have ids
+that DesignSystemFormMixin links through aria-describedby; errors are announced.
+Help text is escaped (never `|safe`).
+{% endcomment %}
+{% load tailwind_field %}
+{% if field.is_hidden %}
+  {{ field }}
+{% else %}
+  <div id="div_{{ field.auto_id }}" class="mb-4{% if wrapper_class %} {{ wrapper_class }}{% endif %}">
+    {% if field|is_checkbox %}
+      <div class="flex items-start gap-3">
+        {{ field }}
+        <label for="{{ field.id_for_label }}" class="text-sm font-medium text-foreground">{{ field.label }}</label>
+      </div>
+    {% else %}
+      {% if field.label and form_show_labels %}
+        <label for="{{ field.id_for_label }}" class="label">
+          {{ field.label }}{% if field.field.required %}<span class="text-danger-text" aria-hidden="true"> *</span><span class="sr-only"> (required)</span>{% endif %}
+        </label>
+      {% endif %}
+      {{ field }}
+    {% endif %}
+    {% if field.help_text %}
+      <p id="hint_{{ field.auto_id }}" class="help-text">{{ field.help_text }}</p>
+    {% endif %}
+    {% if field.errors %}
+      <ul id="error_{{ field.auto_id }}" class="errorlist" role="alert">
+        {% for error in field.errors %}<li>{{ error }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+{% endif %}

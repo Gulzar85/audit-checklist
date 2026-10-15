@@ -3,60 +3,9 @@
 (function () {
   "use strict";
 
-  var THEME_KEY = "cp-theme";
-
-  function getStoredTheme() {
-    try {
-      return window.localStorage.getItem(THEME_KEY);
-    } catch (err) {
-      return null;
-    }
-  }
-
-  function storeTheme(theme) {
-    try {
-      window.localStorage.setItem(THEME_KEY, theme);
-    } catch (err) {
-      /* storage may be unavailable (private mode) - ignore */
-    }
-  }
-
-  function applyTheme(theme) {
-    var root = document.documentElement;
-    if (theme === "dark") {
-      root.classList.add("dark");
-    } else if (theme === "light") {
-      root.classList.remove("dark");
-    } else {
-      var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      root.classList.toggle("dark", prefersDark);
-    }
-    var meta = document.querySelector('meta[name="color-scheme"]');
-    if (meta) {
-      meta.setAttribute("content", theme === "dark" ? "dark" : "light dark");
-    }
-  }
-
-  function initTheme() {
-    var stored = getStoredTheme();
-    applyTheme(stored || "system");
-    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function (event) {
-      if (!getStoredTheme()) {
-        document.documentElement.classList.toggle("dark", event.matches);
-      }
-    });
-  }
-
-  function initThemeToggle() {
-    document.querySelectorAll("[data-theme-toggle]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        var isDark = document.documentElement.classList.contains("dark");
-        var next = isDark ? "light" : "dark";
-        storeTheme(next);
-        applyTheme(next);
-      });
-    });
-  }
+  /* Colour mode (light / dark / system) is server-rendered as <html data-theme> and changed
+   * by the `appearance` component (components.js); nothing to initialise here, and there is
+   * no flash because the first byte already carries the right mode. */
 
   function initIcons() {
     if (window.lucide && typeof window.lucide.createIcons === "function") {
@@ -75,14 +24,57 @@
     });
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
-    initTheme();
-    initThemeToggle();
-    initIcons();
+  /* Brand-colour swatches: `<span data-swatch="#4F46E5">`.  The colour is applied
+   * through the CSSOM, which the CSP allows (an inline style="" attribute is not). */
+  function initSwatches(root) {
+    (root || document).querySelectorAll("[data-swatch]").forEach(function (node) {
+      var colour = node.getAttribute("data-swatch");
+      if (/^#[0-9A-Fa-f]{6}$/.test(colour)) {
+        node.style.backgroundColor = colour;
+      }
+    });
+  }
+
+  /* Location picker: send the visible text box's value as `q`.  The box has no
+   * `name`, so it never pollutes a surrounding form's submission. */
+  document.addEventListener("htmx:configRequest", function (event) {
+    var source = event.detail.elt;
+    if (source && source.hasAttribute && source.hasAttribute("data-picker-input")) {
+      event.detail.parameters["q"] = source.value;
+    }
   });
 
-  // Re-render icons after HTMX swaps content in.
-  document.body && document.body.addEventListener("htmx:afterSwap", initIcons);
+  /* HTMX failures must never leave a silent, half-updated page: reveal the
+   * nearest `[data-htmx-error]` region (an aria-live alert) for the request. */
+  function errorRegionFor(source) {
+    var scope = source && source.closest ? source.closest("[data-htmx-scope]") : null;
+    return (scope || document).querySelector("[data-htmx-error]");
+  }
+  ["htmx:responseError", "htmx:sendError", "htmx:timeout"].forEach(function (name) {
+    document.addEventListener(name, function (event) {
+      var region = errorRegionFor(event.detail && event.detail.elt);
+      if (region) {
+        region.hidden = false;
+      }
+    });
+  });
+  document.addEventListener("htmx:beforeRequest", function (event) {
+    var region = errorRegionFor(event.detail && event.detail.elt);
+    if (region) {
+      region.hidden = true;
+    }
+  });
+
+  document.addEventListener("DOMContentLoaded", function () {
+    initIcons();
+    initSwatches();
+  });
+
+  // Re-render icons and swatches after HTMX swaps content in.
+  document.addEventListener("htmx:afterSwap", function (event) {
+    initIcons();
+    initSwatches(event.target);
+  });
 
   initServiceWorker();
 })();

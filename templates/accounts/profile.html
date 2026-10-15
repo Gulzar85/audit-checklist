@@ -12,42 +12,72 @@
   </nav>
 
   <div class="card">
-    <div class="card-body flex items-center gap-4">
+    <div class="card-body flex flex-wrap items-center gap-4">
       {% if user.avatar %}
         <img src="{{ user.avatar.url }}" alt="" class="h-16 w-16 rounded-full object-cover">
       {% else %}
-        <span class="flex h-16 w-16 items-center justify-center rounded-full bg-brand-600 text-xl font-semibold text-white">
+        <span class="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-xl font-semibold text-primary-foreground">
           {{ user.initials }}
         </span>
       {% endif %}
-      <div>
-        <h1 class="text-xl font-semibold text-slate-900 dark:text-white">{{ user.get_full_name|default:user.email }}</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400">{{ user.email }}</p>
-        {% if user.job_title %}<p class="text-sm text-slate-500 dark:text-slate-400">{{ user.job_title }}</p>{% endif %}
+      <div class="min-w-0">
+        <h1 class="text-xl font-semibold text-foreground">{{ user.get_full_name|default:user.email }}</h1>
+        <p class="text-sm text-muted-foreground">{{ user.email }}</p>
+        {% if user.job_title %}<p class="text-sm text-muted-foreground">{{ user.job_title }}</p>{% endif %}
+      </div>
+      <div class="ml-auto flex items-center gap-2">
+        {% include "components/status_badge.html" with label=user.get_status_display tone=user.status %}
+        <a href="{% url 'accounts:profile_edit' %}" class="btn btn-secondary btn-sm">
+          <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i> Edit
+        </a>
       </div>
     </div>
   </div>
 
   <div class="card mt-6">
-    <div class="card-header"><h2 class="card-title">Organizations</h2></div>
+    <div class="card-header"><h2 class="card-title">Account</h2></div>
+    <dl class="card-body grid gap-4 sm:grid-cols-2">
+      <div>
+        <dt class="text-sm text-muted-foreground">Authentication provider</dt>
+        <dd class="mt-1 font-medium">{{ auth_provider }}</dd>
+      </div>
+      <div>
+        <dt class="text-sm text-muted-foreground">Last sign-in</dt>
+        <dd class="mt-1 font-medium">{{ user.last_login|default:"Never" }}</dd>
+      </div>
+      <div>
+        <dt class="text-sm text-muted-foreground">Appearance</dt>
+        <dd class="mt-1 font-medium">{{ appearance_mode|default:"System" }}</dd>
+      </div>
+      <div>
+        <dt class="text-sm text-muted-foreground">Member since</dt>
+        <dd class="mt-1 font-medium">{{ user.date_joined|date:"DATE_FORMAT" }}</dd>
+      </div>
+    </dl>
+  </div>
+
+  <div class="card mt-6">
+    <div class="card-header">
+      <h2 class="card-title">Organizations</h2>
+      <a href="{% url 'accounts:preferences' %}" class="text-link text-sm">Preferences</a>
+    </div>
     <div class="card-body">
       {% if memberships %}
         <ul class="space-y-2">
           {% for membership in memberships %}
-            <li class="flex items-center justify-between">
-              <span class="text-slate-700 dark:text-slate-200">{{ membership.organization.name }}</span>
-              {% if membership.is_active %}
-                <span class="badge badge-success">active</span>
-              {% else %}
-                <span class="badge badge-neutral">inactive</span>
-              {% endif %}
+            <li class="flex items-center justify-between gap-4">
+              <span class="text-foreground">{{ membership.organization.name }}</span>
+              <span class="flex items-center gap-2">
+                {% if membership.is_default %}<span class="badge badge-info">default</span>{% endif %}
+                {% include "components/active_badge.html" with is_active=membership.is_active %}
+              </span>
             </li>
           {% endfor %}
         </ul>
       {% else %}
         <div class="empty-state">
-          <i data-lucide="building-2" class="h-8 w-8 text-slate-400" aria-hidden="true"></i>
-          <p class="text-slate-500 dark:text-slate-400">No organization memberships yet.</p>
+          <i data-lucide="building-2" class="h-8 w-8 text-muted-foreground" aria-hidden="true"></i>
+          <p class="text-muted-foreground">No organization memberships yet.</p>
         </div>
       {% endif %}
     </div>

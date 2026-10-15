@@ -16,9 +16,18 @@ from django.views.generic import TemplateView
 
 
 class HomeView(TemplateView):
-    """Public landing page / application shell."""
+    """The site root: dashboard when signed in, the sign-in page otherwise."""
 
     template_name = "core/home.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            # Render (and process) the sign-in page at the site root so a
+            # signed-out visitor's default page is the standalone login screen.
+            from apps.accounts.views import LoginView
+
+            return LoginView.as_view()(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

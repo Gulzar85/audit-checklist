@@ -5,14 +5,14 @@
     {% else %}
       <span class="badge badge-danger"><i data-lucide="circle-x" class="h-3.5 w-3.5" aria-hidden="true"></i> Degraded</span>
     {% endif %}
-    <span class="text-sm text-slate-500 dark:text-slate-400">v{{ health.version }}</span>
+    <span class="text-sm text-muted-foreground">v{{ health.version }}</span>
   </div>
   <span class="badge badge-neutral">{{ health.environment }}</span>
 </div>
 <dl class="mt-4 space-y-2 text-sm">
   {% for name, check in health.checks.items %}
     <div class="flex items-center justify-between">
-      <dt class="text-slate-600 dark:text-slate-300">{{ name|capfirst }}</dt>
+      <dt class="text-muted-foreground">{{ name|capfirst }}</dt>
       <dd>
         {% if check.status == "ok" %}
           <span class="badge badge-success">ok</span>

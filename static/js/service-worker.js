@@ -19,12 +19,14 @@
  */
 "use strict";
 
-const CACHE_VERSION = "cp-static-v2";
+const CACHE_VERSION = "cp-static-v4";
 const OFFLINE_URL = "/offline/";
+const THEME_STYLESHEET = "/themes/tokens.css";
 const PRECACHE_URLS = [
   OFFLINE_URL,
   "/static/css/app.css",
   "/static/js/app.js",
+  "/static/js/components.js",
   "/static/vendor/htmx.min.js",
   "/static/vendor/alpine.min.js",
   "/static/vendor/lucide.min.js",
@@ -93,7 +95,10 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (url.pathname.startsWith("/static/")) {
+  // The theme stylesheet is part of the app shell: network-first (a theme change shows at once),
+  // with the last copy as the offline fallback.  The URL carries a content hash (?v=...), so a
+  // cached page and its cached theme always match and the offline shell never looks inconsistent.
+  if (url.pathname.startsWith("/static/") || url.pathname === THEME_STYLESHEET) {
     event.respondWith(networkFirstAsset(request));
   }
 });

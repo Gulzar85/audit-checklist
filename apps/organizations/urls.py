@@ -1,10 +1,11 @@
-"""Organization URL configuration."""
+"""Organization URL configuration.  Public identifiers are UUIDs, never names."""
 
 from __future__ import annotations
 
 from django.urls import path
 
 from .views import (
+    OrganizationBrandingView,
     OrganizationCreateView,
     OrganizationDetailView,
     OrganizationListView,
@@ -19,5 +20,6 @@ urlpatterns = [
     path("create/", OrganizationCreateView.as_view(), name="create"),
     path("<uuid:pk>/", OrganizationDetailView.as_view(), name="detail"),
     path("<uuid:pk>/edit/", OrganizationUpdateView.as_view(), name="update"),
+    path("<uuid:pk>/branding/", OrganizationBrandingView.as_view(), name="branding"),
     path("<uuid:pk>/status/", OrganizationStatusView.as_view(), name="status"),
 ]

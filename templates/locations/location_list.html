@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load django_tables2 %}
+
+{% block title %}Locations · {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<nav class="breadcrumbs mb-4" aria-label="Breadcrumbs">
+  <ol>
+    <li><a href="{% url 'core:home' %}">Home</a></li>
+    <li aria-current="page">Locations</li>
+  </ol>
+</nav>
+
+<div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+  <div class="flex items-center gap-3">
+    <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+      <i data-lucide="map-pin" class="h-5 w-5" aria-hidden="true"></i>
+    </span>
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Locations</h1>
+      <p class="text-sm text-muted-foreground">Searchable list of every location you can access.</p>
+    </div>
+  </div>
+  <div class="flex flex-wrap items-center gap-2">
+    <a href="{% url 'locations:tree' %}" class="btn btn-secondary">
+      <i data-lucide="network" class="h-4 w-4" aria-hidden="true"></i> Tree view
+    </a>
+    <a href="{% url 'locations:type_list' %}" class="btn btn-secondary">
+      <i data-lucide="tags" class="h-4 w-4" aria-hidden="true"></i> Location types
+    </a>
+    {% if can_create %}
+      <a href="{% url 'locations:create' %}" class="btn btn-primary">
+        <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i> New location
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card mb-6">
+  {% include "components/filter_bar.html" with filter=filter reset_url=request.path hidden=hidden_filters %}
+</div>
+
+<div class="card">
+  {% if table.rows %}
+    {% render_table table %}
+  {% else %}
+    {% include "components/empty_state.html" with icon="map-pin" title="No locations found" message="Nothing matches the current filters. Clear them, or add a location." %}
+  {% endif %}
+</div>
+{% endblock %}

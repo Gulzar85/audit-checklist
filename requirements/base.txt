@@ -20,12 +20,16 @@ django-import-export>=4.3
 django-guardian>=2.4
 django-simple-history>=3.7
 
+# Microsoft Entra ID authentication (OpenID Connect authorization-code flow).
+# MSAL builds the request and validates the ID token; we never store tokens.
+msal>=1.31,<2
+
 # Forms
 django-crispy-forms>=2.3
 crispy-tailwind>=1.0
 
 # Admin theme
-django-jazzmin>=3.0
+django-jazzmin>=3.0.5,<3.1   # pinned: admin CSP hashes track its inline scripts (see ADR 0020)
 
 # Imaging (avatars, evidence thumbnails in later phases)
 Pillow>=11.0

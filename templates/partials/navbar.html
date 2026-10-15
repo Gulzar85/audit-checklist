@@ -1,53 +1,69 @@
-<header class="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
+<header class="app-nav sticky top-0 z-30 backdrop-blur"
+        x-data="disclosure" @keydown.escape="close">
   <div class="container-page flex h-16 items-center justify-between gap-4">
-    <a href="{% url 'core:home' %}" class="flex items-center gap-2 font-semibold text-slate-900 dark:text-white">
-      <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
+    <a href="{% url 'core:home' %}" class="nav-brand">
+      <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
         <i data-lucide="clipboard-check" class="h-5 w-5" aria-hidden="true"></i>
       </span>
       <span class="hidden sm:inline">{{ APP_NAME }}</span>
     </a>
 
-    <nav class="hidden items-center gap-1 md:flex" aria-label="Primary">
-      <a class="nav-link" href="{% url 'core:home' %}">
-        <i data-lucide="home" class="h-4 w-4" aria-hidden="true"></i> Home
-      </a>
-      {% if user.is_authenticated %}
-        <a class="nav-link" href="{% url 'organizations:list' %}">
-          <i data-lucide="building-2" class="h-4 w-4" aria-hidden="true"></i> Organizations
-        </a>
-        <a class="nav-link" href="{% url 'locations:tree' %}">
-          <i data-lucide="network" class="h-4 w-4" aria-hidden="true"></i> Locations
-        </a>
-      {% endif %}
-      <a class="nav-link" href="/api/v1/" target="_blank" rel="noopener">
-        <i data-lucide="braces" class="h-4 w-4" aria-hidden="true"></i> API
-      </a>
-      <a class="nav-link" href="/api/docs/" target="_blank" rel="noopener">
-        <i data-lucide="book-open" class="h-4 w-4" aria-hidden="true"></i> Docs
-      </a>
-      <a class="nav-link" href="/admin/">
-        <i data-lucide="shield" class="h-4 w-4" aria-hidden="true"></i> Admin
-      </a>
-      {% if user.is_authenticated %}
-        <a class="nav-link" href="{% url 'accounts:profile' %}">
-          <i data-lucide="circle-user" class="h-4 w-4" aria-hidden="true"></i> Profile
-        </a>
-      {% endif %}
+    <nav class="hidden items-center gap-1 lg:flex" aria-label="Primary">
+      {% include "partials/nav_links.html" %}
     </nav>
 
     <div class="flex items-center gap-2">
-      <button type="button" data-theme-toggle class="btn btn-ghost btn-icon" aria-label="Toggle colour theme">
-        <i data-lucide="sun-moon" class="h-5 w-5" aria-hidden="true"></i>
-      </button>
+      {% if user.is_authenticated and current_organization %}
+        <a href="{% url 'orgcontext:select' %}" class="btn btn-ghost btn-sm hidden sm:inline-flex"
+           title="You are working in {{ current_organization.name }}">
+          <i data-lucide="building-2" class="h-4 w-4" aria-hidden="true"></i>
+          <span class="hidden md:inline max-w-40 truncate">{{ current_organization.name }}</span>
+          <span class="sr-only">Switch organization</span>
+        </a>
+      {% endif %}
+      {% include "themes/_appearance_menu.html" %}
       {% if user.is_authenticated %}
-        <span class="hidden text-sm text-slate-600 sm:inline dark:text-slate-300">{{ user.get_short_name }}</span>
-        <form method="post" action="{% url 'accounts:logout' %}" class="inline">
+        <span class="hidden text-sm sm:inline">{{ user.get_short_name }}</span>
+        <a href="{% url 'accounts:profile' %}" class="btn btn-ghost btn-sm hidden sm:inline-flex">
+          <i data-lucide="user-round" class="h-4 w-4" aria-hidden="true"></i>
+          <span class="sr-only">Profile</span>
+        </a>
+        <form method="post" action="{% url 'accounts:logout' %}" class="hidden sm:inline">
           {% csrf_token %}
           <button type="submit" class="btn btn-secondary btn-sm">Sign out</button>
         </form>
       {% else %}
         <a href="{% url 'accounts:login' %}" class="btn btn-primary btn-sm">Sign in</a>
       {% endif %}
+      <button type="button" class="btn btn-ghost btn-icon text-sidebar-foreground lg:hidden" @click="toggle"
+              :aria-expanded="open" aria-controls="mobile-nav" aria-label="Open navigation menu">
+        <i data-lucide="menu" class="h-5 w-5" aria-hidden="true"></i>
+      </button>
     </div>
   </div>
+
+  {# Mobile navigation: the same links, stacked. Hidden from lg upwards. #}
+  <nav id="mobile-nav" class="border-t border-sidebar-border lg:hidden" aria-label="Primary (mobile)"
+       x-show="open" x-cloak>
+    <div class="container-page flex flex-col gap-1 py-3">
+      {% include "partials/nav_links.html" %}
+      {% if user.is_authenticated and current_organization %}
+        <a href="{% url 'orgcontext:select' %}" class="btn btn-ghost btn-sm w-full justify-start">
+          <i data-lucide="building-2" class="h-4 w-4" aria-hidden="true"></i>
+          <span class="max-w-48 truncate">{{ current_organization.name }}</span>
+          <span class="sr-only">Switch organization</span>
+        </a>
+        <a href="{% url 'accounts:profile' %}" class="btn btn-ghost btn-sm w-full justify-start">
+          <i data-lucide="user-round" class="h-4 w-4" aria-hidden="true"></i>
+          Profile
+        </a>
+      {% endif %}
+      {% if user.is_authenticated %}
+        <form method="post" action="{% url 'accounts:logout' %}" class="mt-2 sm:hidden">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-secondary btn-sm w-full">Sign out</button>
+        </form>
+      {% endif %}
+    </div>
+  </nav>
 </header>

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Switch organization &middot; {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-2xl">
+  <nav class="breadcrumbs mb-4" aria-label="Breadcrumb">
+    <ol class="flex items-center">
+      <li><a href="{% url 'core:home' %}">Home</a></li>
+      <li aria-current="page">Switch organization</li>
+    </ol>
+  </nav>
+
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold tracking-tight">Switch organization</h1>
+    <p class="text-sm text-muted-foreground">Choose which organization you want to work in.</p>
+  </div>
+
+  <div class="card">
+    <ul class="divide-y">
+      {% for organization in organizations %}
+        <li class="flex items-center justify-between gap-4 p-4">
+          <div class="min-w-0">
+            <p class="font-medium text-foreground">{{ organization.name }}</p>
+            <p class="text-sm text-muted-foreground">Code <span class="font-mono">{{ organization.code }}</span></p>
+          </div>
+          {% if current_organization and organization.pk == current_organization.pk %}
+            <span class="badge badge-success"><i data-lucide="circle-check" class="h-3.5 w-3.5" aria-hidden="true"></i>Current</span>
+          {% else %}
+            <form method="post" action="{% url 'orgcontext:switch' %}">
+              {% csrf_token %}
+              <input type="hidden" name="organization" value="{{ organization.pk }}">
+              <input type="hidden" name="next" value="{{ request.GET.next|default:'' }}">
+              <button type="submit" class="btn btn-secondary btn-sm">Switch</button>
+            </form>
+          {% endif %}
+        </li>
+      {% empty %}
+        <li class="empty-state">
+          <i data-lucide="building-2" class="h-8 w-8 text-muted-foreground" aria-hidden="true"></i>
+          <p class="text-muted-foreground">You don&rsquo;t have access to any organization yet.</p>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %}

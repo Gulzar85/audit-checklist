@@ -1,0 +1,13 @@
+{# Display hint only (Django perms); the views re-authorise through policies. #}
+{% if perms.locations.change_locationtype %}
+  <div class="flex justify-end gap-1">
+    <a href="{% url 'locations:type_update' record.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+    <form method="post" action="{% url 'locations:type_status' record.pk %}" class="inline">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="{% if record.is_active %}deactivate{% else %}activate{% endif %}">
+      <button type="submit" class="btn btn-ghost btn-sm">
+        {% if record.is_active %}Deactivate<span class="sr-only"> {{ record.name }}</span>{% else %}Activate<span class="sr-only"> {{ record.name }}</span>{% endif %}
+      </button>
+    </form>
+  </div>
+{% endif %}

@@ -32,6 +32,7 @@ def test_all_local_apps_are_installed():
         "apps.core",
         "apps.organizations",
         "apps.locations",
+        "apps.themes",
         "apps.accounts",
         "apps.permissions",
         "apps.checklists",

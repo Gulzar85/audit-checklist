@@ -1,0 +1,33 @@
+<a class="nav-link" href="{% url 'core:home' %}">
+  <i data-lucide="home" class="h-4 w-4" aria-hidden="true"></i> Home
+</a>
+{% if user.is_authenticated %}
+  <a class="nav-link" href="{% url 'organizations:list' %}">
+    <i data-lucide="building-2" class="h-4 w-4" aria-hidden="true"></i> Organizations
+  </a>
+  <a class="nav-link" href="{% url 'locations:tree' %}">
+    <i data-lucide="network" class="h-4 w-4" aria-hidden="true"></i> Locations
+  </a>
+  <a class="nav-link" href="{% url 'locations:type_list' %}">
+    <i data-lucide="tags" class="h-4 w-4" aria-hidden="true"></i> Location types
+  </a>
+  <a class="nav-link" href="{% url 'themes:list' %}">
+    <i data-lucide="palette" class="h-4 w-4" aria-hidden="true"></i> Themes
+  </a>
+{% endif %}
+<a class="nav-link" href="/api/v1/" target="_blank" rel="noopener">
+  <i data-lucide="braces" class="h-4 w-4" aria-hidden="true"></i> API
+</a>
+<a class="nav-link" href="/api/docs/" target="_blank" rel="noopener">
+  <i data-lucide="book-open" class="h-4 w-4" aria-hidden="true"></i> Docs
+</a>
+{% if user.is_staff %}
+  <a class="nav-link" href="/admin/">
+    <i data-lucide="shield" class="h-4 w-4" aria-hidden="true"></i> Admin
+  </a>
+{% endif %}
+{% if user.is_authenticated %}
+  <a class="nav-link" href="{% url 'accounts:profile' %}">
+    <i data-lucide="circle-user" class="h-4 w-4" aria-hidden="true"></i> Profile
+  </a>
+{% endif %}

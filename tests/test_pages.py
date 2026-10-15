@@ -7,13 +7,37 @@ from django.urls import reverse
 
 
 @pytest.mark.django_db
-def test_home_page_renders(client):
+def test_home_page_renders_for_anonymous(client):
+    response = client.get(reverse("core:home"))
+    assert response.status_code == 200
+    body = response.content.decode()
+    assert "Sign in" in body
+    assert "manifest.webmanifest" in body
+    assert "system health" not in body.lower()
+    # The default page is a standalone login screen: no navigation menu.
+    assert 'id="mobile-nav"' not in body
+    assert 'aria-label="Primary"' not in body
+
+
+@pytest.mark.django_db
+def test_home_page_renders_for_authenticated_user(client, user):
+    client.force_login(user)
     response = client.get(reverse("core:home"))
     assert response.status_code == 200
     body = response.content.decode()
     assert "Checklist" in body
     assert "manifest.webmanifest" in body
     assert "system health" in body.lower()
+    # Signed in: the full navigation menu is shown.
+    assert 'id="mobile-nav"' in body or 'aria-label="Primary"' in body
+
+
+@pytest.mark.django_db
+def test_logout_returns_to_the_login_page(client, user):
+    client.force_login(user)
+    response = client.post(reverse("accounts:logout"))
+    assert response.status_code == 302
+    assert response["Location"] == reverse("accounts:login")
 
 
 @pytest.mark.django_db

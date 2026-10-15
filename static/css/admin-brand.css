@@ -1,0 +1,92 @@
+/* Checklist Platform - admin branding.
+ *
+ * The admin runs on AdminLTE 4 / Bootstrap 5.3, which is themed with CSS variables.
+ * This file maps the platform's indigo brand (see tailwind/input.css, --color-brand-*)
+ * onto them so the admin and the application share one identity, in light and dark.
+ * No external fonts or assets are referenced.
+ */
+
+:root {
+  --cp-brand-50: #eef2ff;
+  --cp-brand-500: #6366f1;
+  --cp-brand-600: #4f46e5;
+  --cp-brand-700: #4338ca;
+  --cp-brand-800: #3730a3;
+
+  --bs-primary: var(--cp-brand-600);
+  --bs-primary-rgb: 79, 70, 229;
+  --bs-link-color: var(--cp-brand-600);
+  --bs-link-color-rgb: 79, 70, 229;
+  --bs-link-hover-color: var(--cp-brand-700);
+  --bs-link-hover-color-rgb: 67, 56, 202;
+  --bs-focus-ring-color: rgba(79, 70, 229, 0.3);
+
+  /* Same stack as the application shell (self-hosted/system fonts only). */
+  --bs-font-sans-serif: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+}
+
+[data-bs-theme="dark"] {
+  --bs-primary: #818cf8;
+  --bs-primary-rgb: 129, 140, 248;
+  --bs-link-color: #a5b4fc;
+  --bs-link-color-rgb: 165, 180, 252;
+  --bs-link-hover-color: #c7d2fe;
+  --bs-link-hover-color-rgb: 199, 210, 254;
+  --bs-focus-ring-color: rgba(129, 140, 248, 0.35);
+}
+
+/* Primary buttons. */
+.btn-primary {
+  --bs-btn-bg: var(--cp-brand-600);
+  --bs-btn-border-color: var(--cp-brand-600);
+  --bs-btn-hover-bg: var(--cp-brand-700);
+  --bs-btn-hover-border-color: var(--cp-brand-700);
+  --bs-btn-active-bg: var(--cp-brand-800);
+  --bs-btn-active-border-color: var(--cp-brand-800);
+  --bs-btn-disabled-bg: var(--cp-brand-600);
+  --bs-btn-disabled-border-color: var(--cp-brand-600);
+}
+
+/* Active sidebar entry and pagination use the brand colour. */
+.app-sidebar .sidebar-menu .nav-link.active {
+  background-color: var(--cp-brand-600);
+  color: #fff;
+}
+.page-link.active,
+.active > .page-link {
+  background-color: var(--cp-brand-600);
+  border-color: var(--cp-brand-600);
+}
+
+/* Visible keyboard focus everywhere. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--cp-brand-500);
+  outline-offset: 2px;
+}
+
+/* Sidebar brand: keep the square logo crisp and aligned with the text. */
+.sidebar-brand .brand-image {
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
+}
+
+/* Preview thumbnails in organization branding fields. */
+.field-logo_preview img,
+.field-favicon_preview img {
+  background: #fff;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  padding: 0.25rem;
+}
+
+/* Read-only status values in the change forms read like badges, not plain text. */
+.field-status .readonly {
+  font-weight: 600;
+  text-transform: capitalize;
+}

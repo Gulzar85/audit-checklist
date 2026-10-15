@@ -1,0 +1,17 @@
+{# The content of one tree row. Uses: node, location. #}
+<div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 {% if not node.matched %}opacity-70{% endif %}">
+  <a href="{% url 'locations:detail' location.pk %}" class="font-medium text-foreground hover:underline">{{ location.name }}</a>
+  <span class="font-mono text-xs text-muted-foreground">{{ location.code }}</span>
+  <span class="badge badge-info">{{ location.location_type.name }}</span>
+  {% include "components/active_badge.html" with is_active=location.is_active %}
+  {% if node.children %}
+    <span class="text-xs text-muted-foreground">{{ node.child_count }} child{{ node.child_count|pluralize:"ren" }}</span>
+  {% endif %}
+  {% if not node.matched %}<span class="sr-only">(shown for context)</span>{% endif %}
+  {% if show_organization %}<span class="text-xs text-muted-foreground">· {{ location.organization.name }}</span>{% endif %}
+</div>
+{% if perms.locations.add_location %}
+  <a href="{% url 'locations:create' %}?parent={{ location.pk }}" class="btn btn-ghost btn-sm shrink-0" title="Add a child location">
+    <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i><span class="sr-only">Add child of {{ location.name }}</span>
+  </a>
+{% endif %}

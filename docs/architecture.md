@@ -3,6 +3,10 @@
 This document describes the layering, boundaries and conventions established in
 Phase 0. Later phases add business modules without changing these foundations.
 
+> **Phase 1** (organizations and the location hierarchy) builds on this and adds
+> `policies.py` per domain, `PolicyMixin`, scoped selectors and a PostgreSQL integrity
+> layer. See [`architecture/`](architecture/) and ADRs 0009-0019.
+
 ## Guiding principles
 
 1. **Modular monolith.** One deployable Django project, split into apps with
@@ -32,9 +36,10 @@ HTTP →  │ views / API views (CBV, APIView)                  │
 ```
 
 - **Models** describe persistence and domain invariants only.
-- **Selectors** are read-only query helpers (e.g.
-  `active_role_slugs_for_user`).
-- **Services** perform writes/orchestration (e.g. notifications).
+- **Selectors** are read-only query helpers (e.g. `organizations_visible_to`,
+  `get_descendants`); tenant-owned selectors all build on the visibility selector.
+- **Policies** (`policies.py`) answer "may this user do this?" for every channel.
+- **Services** perform writes/orchestration (validated, locked, logged).
 - **Authorization** is asked via `apps.permissions.authorization`; views and
   templates must not inspect roles directly.
 
@@ -55,8 +60,8 @@ HTTP →  │ views / API views (CBV, APIView)                  │
 | App                  | Responsibility                                                    |
 | -------------------- | ----------------------------------------------------------------- |
 | `core`               | Abstract base models, `ActivityLog`, health, PWA/shell views, tasks |
-| `organizations`      | Tenant root and user↔organization membership                      |
-| `locations`          | Self-referencing location tree and location types                 |
+| `organizations`      | Tenant root (lifecycle, branding, settings) and user↔organization membership |
+| `locations`          | Self-referencing location tree and location types, hierarchy selectors/services |
 | `accounts`           | Custom `User` (email login, `entra_object_id`), auth views, admin  |
 | `permissions`        | `Role` / `RoleScope` / `UserRole`, selectors, authorization        |
 | `notifications`      | Provider-agnostic notification service + providers                |

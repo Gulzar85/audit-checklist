@@ -1,0 +1,21 @@
+{# Search results for the location picker (HTMX fragment). #}
+{% if needs_organization %}
+  <li role="presentation" class="px-3 py-2 text-sm text-muted-foreground">Choose an organization first.</li>
+{% else %}
+  {% for location in results %}
+    <li role="option" aria-selected="false" tabindex="-1"
+        data-value="{{ location.pk }}" data-label="{{ location.name }} [{{ location.code }}]"
+        class="cursor-pointer px-3 py-2 text-sm hover:bg-muted aria-selected:bg-primary/10">
+      <span class="font-medium">{{ location.name }}</span>
+      <span class="font-mono text-xs text-muted-foreground">{{ location.code }}</span>
+      <span class="block text-xs text-muted-foreground">
+        {{ location.location_type.name }}{% if show_organization %} · {{ location.organization.name }}{% endif %}{% if not location.is_active %} · inactive{% endif %}
+      </span>
+    </li>
+  {% empty %}
+    <li role="presentation" class="px-3 py-2 text-sm text-muted-foreground">No matching locations.</li>
+  {% endfor %}
+  {% if truncated %}
+    <li role="presentation" class="px-3 py-2 text-xs text-muted-foreground">Showing the first results — keep typing to narrow down.</li>
+  {% endif %}
+{% endif %}

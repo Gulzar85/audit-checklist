@@ -1,0 +1,20 @@
+{% comment %}
+Renders a SectionedFormMixin form: titled fieldsets with a two-column grid.
+Params: form. Text areas and the picker span both columns.
+{% endcomment %}
+{% load crispy_forms_tags %}
+{% include "tailwind/errors.html" %}
+{% for section in form.get_sections %}
+  <fieldset class="{% if not forloop.first %}mt-8 border-t border-border pt-6{% endif %}">
+    {% if section.title %}
+      <legend class="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">{{ section.title }}</legend>
+    {% endif %}
+    <div class="grid gap-x-6 sm:grid-cols-2">
+      {% for field in section.fields %}
+        <div class="{% if field.widget_type == 'textarea' %}sm:col-span-2{% endif %}">
+          {{ field|as_crispy_field }}
+        </div>
+      {% endfor %}
+    </div>
+  </fieldset>
+{% endfor %}

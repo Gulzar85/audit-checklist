@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% if object %}Edit {{ form.initial.name|default:object.name }}{% else %}New location{% endif %} · {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<nav class="breadcrumbs mb-4" aria-label="Breadcrumbs">
+  <ol>
+    <li><a href="{% url 'core:home' %}">Home</a></li>
+    <li><a href="{% url 'locations:tree' %}">Locations</a></li>
+    {% if object %}
+      <li><a href="{% url 'locations:detail' object.pk %}">{{ form.initial.name|default:object.name }}</a></li>
+      <li aria-current="page">Edit</li>
+    {% else %}
+      <li aria-current="page">New location</li>
+    {% endif %}
+  </ol>
+</nav>
+
+<div class="mx-auto max-w-4xl">
+  <div class="card">
+    <div class="card-header">
+      <h1 class="card-title">{% if object %}Edit location{% else %}Create location{% endif %}</h1>
+      <i data-lucide="map-pin" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
+    </div>
+    <form method="post" novalidate data-htmx-scope>
+      <div class="card-body">
+        {% csrf_token %}
+        {% include "tailwind/errors.html" %}
+
+        <div data-htmx-error hidden class="alert alert-danger mb-4" role="alert">
+          <i data-lucide="circle-alert" class="h-5 w-5 shrink-0" aria-hidden="true"></i>
+          <span>The type and parent options could not be refreshed. Reload the page and try again.</span>
+        </div>
+
+        <fieldset>
+          <legend class="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Basics</legend>
+          <div class="grid gap-x-6 sm:grid-cols-2">
+            <div class="sm:col-span-2">{{ form.organization|as_crispy_field }}</div>
+            {# Re-scoped over HTMX when the organization changes; see LocationRelationsView. #}
+            <div id="relations" class="grid gap-x-6 sm:col-span-2 sm:grid-cols-2" aria-live="polite">
+              {% include "locations/_relations_fields.html" %}
+            </div>
+            <div>{{ form.name|as_crispy_field }}</div>
+            <div>{{ form.code|as_crispy_field }}</div>
+            <div class="sm:col-span-2">{{ form.description|as_crispy_field }}</div>
+          </div>
+        </fieldset>
+
+        <fieldset class="mt-8 border-t border-border pt-6">
+          <legend class="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Address</legend>
+          <div class="grid gap-x-6 sm:grid-cols-2">
+            {% for field in form %}
+              {% if field.name in address_fields %}
+                <div>{{ field|as_crispy_field }}</div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </fieldset>
+      </div>
+      <div class="card-footer flex flex-wrap gap-3">
+        <button type="submit" class="btn btn-primary">
+          <i data-lucide="save" class="h-4 w-4" aria-hidden="true"></i> Save
+        </button>
+        <a href="{% if object %}{% url 'locations:detail' object.pk %}{% else %}{% url 'locations:tree' %}{% endif %}" class="btn btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

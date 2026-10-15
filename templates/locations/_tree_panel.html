@@ -1,0 +1,43 @@
+{% comment %}
+The swappable part of the tree page (also returned alone for HTMX requests).
+
+The hierarchy is rendered from a *flat* list (`rows`) - not by recursive includes,
+which would fail at a few hundred levels.  Each row first closes the containers its
+`closers` say are finished, then opens its own.  Expand/collapse is native
+<details>, so it works with the keyboard and screen readers without script.
+The first two levels start open; a filtered tree opens fully.
+{% endcomment %}
+<div class="card-body">
+  {% if rows %}
+    <ul class="space-y-1" aria-label="Location hierarchy">
+      {% for row in rows %}
+        {% for closer in row.closers %}</ul></details></li>{% endfor %}
+        {% with node=row.node location=row.node.location %}
+          {% if row.is_parent %}
+            <li><details class="group" {% if is_filtered or row.depth < 2 %}open{% endif %}>
+              <summary class="tree-row cursor-pointer">
+                <i data-lucide="chevron-right" class="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" aria-hidden="true"></i>
+                {% include "locations/_tree_row.html" %}
+              </summary>
+              <ul class="ml-3 space-y-1 border-l border-border pl-4">
+          {% else %}
+            <li><div class="tree-row">
+              <span class="inline-block h-4 w-4 shrink-0" aria-hidden="true"></span>
+              {% include "locations/_tree_row.html" %}
+            </div></li>
+          {% endif %}
+        {% endwith %}
+      {% endfor %}
+      {% for closer in trailing_closers %}</ul></details></li>{% endfor %}
+    </ul>
+  {% elif is_filtered %}
+    {% include "components/empty_state.html" with icon="search-x" title="No locations match" message="Try a different search, or clear the filters." %}
+  {% else %}
+    {% if can_create %}
+      {% url 'locations:create' as create_url %}
+      {% include "components/empty_state.html" with icon="network" title="No locations yet" message="Add a top-level location to start building your hierarchy." action_url=create_url action_label="Add location" %}
+    {% else %}
+      {% include "components/empty_state.html" with icon="network" title="No locations yet" message="There are no locations in the organizations you can access." %}
+    {% endif %}
+  {% endif %}
+</div>

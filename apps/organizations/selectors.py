@@ -1,12 +1,18 @@
-"""Read-only query helpers for organizations."""
+"""Read-only query helpers for organizations.
+
+``organizations_visible_to`` is the single source of truth for organization-level
+read scoping.  Location, location-type and (later) every other tenant-owned
+selector builds on it, and the HTML views and the API both start from it - so
+there is no separate "API security model".
+"""
 
 from __future__ import annotations
 
 from typing import Any
 
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 
-from apps.core.policies import is_platform_staff
+from apps.core.policies import is_active_user, is_platform_staff
 
 from .models import Organization, OrganizationMembership
 
@@ -14,48 +20,19 @@ from .models import Organization, OrganizationMembership
 def organizations_visible_to(user: Any) -> QuerySet[Organization]:
     """Return every organization ``user`` may see.
 
-    Platform staff see all organizations; everyone else sees only the
-    organizations they are an active member of.  Anonymous/inactive users see
-    nothing.  This is the single source of truth for organization-level read
-    scoping (web and API both use it).
+    * Anonymous / inactive users see nothing.
+    * Platform staff see every organization, whatever its state.
+    * Everyone else sees only organizations they are an *active member* of **and**
+      that are themselves ``active``.  A member of an inactive or suspended
+      organization therefore gets "not found" for everything inside it: that is
+      how "inactive organizations cannot perform normal operations" is enforced
+      uniformly across the UI and the API (ADR 0011).
     """
-    queryset = Organization.objects.all()
+    if not is_active_user(user):
+        return Organization.objects.none()
     if is_platform_staff(user):
-        return queryset
-    if not getattr(user, "is_authenticated", False) or not getattr(user, "is_active", False):
-        return queryset.none()
-    return queryset.filter(
-        memberships__user=user,
-        memberships__is_active=True,
-    ).distinct()
-
-
-def active_organizations() -> QuerySet[Organization]:
-    """All organizations in the active lifecycle state."""
-    return Organization.objects.active()
-
-
-def organizations_for_user(user: Any) -> QuerySet[Organization]:
-    """Active organizations visible to ``user`` (convenience for pickers)."""
-    return organizations_visible_to(user).filter(status=Organization.Status.ACTIVE)
-
-
-def memberships_for_user(user: Any) -> QuerySet[OrganizationMembership]:
-    """Active memberships for a user, with the organization joined."""
-    return (
-        OrganizationMembership.objects.filter(user=user, is_active=True)
-        .select_related("organization")
-        .order_by("organization__name")
+        return Organization.objects.all()
+    member_of = OrganizationMembership.objects.filter(user=user, is_active=True).values(
+        "organization_id"
     )
-
-
-def search_organizations(user: Any, *, term: str = "") -> QuerySet[Organization]:
-    """Visible organizations filtered by a free-text term (name/code/legal name)."""
-    queryset = organizations_visible_to(user)
-    if term:
-        queryset = queryset.filter(
-            Q(name__icontains=term)
-            | Q(code__icontains=term)
-            | Q(legal_name__icontains=term)
-        )
-    return queryset
+    return Organization.objects.filter(status=Organization.Status.ACTIVE, pk__in=member_of)

@@ -1,9 +1,9 @@
 {% load django_tables2 %}
 {% load i18n l10n table_extras %}
 {% block table-wrapper %}
-<div class="overflow-x-auto">
+<div class="table-wrap overflow-x-auto">
   {% block table %}
-    <table class="table">
+    <table {{ table.attrs.as_html }}>
       {% block table.thead %}
         {% if table.show_header %}
           <thead>
@@ -57,7 +57,7 @@
   {% block pagination %}
     {% if table.page and table.paginator.num_pages > 1 %}
       <nav class="mt-4 flex items-center justify-between" aria-label="Pagination">
-        <p class="text-sm text-slate-500 dark:text-slate-400">
+        <p class="text-sm text-muted-foreground">
           Page {{ table.page.number }} of {{ table.paginator.num_pages }}
         </p>
         <ul class="pagination">

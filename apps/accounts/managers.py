@@ -6,6 +6,8 @@ from typing import Any
 
 from django.contrib.auth.models import UserManager as BaseUserManager
 
+from .constants import UserStatus
+
 
 class UserManager(BaseUserManager):
     """Manager for :class:`~apps.accounts.models.User`.
@@ -21,6 +23,12 @@ class UserManager(BaseUserManager):
         if not email:
             raise ValueError("The email address must be set.")
         email = self.normalize_email(email)
+        # ``status`` is authoritative and ``is_active`` is derived from it in
+        # User.save().  Preserve the historical ``is_active=False`` calling
+        # convention (fixtures, admin, tests) by translating it to ``inactive``.
+        is_active = extra_fields.pop("is_active", True)
+        if not is_active and "status" not in extra_fields:
+            extra_fields["status"] = UserStatus.INACTIVE
         user = self.model(email=email, **extra_fields)
         if password:
             user.set_password(password)

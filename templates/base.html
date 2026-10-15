@@ -1,41 +1,10 @@
-{% load static %}<!DOCTYPE html>
-<html lang="en" class="h-full">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>{% block title %}{{ APP_NAME }}{% endblock %}</title>
-  <meta name="description" content="{% block meta_description %}Generic enterprise checklist and inspection platform.{% endblock %}">
-  <meta name="theme-color" content="#4f46e5">
-  <meta name="color-scheme" content="light dark">
+{% extends "base_root.html" %}
 
-  <link rel="manifest" href="{% url 'core:manifest' %}" {% csp_nonce_attr %}>
-  <link rel="icon" href="{% static 'icons/favicon.ico' %}" sizes="any">
-  <link rel="icon" type="image/png" href="{% static 'icons/icon-192.png' %}">
-  <link rel="apple-touch-icon" href="{% static 'icons/apple-touch-icon.png' %}">
-
-  <link rel="stylesheet" href="{% static 'css/app.css' %}" {% csp_nonce_attr %}>
-
-  <script src="{% static 'vendor/htmx.min.js' %}" defer {% csp_nonce_attr %}></script>
-  <script src="{% static 'vendor/alpine.min.js' %}" defer {% csp_nonce_attr %}></script>
-  <script src="{% static 'vendor/lucide.min.js' %}" defer {% csp_nonce_attr %}></script>
-  <script src="{% static 'js/app.js' %}" defer {% csp_nonce_attr %}></script>
-  {% block extra_head %}{% endblock %}
-</head>
-<body class="flex min-h-full flex-col" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-  <a href="#main" class="skip-link">Skip to main content</a>
+{% block chrome %}
   {% include "partials/navbar.html" %}
-  <main id="main" class="flex-1 py-8">
-    <div class="container-page">
-      {% include "partials/messages.html" %}
-      {% block content %}{% endblock %}
-    </div>
-  </main>
+  {% include "themes/_preview_banner.html" %}
+{% endblock %}
+
+{% block footer %}
   {% include "partials/footer.html" %}
-  <noscript>
-    <div class="container-page pb-6">
-      <div class="alert alert-warning">JavaScript is disabled. Interactive and offline features require it.</div>
-    </div>
-  </noscript>
-  {% block extra_body %}{% endblock %}
-</body>
-</html>
+{% endblock %}

@@ -29,6 +29,15 @@ class APIRootView(APIView):
                 "version": "v1",
                 "endpoints": {
                     "health": str(request.build_absolute_uri("health/")),
+                    "me": str(request.build_absolute_uri("me/")),
+                    "users": str(request.build_absolute_uri("users/")),
+                    "organizations": str(request.build_absolute_uri("organizations/")),
+                    "location_types": str(request.build_absolute_uri("location-types/")),
+                    "locations": str(request.build_absolute_uri("locations/")),
+                    "location_tree": str(request.build_absolute_uri("locations/tree/")),
+                    "themes": str(request.build_absolute_uri("themes/")),
+                    "active_theme": str(request.build_absolute_uri("themes/active/")),
+                    "appearance": str(request.build_absolute_uri("preferences/appearance/")),
                     "schema": str(request.build_absolute_uri("/api/schema/")),
                 },
             }

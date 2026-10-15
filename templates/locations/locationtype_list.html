@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load django_tables2 %}
+
+{% block title %}Location types · {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<nav class="breadcrumbs mb-4" aria-label="Breadcrumbs">
+  <ol>
+    <li><a href="{% url 'core:home' %}">Home</a></li>
+    <li><a href="{% url 'locations:list' %}">Locations</a></li>
+    <li aria-current="page">Types</li>
+  </ol>
+</nav>
+
+<div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+  <div class="flex items-center gap-3">
+    <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+      <i data-lucide="tags" class="h-5 w-5" aria-hidden="true"></i>
+    </span>
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Location types</h1>
+      <p class="text-sm text-muted-foreground">
+        Define the kinds of location in your hierarchy (for example Region, Branch or Department). Each organization chooses its own.
+      </p>
+    </div>
+  </div>
+  <div class="flex flex-wrap items-center gap-2">
+    <a href="{% url 'locations:tree' %}" class="btn btn-secondary">
+      <i data-lucide="network" class="h-4 w-4" aria-hidden="true"></i> Location tree
+    </a>
+    {% if can_create %}
+      <a href="{% url 'locations:type_create' %}" class="btn btn-primary">
+        <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i> New type
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card mb-6">
+  {% include "components/filter_bar.html" with filter=filter reset_url=request.path hidden=hidden_filters %}
+</div>
+
+<div class="card">
+  {% if table.rows %}
+    {% render_table table %}
+  {% else %}
+    {% include "components/empty_state.html" with icon="tags" title="No location types found" message="Create a type before adding locations: every location has exactly one." %}
+  {% endif %}
+</div>
+{% endblock %}

@@ -4,10 +4,10 @@ Params: icon (lucide name, optional), title, message (optional),
         action_url + action_label (optional).
 {% endcomment %}
 <div class="empty-state">
-  <i data-lucide="{{ icon|default:'inbox' }}" class="h-9 w-9 text-slate-400" aria-hidden="true"></i>
-  <p class="font-medium text-slate-700 dark:text-slate-200">{{ title|default:"Nothing here yet" }}</p>
+  <i data-lucide="{{ icon|default:'inbox' }}" class="h-9 w-9 text-muted-foreground" aria-hidden="true"></i>
+  <p class="font-medium text-foreground">{{ title|default:"Nothing here yet" }}</p>
   {% if message %}
-    <p class="max-w-md text-sm text-slate-500 dark:text-slate-400">{{ message }}</p>
+    <p class="max-w-md text-sm text-muted-foreground">{{ message }}</p>
   {% endif %}
   {% if action_url %}
     <a href="{{ action_url }}" class="btn btn-primary mt-3">
