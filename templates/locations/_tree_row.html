@@ -10,7 +10,7 @@
   {% if not node.matched %}<span class="sr-only">(shown for context)</span>{% endif %}
   {% if show_organization %}<span class="text-xs text-muted-foreground">· {{ location.organization.name }}</span>{% endif %}
 </div>
-{% if perms.locations.add_location %}
+{% load rbac %}{% can "location.create" location as can_add_child %}{% if can_add_child %}
   <a href="{% url 'locations:create' %}?parent={{ location.pk }}" class="btn btn-ghost btn-sm shrink-0" title="Add a child location">
     <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i><span class="sr-only">Add child of {{ location.name }}</span>
   </a>

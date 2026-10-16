@@ -44,6 +44,8 @@ class LocationPickerWidget(forms.Widget):
         self.require_organization = require_organization
         self.organization_id: Any = None
         self.exclude_id: Any = None
+        #: When set, shown instead of the selected location's name (a parent outside the user's scope).
+        self.hide_label: str = ""
         #: Set by ``ModelChoiceField`` (``field.queryset = ...``); gives the widget
         #: the field's scoped queryset for label look-ups.
         self.choices: Any = None
@@ -56,6 +58,8 @@ class LocationPickerWidget(forms.Widget):
         id that is outside the user's scope renders an empty box, never the name
         or code of another tenant's location.
         """
+        if self.hide_label and value:
+            return self.hide_label
         pk = parse_uuid(value)
         queryset = getattr(self.choices, "queryset", None)
         if pk is None or queryset is None:

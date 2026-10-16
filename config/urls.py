@@ -35,6 +35,7 @@ urlpatterns += [
     path("organizations/", include("apps.organizations.urls", namespace="organizations")),
     path("locations/", include("apps.locations.urls", namespace="locations")),
     path("themes/", include("apps.themes.urls", namespace="themes")),
+    path("access/", include("apps.permissions.urls", namespace="access")),
     # Versioned REST API.
     path("api/v1/", include(("apps.api.v1.urls", "v1"), namespace="v1")),
     # API documentation / schema.

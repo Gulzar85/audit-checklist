@@ -34,14 +34,17 @@ from .models import Location, LocationType
 # Scoped reads (organization isolation)
 # ---------------------------------------------------------------------------
 def locations_visible_to(user: Any) -> QuerySet[Location]:
-    """Locations in every organization ``user`` may see (the isolation boundary).
+    """Locations ``user`` may view: the organization boundary *and* their role scope (RBAC).
 
     Web views and API views both start from this queryset, so the same rule
     applies to every channel.  Anonymous/inactive users see nothing.
     """
+    from apps.permissions.authorization import get_accessible_locations
+    from apps.permissions.registry import P
+
     if not is_active_user(user):
         return Location.objects.none()
-    return Location.objects.filter(organization__in=organizations_visible_to(user))
+    return get_accessible_locations(user, P.LOCATION_VIEW)
 
 
 def location_types_visible_to(user: Any) -> QuerySet[LocationType]:
@@ -299,6 +302,7 @@ def get_location_tree(
     queryset: QuerySet[Location] | None = None,
     *,
     include_ancestors: bool = True,
+    within: QuerySet[Location] | None = None,
 ) -> list[TreeNode]:
     """Assemble a forest from ``queryset`` using a constant number of queries.
 
@@ -306,6 +310,9 @@ def get_location_tree(
     a ``django-filter`` filterset.  When ``include_ancestors`` is true, ancestors
     of matched rows that the queryset excluded are added (flagged
     ``matched=False``) so a filtered tree still shows where each result lives.
+    ``within`` bounds the ancestors that may be added (pass the caller's authorized queryset):
+    a user scoped to a region never sees the names of the levels above it, and the topmost
+    location they may see becomes a root of *their* tree.
     Returns the root nodes; ordering is by name then code at every level.
     """
     if queryset is None:
@@ -316,7 +323,10 @@ def get_location_tree(
     if include_ancestors and matched:
         missing = get_ancestor_ids(matched) - nodes.keys()
         if missing:
-            for item in Location.objects.filter(pk__in=missing).select_related(
+            allowed = Location.objects.filter(pk__in=missing)
+            if within is not None:
+                allowed = allowed.filter(pk__in=within.values("pk"))
+            for item in allowed.select_related(
                 "organization", "location_type"
             ):
                 nodes[item.pk] = TreeNode(item, matched=False)

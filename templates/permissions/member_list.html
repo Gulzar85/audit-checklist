@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Users &middot; {{ APP_NAME }}{% endblock %}
+
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Users" %}{% endblock %}
+
+{% block page_header %}
+{% with users_sub="People with access to "|add:organization.name|add:"." %}
+{% page_header title="Users" subtitle=users_sub icon="users" %}{% endpage_header %}
+{% endwith %}
+{% endblock %}
+
+{% block content %}
+<form method="get" class="card mb-6" role="search" aria-label="Filter users">
+  <div class="card-body flex flex-wrap items-end gap-3">
+    <div class="w-full sm:w-72">
+      <label class="label" for="q">Search</label>
+      <input id="q" name="q" type="search" class="input" value="{{ query }}" placeholder="Name or email" autocomplete="off">
+    </div>
+    <div class="w-full sm:w-48">
+      <label class="label" for="status">Membership</label>
+      <select id="status" name="status" class="select">
+        <option value="">Any</option>
+        {% for value, label in statuses %}<option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">{% icon "search" %} Filter</button>
+    {% if query or status %}<a href="{% url 'access:member_list' %}" class="btn btn-secondary">Reset</a>{% endif %}
+  </div>
+</form>
+
+<div class="card">
+  <div class="table-wrap overflow-x-auto">
+    <table class="table table-stack" aria-label="Users">
+      <thead>
+        <tr><th scope="col">User</th><th scope="col">Membership</th><th scope="col">Roles</th><th scope="col" class="text-right">Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for member in members %}
+          <tr>
+            <td data-label="User">
+              <a href="{% url 'access:member_access' member.pk %}" class="font-medium">{{ member.user.display_name|default:member.user.email }}</a>
+              <p class="text-xs text-muted-foreground">{{ member.user.email }}</p>
+            </td>
+            <td data-label="Membership">{% status_badge member.status %}</td>
+            <td data-label="Roles">
+              {% for assignment in member.active_assignments %}
+                <span class="badge badge-neutral">{{ assignment.role.name }}{% if assignment.location %} · {{ assignment.location.name }}{% endif %}</span>
+              {% empty %}<span class="text-sm text-muted-foreground">No roles</span>{% endfor %}
+            </td>
+            <td data-label="Actions" class="text-right">
+              <div class="flex justify-end gap-0.5">
+                {% url 'access:member_access' member.pk as access_url %}{% row_action "Manage access" "shield-check" href=access_url subject=member.user.email %}
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4">No users match.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

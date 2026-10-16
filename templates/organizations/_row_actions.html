@@ -1,5 +1,5 @@
-{% load ui %}{% comment %}Icon row actions. Display hint only (Django perms); the views re-authorise through policies.{% endcomment %}
+{% load ui rbac %}{% comment %}Icon row actions. Display hint only (RBAC); the views re-authorise through policies.{% endcomment %}
 <div class="flex justify-end gap-0.5">
   {% url 'organizations:detail' record.pk as view_url %}{% row_action "View" "eye" href=view_url subject=record.name %}
-  {% if perms.organizations.change_organization %}{% url 'organizations:update' record.pk as edit_url %}{% row_action "Edit" "pencil" href=edit_url subject=record.name %}{% endif %}
+  {% can "organization.update" record as can_edit %}{% if can_edit %}{% url 'organizations:update' record.pk as edit_url %}{% row_action "Edit" "pencil" href=edit_url subject=record.name %}{% endif %}
 </div>

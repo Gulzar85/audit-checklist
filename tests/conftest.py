@@ -26,6 +26,16 @@ MANAGE_PERMS = (
 )
 
 
+@pytest.fixture(autouse=True)
+def _clear_authorization_cache():
+    """Grants are cached; a test must never see another test's cache."""
+    from django.core.cache import cache
+
+    cache.clear()
+    yield
+    cache.clear()
+
+
 @pytest.fixture
 def user(db) -> "User":
     return User.objects.create_user(
@@ -97,7 +107,10 @@ def make_user(db, grant):
     """Create a user, optionally a member of ``organization`` with ``perms``."""
     counter = {"n": 0}
 
-    def _make(*, email=None, organization=None, perms=(), staff=False, active=True, member_active=True):
+    def _make(*, email=None, organization=None, perms=(), staff=False, active=True, member_active=True,
+              role="report-viewer"):
+        """``role`` is the system role given org-wide to a member (a plain member can read, as
+        before RBAC); pass ``role=None`` for a member who holds *nothing* (default-deny tests)."""
         counter["n"] += 1
         account = User.objects.create_user(
             email=email or f"user{counter['n']}@example.com",
@@ -106,13 +119,40 @@ def make_user(db, grant):
             is_active=active,
         )
         if organization is not None:
-            OrganizationMembership.objects.create(
+            member = OrganizationMembership.objects.create(
                 user=account, organization=organization, is_active=member_active
             )
+            if role is not None:
+                from apps.permissions import services as rbac
+                from apps.permissions.models import MembershipRole
+
+                rbac.seed_system_roles()
+                # Direct ORM: fixtures must not write audit rows that other tests then see.
+                MembershipRole.objects.create(membership=member, role=Role.objects.get(organization=None, slug=role))
         grant(account, *perms)
         return account
 
     return _make
+
+
+@pytest.fixture
+def assign(db):
+    """``assign(user, org, "role-slug", scope="organization"|"location"|"location_descendants", location=None)``.
+
+    Goes through the service (validation, audit) and returns the ``MembershipRole``.  Roles are
+    the seeded system roles unless ``role`` is a ``Role`` instance.
+    """
+    from apps.permissions import services as rbac
+    from apps.permissions.models import MembershipRole
+
+    def _assign(target, organization, role, *, scope=MembershipRole.ScopeType.ORGANIZATION, location=None, actor=None):
+        rbac.seed_system_roles()
+        if not isinstance(role, Role):
+            role = Role.objects.get(organization=None, slug=role)
+        membership = OrganizationMembership.objects.get(user=target, organization=organization)
+        return rbac.assign_role(membership, role, scope_type=scope, location=location, actor=actor)
+
+    return _assign
 
 
 @pytest.fixture

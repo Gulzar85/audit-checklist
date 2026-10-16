@@ -387,6 +387,7 @@ def add_membership(
 
 
 _MEMBERSHIP_STATUS_VERBS = {
+    Membership.Status.PENDING: IDENTITY_VERBS["membership_updated"],
     Membership.Status.ACTIVE: IDENTITY_VERBS["membership_updated"],
     Membership.Status.SUSPENDED: IDENTITY_VERBS["membership_suspended"],
     Membership.Status.LEFT: IDENTITY_VERBS["membership_removed"],

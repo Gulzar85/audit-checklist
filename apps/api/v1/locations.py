@@ -146,7 +146,7 @@ class LocationViewSet(
     # -- writes (service layer) ----------------------------------------------
     def perform_create(self, serializer) -> None:  # noqa: ANN001
         data = dict(serializer.validated_data)
-        if not can_create_location(self.request.user, data["organization"]):
+        if not can_create_location(self.request.user, data["organization"], data.get("parent")):
             raise PermissionDenied
         serializer.instance = services.create_location(actor=self.request.user, **data)
 
@@ -203,4 +203,4 @@ class LocationViewSet(
         match keeps its place in the tree.
         """
         queryset = self.filter_queryset(self.get_queryset().order_by())
-        return Response(serialize_tree(get_location_tree(queryset)))
+        return Response(serialize_tree(get_location_tree(queryset, within=locations_visible_to(request.user))))

@@ -1,17 +1,21 @@
 """Authorization policy for the location domain.
 
-Locations and location types inherit the tenant boundary from their
-organization: a user can act on a location only if they can *see* its
-organization (members of active organizations; platform staff everywhere) **and**
-hold the relevant Django model permission.
+Locations inherit the tenant boundary from their organization (you must be able to *enter* the
+organization) and are then governed by RBAC (Phase 3, ADR 0043): each action asks
+:func:`apps.permissions.authorization.has_permission` for the matching permission **at the
+location** being acted on.  A grant held organization-wide covers every location; a grant
+scoped to a location (or subtree) covers only that part of the hierarchy.  So:
 
-Location-scoped access (Phase 4 - "User A may only touch Region 1's subtree")
-refines :func:`_in_scope` below.  Every call site already passes the *location*
-being acted on (and, for moves, the destination), which is all a subtree rule
-needs, so nothing outside this module has to change.
+* *view / edit / deactivate* need the permission at that location;
+* *create* needs it at the **parent** (a root location needs it organization-wide);
+* *move* needs ``location.move`` at the location **and** ``location.create``-level standing at
+  the destination, so a scoped manager cannot move a location out of - or into - someone
+  else's subtree.
 
-Platform-defined location types (no organization) are managed by platform staff
-only (ADR 0016); organization admins can use them but not edit them.
+Platform-defined location types (no organization) are managed by platform staff only
+(ADR 0016); organization admins can use them but not edit them.  Location *types* are
+reference data: any member may read them, writing them needs the type permissions
+organization-wide.
 """
 
 from __future__ import annotations
@@ -20,76 +24,95 @@ from typing import Any
 
 from apps.core.policies import is_active_user, is_platform_staff
 from apps.organizations.policies import can_view_organization
-from apps.organizations.selectors import organizations_visible_to
+from apps.permissions.authorization import has_permission, has_permission_anywhere
+from apps.permissions.registry import P
 
 
 def _in_scope(user: Any, organization_id: Any, location: Any = None) -> bool:  # noqa: ARG001
-    """Whether the user's scope covers this organization (and, later, location)."""
+    """Whether ``user`` may enter this organization (layer 2); roles are checked separately."""
     return can_view_organization(user, organization_id)
 
 
 # --- Locations ---------------------------------------------------------------
 def can_view_location(user: Any, location: Any) -> bool:
-    return _in_scope(user, location.organization_id, location)
+    return has_permission(user, P.LOCATION_VIEW, location=location)
 
 
-def can_create_location(user: Any, organization: Any = None) -> bool:
-    """May ``user`` create locations - in ``organization``, or anywhere if omitted."""
-    if not is_active_user(user) or not user.has_perm("locations.add_location"):
-        return False
+def can_create_location(user: Any, organization: Any = None, parent: Any = None) -> bool:
+    """May ``user`` create a location - under ``parent``, or as a root of ``organization``?
+
+    With neither, answers "could this user create locations *somewhere*" (to offer the button).
+    """
+    if parent is not None:
+        return has_permission(user, P.LOCATION_CREATE, location=parent)
     if organization is None:
-        return organizations_visible_to(user).exists()
-    return _in_scope(user, getattr(organization, "pk", organization))
+        return has_permission_anywhere(user, P.LOCATION_CREATE)
+    return has_permission(user, P.LOCATION_CREATE, organization=organization)
+
+
+def can_create_location_in_organization(user: Any, organization: Any) -> bool:
+    """Whether ``user`` may create locations *somewhere* in ``organization`` (any scope).
+
+    A manager scoped to one region may create beneath it; the concrete parent is then checked by
+    :func:`can_create_location`.
+    """
+    from apps.permissions.authorization import get_access
+
+    if not is_active_user(user):
+        return False
+    return get_access(user, organization).holds(P.LOCATION_CREATE)
 
 
 def can_edit_location(user: Any, location: Any) -> bool:
-    return (
-        is_active_user(user)
-        and user.has_perm("locations.change_location")
-        and _in_scope(user, location.organization_id, location)
-    )
+    return has_permission(user, P.LOCATION_UPDATE, location=location)
 
 
 def can_move_location(user: Any, location: Any, new_parent: Any = None) -> bool:
     """Moving needs rights over the location *and* the destination subtree."""
-    if not can_edit_location(user, location):
+    if not has_permission(user, P.LOCATION_MOVE, location=location):
         return False
-    return new_parent is None or _in_scope(user, new_parent.organization_id, new_parent)
+    if new_parent is None:
+        return has_permission(user, P.LOCATION_MOVE, organization=location.organization_id)
+    return has_permission(user, P.LOCATION_MOVE, location=new_parent)
 
 
 def can_deactivate_location(user: Any, location: Any) -> bool:
-    return can_edit_location(user, location)
+    return has_permission(user, P.LOCATION_DEACTIVATE, location=location)
 
 
 def can_activate_location(user: Any, location: Any) -> bool:
-    return can_edit_location(user, location)
+    return has_permission(user, P.LOCATION_DEACTIVATE, location=location)
 
 
 # --- Location types ----------------------------------------------------------
-def _can_manage_types(user: Any, organization_id: Any, perm: str) -> bool:
-    if not is_active_user(user) or not user.has_perm(perm):
+def _can_manage_types(user: Any, organization_id: Any, code: str, legacy_perm: str) -> bool:
+    if not is_active_user(user):
         return False
     if organization_id is None:  # a platform-defined type
-        return is_platform_staff(user)
-    return _in_scope(user, organization_id)
+        return is_platform_staff(user) and user.has_perm(legacy_perm)
+    return has_permission(user, code, organization=organization_id)
 
 
 def can_create_location_type(user: Any, organization: Any = None) -> bool:
     """``organization=None`` asks about a platform-defined type."""
     return _can_manage_types(
-        user, getattr(organization, "pk", organization), "locations.add_locationtype"
+        user, getattr(organization, "pk", organization), P.LOCATION_TYPE_CREATE, "locations.add_locationtype"
     )
 
 
 def can_create_any_location_type(user: Any) -> bool:
     """May ``user`` create a location type for *some* organization (or platform-wide)?"""
-    if not is_active_user(user) or not user.has_perm("locations.add_locationtype"):
+    if not is_active_user(user):
         return False
-    return is_platform_staff(user) or organizations_visible_to(user).exists()
+    if is_platform_staff(user) and user.has_perm("locations.add_locationtype"):
+        return True
+    return has_permission_anywhere(user, P.LOCATION_TYPE_CREATE)
 
 
 def can_edit_location_type(user: Any, location_type: Any) -> bool:
-    return _can_manage_types(user, location_type.organization_id, "locations.change_locationtype")
+    return _can_manage_types(
+        user, location_type.organization_id, P.LOCATION_TYPE_UPDATE, "locations.change_locationtype"
+    )
 
 
 def can_toggle_location_type(user: Any, location_type: Any) -> bool:

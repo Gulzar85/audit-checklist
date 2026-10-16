@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}My access &middot; {{ APP_NAME }}{% endblock %}
+
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "My access" %}{% endblock %}
+
+{% block page_header %}
+{% with sub="What you can do in "|add:organization.name|add:"." %}{% page_header title="My access" subtitle=sub icon="shield-check" %}{% endpage_header %}{% endwith %}
+{% endblock %}
+
+{% block content %}
+{% if membership %}
+  {% include "permissions/_access_summary.html" with summary=summary membership=membership %}
+{% else %}
+  {% include "components/states/empty.html" with icon="shield-off" title="No membership" message="You are viewing this organization as platform staff; access comes from your platform permissions." %}
+{% endif %}
+{% endblock %}

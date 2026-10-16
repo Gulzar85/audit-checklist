@@ -1,0 +1,22 @@
+{# The access summary card.  Params: summary (selectors.access_summary), membership. #}
+{% load ui %}
+<section class="card" aria-labelledby="summary-title">
+  <div class="card-header"><h2 id="summary-title" class="card-title">Access summary</h2>{% status_badge membership.status %}</div>
+  <div class="card-body space-y-4">
+    {% if not summary.grants_access %}
+      <div class="alert alert-warning" role="status">
+        {% icon "triangle-alert" "md" %}
+        <span>
+          {% if membership.is_active %}This member holds no active role, so they cannot do anything here yet.{% else %}This membership is <strong>{{ membership.get_status_display|lower }}</strong>, so it grants nothing — any roles below are kept and take effect again if it is reinstated.{% endif %}
+        </span>
+      </div>
+    {% endif %}
+    <dl class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div><dt class="text-xs uppercase tracking-wide text-muted-foreground">Roles</dt><dd class="text-2xl font-semibold">{{ summary.assignment_count }}</dd></div>
+      <div><dt class="text-xs uppercase tracking-wide text-muted-foreground">Permissions</dt><dd class="text-2xl font-semibold">{{ summary.permission_count }}</dd></div>
+      <div><dt class="text-xs uppercase tracking-wide text-muted-foreground">Organization-wide</dt><dd class="text-2xl font-semibold">{{ summary.organization_wide_count }}</dd></div>
+      <div><dt class="text-xs uppercase tracking-wide text-muted-foreground">Location-scoped</dt><dd class="text-2xl font-semibold">{{ summary.scoped_count }}</dd></div>
+    </dl>
+    {% if summary.roles %}<p class="text-sm text-muted-foreground">{{ summary.roles|join:", " }}</p>{% endif %}
+  </div>
+</section>

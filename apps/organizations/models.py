@@ -279,9 +279,11 @@ class OrganizationMembership(BaseModel):
         related_name="memberships",
     )
     class Status(models.TextChoices):
+        PENDING = "pending", _("Pending")
         ACTIVE = "active", _("Active")
         SUSPENDED = "suspended", _("Suspended")
-        LEFT = "left", _("Left")
+        #: The spec's INACTIVE: the user left; the row is kept for history (ADR 0042).
+        LEFT = "left", _("Inactive (left)")
 
     #: Authoritative lifecycle (ADR 0035).  ``left`` keeps the row (history, audit and
     #: later checklist data reference it) and ``left_at`` records when.
@@ -319,7 +321,7 @@ class OrganizationMembership(BaseModel):
                 name="membership_left_at_matches_status",
             ),
             models.CheckConstraint(
-                condition=models.Q(status__in=["active", "suspended", "left"]),
+                condition=models.Q(status__in=["pending", "active", "suspended", "left"]),
                 name="membership_status_valid",
             ),
         ]

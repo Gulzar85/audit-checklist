@@ -212,7 +212,9 @@ class LocationTreeView(LoginRequiredMixin, FilterView):
     context_object_name = "locations"
 
     def get_queryset(self):  # noqa: ANN201
-        return locations_visible_to(self.request.user)
+        if not hasattr(self, "_scope"):  # resolved once per request (it runs a small RBAC lookup)
+            self._scope = locations_visible_to(self.request.user)
+        return self._scope
 
     def get_template_names(self):  # noqa: ANN201
         return [self.partial_template_name if is_htmx(self.request) else self.template_name]
@@ -225,7 +227,7 @@ class LocationTreeView(LoginRequiredMixin, FilterView):
             and form.is_valid()
             and any(value not in (None, "", []) for value in form.cleaned_data.values())
         )
-        roots = get_location_tree(self.object_list)
+        roots = get_location_tree(self.object_list, within=self.get_queryset())
         context["roots"] = roots
         context["rows"], context["trailing_closers"] = flatten_tree(roots)
         context["show_organization"] = len({node.location.organization_id for node in roots}) > 1
@@ -247,13 +249,19 @@ class LocationDetailView(LocationScopedMixin, LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         location = self.object
         user = self.request.user
-        context["ancestors"] = location.get_ancestors()
-        context["children"] = get_children(location).select_related("location_type")
-        context["descendant_count"] = get_descendants(location).count()
-        context["active_descendant_count"] = get_descendants(location).filter(is_active=True).count()
+        reachable = locations_visible_to(user).values("pk")  # never reveal what the role scope hides
+        ancestors = location.get_ancestors()
+        visible_ancestors = set(
+            locations_visible_to(user).filter(pk__in=[a.pk for a in ancestors]).values_list("pk", flat=True)
+        )
+        context["ancestors"] = [a for a in ancestors if a.pk in visible_ancestors]
+        context["parent_visible"] = location.parent_id in visible_ancestors
+        context["children"] = get_children(location).filter(pk__in=reachable).select_related("location_type")
+        context["descendant_count"] = get_descendants(location).filter(pk__in=reachable).count()
+        context["active_descendant_count"] = get_descendants(location).filter(pk__in=reachable, is_active=True).count()
         context["recent_activity"] = recent_activity(target=location, limit=10)
         context["can_edit"] = can_edit_location(user, location)
-        context["can_create_child"] = can_create_location(user, location.organization)
+        context["can_create_child"] = can_create_location(user, parent=location)
         context["can_deactivate"] = can_deactivate_location(user, location)
         context["can_activate"] = can_activate_location(user, location)
         return context

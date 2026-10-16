@@ -767,4 +767,57 @@ document.addEventListener("alpine:init", function () {
       },
     };
   });
-});
+  /* Permission matrix (role editor).  Filters rows by text, and the "all" box of a row ticks or
+   * clears every enabled permission in it.  Rows and boxes are server-rendered; this only
+   * toggles visibility and `checked`, so the form works without it. */
+  Alpine.data("permissionMatrix", function () {
+    return {
+      empty: false,
+      onFilter: function (event) {
+        var query = (event.target.value || "").trim().toLowerCase();
+        var visible = 0;
+        this.$root.querySelectorAll("[data-matrix-row]").forEach(function (row) {
+          var match = !query || (row.getAttribute("data-search") || "").indexOf(query) !== -1;
+          row.hidden = !match;
+          if (match) {
+            visible += 1;
+          }
+        });
+        this.empty = visible === 0;
+      },
+      toggleRow: function (event) {
+        var row = event.target.closest("[data-matrix-row]");
+        if (!row) {
+          return;
+        }
+        var checked = event.target.checked;
+        row.querySelectorAll('input[name="permissions"]:not(:disabled)').forEach(function (box) {
+          box.checked = checked;
+        });
+      },
+      syncRow: function (event) {
+        var row = event.target.closest("[data-matrix-row]");
+        var all = row && row.querySelector("[data-row-all]");
+        if (!all || event.target === all) {
+          return;
+        }
+        var boxes = row.querySelectorAll('input[name="permissions"]');
+        var ticked = row.querySelectorAll('input[name="permissions"]:checked');
+        all.checked = boxes.length > 0 && boxes.length === ticked.length;
+      },
+    };
+  });
+
+  /* Role assignment: the location field only applies to the location scopes. */
+  Alpine.data("scopeFields", function () {
+    return {
+      needsLocation: false,
+      init: function () {
+        this.onScope();
+      },
+      onScope: function () {
+        var select = this.$root.querySelector("[data-scope-type]");
+        this.needsLocation = !!select && select.value !== "organization";
+      },
+    };
+  });});

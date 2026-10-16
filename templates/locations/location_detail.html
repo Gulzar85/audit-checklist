@@ -83,7 +83,7 @@
         <div><dt class="text-sm text-muted-foreground">Organization</dt>
           <dd class="mt-1 font-medium"><a href="{% url 'organizations:detail' location.organization.pk %}" class="hover:underline">{{ location.organization.name }}</a></dd></div>
         <div><dt class="text-sm text-muted-foreground">Parent</dt>
-          <dd class="mt-1">{% if location.parent %}<a href="{% url 'locations:detail' location.parent.pk %}" class="text-link hover:underline">{{ location.parent.name }}</a>{% else %}<span class="text-muted-foreground">Top level</span>{% endif %}</dd></div>
+          <dd class="mt-1">{% if location.parent and parent_visible %}<a href="{% url 'locations:detail' location.parent.pk %}" class="text-link hover:underline">{{ location.parent.name }}</a>{% else %}<span class="text-muted-foreground">Top level</span>{% endif %}</dd></div>
         <div><dt class="text-sm text-muted-foreground">Type</dt><dd class="mt-1">{{ location.location_type.name }}</dd></div>
         <div><dt class="text-sm text-muted-foreground">Time zone</dt>
           <dd class="mt-1">{{ location.timezone|default:location.organization.effective_timezone }}{% if not location.timezone %} <span class="text-xs text-muted-foreground">(inherited)</span>{% endif %}</dd></div>

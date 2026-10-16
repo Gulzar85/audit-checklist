@@ -46,3 +46,6 @@ consequences. New records are appended; existing ones are superseded, not edited
 | [0039](0039-application-shell-and-navigation.md) | The application shell: sidebar layout with configuration-driven navigation | Accepted |
 | [0040](0040-component-architecture-and-ui-rules.md) | Component architecture: partials + template tags, state in Alpine, rules enforced by tests | Accepted |
 | [0041](0041-status-vocabulary-and-responsive-tables.md) | One status vocabulary and responsive tables | Accepted |
+| [0042](0042-layered-authorization-model.md) | Layered authorization: membership, role, scope | Accepted |
+| [0043](0043-policies-escalation-and-404-403.md) | Policies, no escalation, and the 404 / 403 rule | Accepted |
+| [0044](0044-rbac-permission-cache.md) | RBAC grant cache | Accepted |

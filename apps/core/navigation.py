@@ -14,7 +14,8 @@ to the menu is one entry here - never template edits.  Rules:
   ``<namespace>:<url_name>`` (``fnmatch``), so "Locations" and "Location types" do not light up
   together.
 
-No database access happens here (the sidebar renders on every page).
+Visibility checks stay cheap (the sidebar renders on every page): ``can_see`` reads the cached,
+per-request-memoised RBAC grants, so it adds no query once they are warm.
 """
 
 from __future__ import annotations
@@ -38,6 +39,17 @@ def authenticated(user: Any) -> bool:
 
 def staff_only(user: Any) -> bool:
     return is_platform_staff(user)
+
+
+def can_see(code: str) -> Visibility:
+    """Visible to users who hold the RBAC permission ``code`` somewhere (presentation only)."""
+
+    def check(user: Any) -> bool:
+        from apps.permissions.authorization import has_permission_anywhere
+
+        return is_active_user(user) and has_permission_anywhere(user, code)
+
+    return check
 
 
 def has_perm(codename: str) -> Visibility:
@@ -101,8 +113,10 @@ NAVIGATION: tuple[NavItem, ...] = (
             url_name="locations:tree", active=("locations:*",)),
     NavItem("location_types", "Location types", "tags", "administration",
             url_name="locations:type_list", active=("locations:type_*",)),
-    NavItem("users", "Users", "users", "administration"),  # planned (user management UI)
-    NavItem("roles", "Roles & Permissions", "shield-check", "administration"),  # planned (RBAC phase)
+    NavItem("users", "Users", "users", "administration", url_name="access:member_list",
+            visible=can_see("user.view"), active=("access:member_*",)),
+    NavItem("roles", "Roles & Permissions", "shield-check", "administration", url_name="access:role_list",
+            visible=can_see("role.view"), active=("access:role_*",)),
     NavItem("themes", "Themes", "palette", "administration", url_name="themes:list", active=("themes:*",)),
     NavItem("settings", "Settings", "settings", "administration"),  # planned
     # --- Developer / platform staff ---------------------------------------------------------

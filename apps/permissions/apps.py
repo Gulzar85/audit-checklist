@@ -10,3 +10,8 @@ class PermissionsConfig(AppConfig):
     name = "apps.permissions"
     label = "permissions"
     verbose_name = "Roles & Permissions"
+
+    def ready(self) -> None:
+        from . import signals
+
+        signals.connect()

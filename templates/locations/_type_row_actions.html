@@ -1,5 +1,5 @@
-{% load ui %}{% comment %}Icon row actions. Display hint only (Django perms); the views re-authorise through policies.{% endcomment %}
-{% if perms.locations.change_locationtype %}
+{% load ui rbac %}{% comment %}Icon row actions. Display hint only (RBAC); the views re-authorise through policies.{% endcomment %}
+{% can "location_type.update" record.organization as can_edit %}{% if can_edit %}
   <div class="flex justify-end gap-0.5">
     {% url 'locations:type_update' record.pk as edit_url %}{% row_action "Edit" "pencil" href=edit_url subject=record.name %}
     {% url 'locations:type_status' record.pk as status_url %}

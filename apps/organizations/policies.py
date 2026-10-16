@@ -18,9 +18,9 @@ Rule set (Phase 1):
   If members could deactivate their own organization they would instantly lose
   the ability to see it, and so to undo it.
 
-Django's model permissions are global to a user.  The data-driven roles and
-scopes (Phase 4) refine *who holds which permission where* by changing the
-bodies below; the call sites do not change.
+Editing goes through :func:`apps.permissions.authorization.has_permission` (RBAC, Phase 3):
+the member must hold ``organization.update`` in that organization.  Creating and changing the
+status of organizations are *platform* operations and stay with platform staff.
 """
 
 from __future__ import annotations
@@ -28,6 +28,8 @@ from __future__ import annotations
 from typing import Any
 
 from apps.core.policies import is_active_user, is_platform_staff
+from apps.permissions.authorization import has_permission
+from apps.permissions.registry import P
 
 from .models import OrganizationMembership
 from .selectors import organizations_visible_to
@@ -58,8 +60,8 @@ def can_create_organization(user: Any) -> bool:
 
 def can_manage_organization(user: Any, organization: Any) -> bool:
     """Whether ``user`` may edit ``organization`` (details and branding)."""
-    return can_view_organization(user, organization) and user.has_perm(
-        "organizations.change_organization"
+    return can_view_organization(user, organization) and has_permission(
+        user, P.ORGANIZATION_UPDATE, organization=organization
     )
 
 

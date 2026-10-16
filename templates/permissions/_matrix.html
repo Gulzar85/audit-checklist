@@ -1,0 +1,48 @@
+{# The permission matrix.  Params: matrix (selectors.permission_matrix), editable. #}
+{% load ui %}
+<div x-data="permissionMatrix" class="space-y-3">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="w-full sm:max-w-xs">
+      <label class="sr-only" for="matrix-filter">Filter permissions</label>
+      <input id="matrix-filter" type="search" class="input" placeholder="Filter by resource or permission…" autocomplete="off" @input="onFilter">
+    </div>
+    <p class="text-xs text-muted-foreground">* Applies to the whole organization, even when the role is scoped to a location.</p>
+  </div>
+  <div class="table-wrap overflow-x-auto rounded-lg border border-border" @change="syncRow">
+    <table class="matrix" aria-label="Permission matrix">
+      <thead>
+        <tr>
+          <th scope="col">Resource</th>
+          {% if editable %}<th scope="col">All</th>{% endif %}
+          {% for action in matrix.columns %}<th scope="col">{{ action|cut:"_"|capfirst }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in matrix.rows %}
+          <tr data-matrix-row data-search="{{ row.label|lower }} {{ row.resource }}{% for cell in row.cells %}{% if cell %} {{ cell.code }} {{ cell.label|lower }}{% endif %}{% endfor %}">
+            <th scope="row" class="font-medium">{{ row.label }}</th>
+            {% if editable %}<td><input type="checkbox" class="checkbox" data-row-all aria-label="All {{ row.label }} permissions" {% if row.all_checked %}checked{% endif %} @change="toggleRow"></td>{% endif %}
+            {% for cell in row.cells %}
+              <td>
+                {% if cell %}
+                  <label class="inline-flex items-center justify-center gap-1" title="{{ cell.label }}{% if cell.org_wide_only %} (organization-wide){% endif %}">
+                    {% if editable %}
+                      <input type="checkbox" class="checkbox" name="permissions" value="{{ cell.code }}" {% if cell.checked %}checked{% endif %}>
+                      <span class="sr-only">{{ cell.label }}</span>
+                    {% elif cell.checked %}
+                      {% icon "check" %}<span class="sr-only">Granted: {{ cell.label }}</span>
+                    {% else %}
+                      <span class="matrix-cell-off" aria-hidden="true">–</span><span class="sr-only">Not granted: {{ cell.label }}</span>
+                    {% endif %}
+                    {% if cell.org_wide_only %}<span class="text-xs text-muted-foreground" aria-hidden="true">*</span>{% endif %}
+                  </label>
+                {% else %}<span class="matrix-cell-off" aria-hidden="true">·</span><span class="sr-only">Not applicable</span>{% endif %}
+              </td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p x-show="empty" x-cloak class="text-sm text-muted-foreground" role="status">No permission matches your filter.</p>
+</div>

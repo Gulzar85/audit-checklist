@@ -126,7 +126,7 @@ class TestNavigation:
         html = page(client, admin_a, "/")
         for label in ("Checklist Templates", "Findings", "Corrective Actions", "Reports", "My Tasks", "Roles &amp; Permissions"):
             assert label not in html, label
-        assert {"templates", "findings", "reports", "roles", "users", "settings"} <= set(navigation.PLANNED)
+        assert {"templates", "findings", "reports", "settings"} <= set(navigation.PLANNED)
 
     def test_built_modules_are_listed_in_their_sections(self, client, staff_user):
         html = page(client, staff_user, "/")

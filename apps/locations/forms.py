@@ -17,7 +17,10 @@ from apps.organizations.models import Organization
 from apps.organizations.selectors import organizations_visible_to
 
 from .models import Location, LocationType
-from .policies import can_create_location, can_create_location_type
+from apps.permissions.authorization import get_accessible_locations
+from apps.permissions.registry import P
+
+from .policies import can_create_location, can_create_location_in_organization, can_create_location_type
 from .selectors import get_descendants
 from .widgets import LocationPickerWidget
 
@@ -190,13 +193,23 @@ class LocationForm(SectionedFormMixin, DesignSystemFormMixin, forms.ModelForm):
         # Only active locations are valid parents - but keep the *current* parent
         # selectable so editing an (inactive) location under an inactive parent works.
         current_parent = self.instance.parent_id if editing else None
-        parents = Location.objects.filter(organization=organization).filter(
-            Q(is_active=True) | Q(pk=current_parent)
+        # RBAC: only locations the user may create under (or, when editing, move to) are offered.
+        reachable = get_accessible_locations(
+            self.user, P.LOCATION_MOVE if editing else P.LOCATION_CREATE, organization=organization
         )
+        parents = Location.objects.filter(organization=organization).filter(
+            Q(pk__in=reachable.values("pk")) | Q(pk=current_parent)
+        ).filter(Q(is_active=True) | Q(pk=current_parent))
         if editing:
             parents = parents.exclude(pk__in=get_descendants(self.instance, include_self=True))
             parent_field.widget.exclude_id = self.instance.pk
         parent_field.queryset = parents
+        if current_parent and not get_accessible_locations(
+            self.user, P.LOCATION_VIEW, organization=organization
+        ).filter(pk=current_parent).exists():
+            # The parent lies above this user's scope: keep it, but neither show nor allow changing it.
+            parent_field.disabled = True
+            parent_field.widget.hide_label = "Above your access"
         parent_field.widget.organization_id = organization.pk if editing else None
 
         types = LocationType.objects.available_to(organization)
@@ -207,9 +220,27 @@ class LocationForm(SectionedFormMixin, DesignSystemFormMixin, forms.ModelForm):
         organization = self.cleaned_data.get("organization")
         if organization is not None and not self.instance._state.adding:
             return organization
-        if organization is not None and not can_create_location(self.user, organization):
+        if organization is not None and not can_create_location_in_organization(self.user, organization):
             raise forms.ValidationError("You do not have permission to create locations here.")
         return organization
+
+    def clean(self) -> dict:
+        cleaned = super().clean()
+        organization, parent = cleaned.get("organization"), cleaned.get("parent")
+        if (
+            self.instance._state.adding
+            and organization is not None
+            and not self.has_error("organization")
+            and not self.has_error("parent")
+            and not can_create_location(self.user, organization, parent)
+        ):
+            self.add_error(
+                "parent",
+                "Choose a parent location you may add to."
+                if parent is None
+                else "You do not have permission to create locations here.",
+            )
+        return cleaned
 
 
 class LocationStatusForm(forms.Form):

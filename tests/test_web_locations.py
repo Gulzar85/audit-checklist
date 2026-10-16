@@ -195,12 +195,12 @@ class TestTree:
         login(client, admin_a)
         client.get(self.url())
         # See TestList: bounded identity-context queries (active organization + the shell's
-        # organization switcher) are included here too.
-        with django_assert_max_num_queries(14):
+        # organization switcher) are included here too, plus the (cached) RBAC scope lookup.
+        with django_assert_max_num_queries(16):
             client.get(self.url())
         for i in range(60):
             make_location(org_a, f"T{i}", type=world["type_a"], code=f"T{i}", parent=world["root"] if i % 2 else world["child"])
-        with django_assert_max_num_queries(14):
+        with django_assert_max_num_queries(16):
             assert client.get(self.url()).status_code == 200
 
 

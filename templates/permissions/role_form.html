@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{% if role %}Edit {{ role.name }}{% else %}New role{% endif %} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+
+{% block breadcrumbs %}{% if role %}{% url 'access:role_detail' role.pk as crumb_url %}{% breadcrumbs "Home" "core:home" "Roles & Permissions" "access:role_list" role.name crumb_url "Edit" %}{% else %}{% breadcrumbs "Home" "core:home" "Roles & Permissions" "access:role_list" "New role" %}{% endif %}{% endblock %}
+
+{% block page_header %}
+{% if role %}{% page_header title="Edit role" subtitle=role.name icon="shield-check" %}{% endpage_header %}{% else %}{% page_header title="New role" subtitle="Choose what members holding this role may do." icon="shield-plus" %}{% endpage_header %}{% endif %}
+{% endblock %}
+
+{% block content %}
+<form method="post" novalidate x-data="formGuard" @submit="onSubmit" @input="markDirty" @beforeunload.window="warn" @pageshow.window="reset" class="space-y-6">
+  {% csrf_token %}
+  {% include "tailwind/errors.html" %}
+  <section class="card" aria-labelledby="details-title">
+    <div class="card-header"><h2 id="details-title" class="card-title">Details</h2></div>
+    <div class="card-body grid gap-4 sm:grid-cols-2">
+      <div>
+        <label class="label" for="{{ form.name.id_for_label }}">Name</label>
+        {{ form.name }}
+        {% for error in form.name.errors %}<p class="errorlist" id="error_{{ form.name.auto_id }}">{{ error }}</p>{% endfor %}
+      </div>
+      <div>
+        <label class="label" for="{{ form.description.id_for_label }}">Description</label>
+        {{ form.description }}
+        {% for error in form.description.errors %}<p class="errorlist" id="error_{{ form.description.auto_id }}">{{ error }}</p>{% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="matrix-title">
+    <div class="card-header">
+      <div>
+        <h2 id="matrix-title" class="card-title">Permissions</h2>
+        <p class="text-sm text-muted-foreground">You can only grant permissions you hold yourself.</p>
+      </div>
+    </div>
+    <div class="card-body">
+      {% include "permissions/_matrix.html" with matrix=matrix editable=True %}
+      {% for error in form.permissions.errors %}<p class="errorlist" id="error_{{ form.permissions.auto_id }}">{{ error }}</p>{% endfor %}
+    </div>
+  </section>
+
+  {% url 'access:role_list' as list_url %}
+  {% if role %}{% url 'access:role_detail' role.pk as cancel %}{% include "components/forms/actions.html" with submit_label="Save role" submit_icon="save" cancel_url=cancel %}{% else %}{% include "components/forms/actions.html" with submit_label="Create role" submit_icon="plus" cancel_url=list_url %}{% endif %}
+</form>
+{% endblock %}

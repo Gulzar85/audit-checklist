@@ -13,6 +13,7 @@ from typing import Any
 from rest_framework import serializers
 
 from apps.organizations.serializers import VisibleOrganizationField
+from apps.permissions.authorization import can_view_location_id
 
 from .models import Location, LocationType
 from .selectors import TreeNode, location_types_visible_to, locations_visible_to
@@ -76,6 +77,16 @@ class LocationSerializer(serializers.ModelSerializer):
     location_type_name = serializers.CharField(source="location_type.name", read_only=True)
     parent_name = serializers.CharField(source="parent.name", read_only=True, default=None)
     children_count = serializers.IntegerField(read_only=True, default=0)
+
+    def to_representation(self, instance):  # noqa: ANN001, ANN201
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        if instance.parent_id and request is not None:
+            # A role scoped below the parent must not learn the parent's id or name.
+            if not can_view_location_id(request.user, instance.organization_id, instance.parent_id):
+                data["parent"] = None
+                data["parent_name"] = None
+        return data
 
     class Meta:
         model = Location
@@ -156,7 +167,8 @@ def serialize_tree(roots: list[TreeNode]) -> list[dict[str, Any]]:
             "code": location.code,
             "location_type": location.location_type_id,
             "location_type_name": location.location_type.name,
-            "parent": location.parent_id,
+            # A root of the (possibly scope-limited) tree reports no parent: what lies above it is hidden.
+            "parent": None if bucket is result else location.parent_id,
             "is_active": location.is_active,
             "matched": node.matched,
             "children": [],

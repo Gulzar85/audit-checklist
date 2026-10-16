@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ target.email }} access &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Users" "access:member_list" target.email %}{% endblock %}
+
+{% block page_header %}
+{% with who=target.display_name|default:target.email %}
+{% page_header title=who subtitle=target.email icon="user-cog" status=membership.status %}
+  {% if can_change_status %}
+    <div x-data="confirmDialog">
+      <button type="button" class="btn btn-secondary" @click="show">{% icon "refresh-cw" %} Membership status</button>
+      <dialog x-ref="dialog" class="modal-dialog" @click="onBackdrop" aria-labelledby="membership-status-title">
+        <form method="post" action="{% url 'access:member_status' membership.pk %}" class="p-6">
+          {% csrf_token %}
+          <h2 id="membership-status-title" class="text-lg font-semibold">Membership status</h2>
+          <p class="mt-1 text-sm text-muted-foreground">Only an <strong>active</strong> membership grants access. Roles are kept while a member is suspended or inactive.</p>
+          <label class="label mt-4" for="membership-status">Status</label>
+          <select id="membership-status" name="status" class="select">
+            {% for value, label in status_choices %}<option value="{{ value }}" {% if membership.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+          <div class="mt-6 flex justify-end gap-2">
+            <button type="button" class="btn btn-secondary" @click="hide">Cancel</button>
+            <button type="submit" class="btn btn-primary">Update</button>
+          </div>
+        </form>
+      </dialog>
+    </div>
+  {% endif %}
+{% endpage_header %}
+{% endwith %}
+{% endblock %}
+
+{% block content %}
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="space-y-6 lg:col-span-2">
+    {% include "permissions/_access_summary.html" with summary=summary membership=membership %}
+
+    <section class="card" aria-labelledby="roles-title">
+      <div class="card-header"><h2 id="roles-title" class="card-title">Roles</h2></div>
+      <div class="table-wrap overflow-x-auto">
+        <table class="table table-stack" aria-label="Roles held">
+          <thead><tr><th scope="col">Role</th><th scope="col">Scope</th><th scope="col">Location</th><th scope="col" class="text-right">Actions</th></tr></thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                <td data-label="Role"><a href="{% url 'access:role_detail' row.assignment.role_id %}" class="font-medium">{{ row.assignment.role.name }}</a>{% if not row.role_active %} {% status_badge "inactive" %}{% endif %}</td>
+                <td data-label="Scope">{{ row.scope }}</td>
+                <td data-label="Location">{% if row.path %}<span class="text-sm text-muted-foreground">{{ row.path }}</span>{% endif %}</td>
+                <td data-label="Actions" class="text-right">
+                  {% if row.can_remove %}
+                    <div class="flex justify-end gap-0.5">{% url 'access:assignment_remove' row.assignment.pk as remove_url %}{% row_action "Remove" "trash-2" post_url=remove_url subject=row.assignment.role.name tone="danger" %}</div>
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="4">No roles assigned.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div class="space-y-6">
+    {% if can_assign and assign_form and not is_self %}
+      <section class="card" aria-labelledby="assign-title">
+        <div class="card-header"><h2 id="assign-title" class="card-title">Grant a role</h2></div>
+        <form method="post" action="{% url 'access:member_assign' membership.pk %}" class="card-body space-y-4" x-data="scopeFields" @change="onScope">
+          {% csrf_token %}
+          <div>
+            <label class="label" for="{{ assign_form.role.id_for_label }}">Role</label>
+            {{ assign_form.role }}
+          </div>
+          <div>
+            <label class="label" for="{{ assign_form.scope_type.id_for_label }}">Applies to</label>
+            <select name="scope_type" id="{{ assign_form.scope_type.id_for_label }}" class="select" data-scope-type>
+              {% for value, label in assign_form.fields.scope_type.choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+          <div x-show="needsLocation" x-cloak>
+            <label class="label" for="{{ assign_form.location.id_for_label }}">Location</label>
+            {{ assign_form.location }}
+            <p class="help-text">The role then applies only to that location (or, if chosen above, that location and everything beneath it).</p>
+          </div>
+          <button type="submit" class="btn btn-primary">{% icon "plus" %} Grant role</button>
+        </form>
+      </section>
+    {% elif is_self %}
+      <div class="alert alert-info" role="status">{% icon "info" "md" %}<span>You cannot change your own access.</span></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

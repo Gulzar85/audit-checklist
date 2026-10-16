@@ -824,6 +824,37 @@
       @apply hidden;
     }
   }
+  /* --- Permission matrix: a rectangular grid; the resource column stays pinned while the
+         action columns scroll sideways on narrow screens (never a stacked card). ----------- */
+  .matrix {
+    @apply w-full border-collapse text-sm;
+  }
+  .matrix th,
+  .matrix td {
+    @apply border-b border-border px-3 py-2 text-center align-middle;
+  }
+  .matrix thead th {
+    @apply bg-muted text-xs font-semibold uppercase tracking-wide text-muted-foreground;
+  }
+  .matrix th:first-child,
+  .matrix td:first-child {
+    @apply text-left;
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    min-width: 9rem;
+    background-color: var(--color-surface);
+  }
+  .matrix thead th:first-child {
+    @apply bg-muted;
+    z-index: 2;
+  }
+  .matrix tbody tr:hover td {
+    @apply bg-muted;
+  }
+  .matrix-cell-off {
+    @apply text-muted-foreground;
+  }
   /* --- Layout helpers --------------------------------------------------- */
   .container-page {
     @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;

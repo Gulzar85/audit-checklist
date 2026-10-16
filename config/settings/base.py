@@ -262,6 +262,18 @@ SESSION_IDLE_TIMEOUT_SECONDS = env_int("SESSION_IDLE_TIMEOUT_SECONDS", 30 * 60)
 SESSION_COOKIE_AGE = SESSION_ABSOLUTE_TIMEOUT_SECONDS
 
 # ---------------------------------------------------------------------------
+# Authorization (RBAC; ADR 0042-0044)
+# ---------------------------------------------------------------------------
+#: Resolved grants are cached per (user, organization); every access change invalidates them
+#: through signals, the TTL only bounds staleness across worker processes.  The default
+#: in-process cache is per worker - point CACHES at a shared backend (Redis, database) before
+#: running several workers (ADR 0044).
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache", "LOCATION": "audit-default"}}
+RBAC_CACHE_TTL = env_int("RBAC_CACHE_TTL", 300)
+#: Honour pre-RBAC Django model permissions as organization-wide grants (see registry ``legacy``).
+RBAC_LEGACY_MODEL_PERMISSIONS = env_bool("RBAC_LEGACY_MODEL_PERMISSIONS", True)
+
+# ---------------------------------------------------------------------------
 # Internationalization
 # ---------------------------------------------------------------------------
 LANGUAGE_CODE = env("DJANGO_LANGUAGE_CODE", "en-us")
@@ -492,6 +504,8 @@ JAZZMIN_SETTINGS = {
         "accounts",
         "permissions",
         "permissions.role",
+        "permissions.permission",
+        "permissions.membershiprole",
         "permissions.rolescope",
         "permissions.userrole",
         "auth",
@@ -540,6 +554,8 @@ JAZZMIN_SETTINGS = {
         "accounts.User": "fas fa-user",
         "permissions": "fas fa-user-shield",
         "permissions.Role": "fas fa-user-tag",
+        "permissions.Permission": "fas fa-key",
+        "permissions.MembershipRole": "fas fa-id-badge",
         "permissions.RoleScope": "fas fa-sitemap",
         "permissions.UserRole": "fas fa-user-lock",
         "auth": "fas fa-users-cog",

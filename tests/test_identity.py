@@ -190,7 +190,8 @@ class TestSelectors:
     def test_lookup_by_email_is_case_insensitive(self, user):
         assert get_user_by_email("AUDITOR@EXAMPLE.COM").pk == user.pk
 
-    def test_users_visible_to_is_tenant_scoped(self, admin_a, admin_b, viewer_a):
+    def test_users_visible_to_is_tenant_scoped(self, admin_a, admin_b, viewer_a, org_a, assign):
+        assign(admin_a, org_a, "operations-consultant")  # holds user.view
         visible = set(users_visible_to(admin_a).values_list("pk", flat=True))
         assert admin_a.pk in visible
         assert viewer_a.pk in visible
@@ -600,7 +601,8 @@ class TestIdentityAPI:
         assert admin_a.phone_number == "+1 555 0100"
         assert admin_a.email != "hacked@example.com"
 
-    def test_users_list_is_tenant_scoped(self, admin_a, admin_b, viewer_a):
+    def test_users_list_is_tenant_scoped(self, admin_a, admin_b, viewer_a, org_a, assign):
+        assign(admin_a, org_a, "operations-consultant")  # holds user.view
         client = APIClient()
         client.force_authenticate(admin_a)
         emails = {row["email"] for row in client.get("/api/v1/users/").json()["data"]}
@@ -608,7 +610,8 @@ class TestIdentityAPI:
         assert viewer_a.email in emails
         assert admin_b.email not in emails
 
-    def test_users_search(self, admin_a, viewer_a):
+    def test_users_search(self, admin_a, viewer_a, org_a, assign):
+        assign(admin_a, org_a, "operations-consultant")
         client = APIClient()
         client.force_authenticate(admin_a)
         response = client.get("/api/v1/users/", {"search": "viewer-a"})

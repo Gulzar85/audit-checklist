@@ -78,8 +78,8 @@ class TestLocationPolicies:
     def test_view_follows_the_organization(self, actors, org_a, make_location):
         location = make_location(org_a, "L")
         assert allowed(loc.can_view_location, actors, location) == {
-            "member_no_perms", "member_with_perms", "staff_no_perms", "staff_with_perms",
-        }
+            "member_no_perms", "member_with_perms", "staff_with_perms",
+        }  # staff without a view grant see nothing: default deny (ADR 0043)
 
     def test_create_in_an_organization(self, actors, org_a):
         assert allowed(loc.can_create_location, actors, org_a) == {"member_with_perms", "staff_with_perms"}

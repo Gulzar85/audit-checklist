@@ -11,7 +11,7 @@ from typing import Any
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 
 from apps.core.policies import is_active_user, is_platform_staff
 from apps.organizations.models import Organization, OrganizationMembership
@@ -58,10 +58,19 @@ def users_visible_to(user: Any) -> QuerySet:
         return User.objects.none()
     if is_platform_staff(user):
         return User.objects.all()
-    org_ids = organizations_visible_to(user).values_list("pk", flat=True)
+    # RBAC (ADR 0043): colleagues are visible only where the caller holds ``user.view``
+    # organization-wide; everyone can always see themselves.
+    from apps.permissions.authorization import has_permission
+    from apps.permissions.registry import P
+
+    org_ids = [
+        pk
+        for pk in organizations_visible_to(user).values_list("pk", flat=True)
+        if has_permission(user, P.USER_VIEW, organization=pk)
+    ]
     return User.objects.filter(
-        organization_memberships__organization_id__in=org_ids,
-        organization_memberships__is_active=True,
+        Q(pk=user.pk)
+        | Q(organization_memberships__organization_id__in=org_ids, organization_memberships__is_active=True)
     ).distinct()
 
 

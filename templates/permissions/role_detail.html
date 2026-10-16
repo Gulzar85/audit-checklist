@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ role.name }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Roles & Permissions" "access:role_list" role.name %}{% endblock %}
+
+{% block page_header %}
+{% with role_sub=role.description|default:"No description." role_status=role.is_active|yesno:"active,inactive" %}
+{% page_header title=role.name subtitle=role_sub icon="shield-check" status=role_status %}
+  {% if can_edit %}<a href="{% url 'access:role_update' role.pk %}" class="btn btn-secondary">{% icon "pencil" %} Edit</a>{% endif %}
+  {% if can_deactivate %}
+    {% if role.is_active %}
+      <div x-data="confirmDialog">
+        <button type="button" class="btn btn-danger" @click="show">{% icon "power-off" %} Deactivate</button>
+        <dialog x-ref="dialog" class="modal-dialog" @click="onBackdrop" @close="onClose" aria-labelledby="deactivate-role-title">
+          <form method="post" action="{% url 'access:role_status' role.pk %}" class="p-6">
+            {% csrf_token %}<input type="hidden" name="action" value="deactivate">
+            <h2 id="deactivate-role-title" class="text-lg font-semibold">Deactivate “{{ role.name }}”?</h2>
+            <p class="mt-2 text-sm text-muted-foreground">Members keep the assignment but it stops granting anything until the role is reactivated. Nothing is deleted.</p>
+            <div class="mt-6 flex justify-end gap-2">
+              <button type="button" class="btn btn-secondary" @click="hide">Cancel</button>
+              <button type="submit" class="btn btn-danger">Deactivate</button>
+            </div>
+          </form>
+        </dialog>
+      </div>
+    {% else %}
+      <form method="post" action="{% url 'access:role_status' role.pk %}">{% csrf_token %}<input type="hidden" name="action" value="activate"><button type="submit" class="btn btn-success">{% icon "power" %} Reactivate</button></form>
+    {% endif %}
+  {% endif %}
+{% endpage_header %}
+{% endwith %}
+{% endblock %}
+
+{% block content %}
+{% if role.is_system %}
+  <div class="alert alert-info mb-6" role="status">
+    {% icon "lock" "md" %}
+    <span>This is a <strong>system role</strong>, managed by the platform. It can be assigned but not edited or deleted.</span>
+  </div>
+{% endif %}
+{% if not role.is_active %}
+  <div class="alert alert-warning mb-6" role="status">
+    {% icon "triangle-alert" "md" %}
+    <span>This role is inactive: assignments of it grant nothing.</span>
+  </div>
+{% endif %}
+<section class="card" aria-labelledby="matrix-title">
+  <div class="card-header">
+    <div>
+      <h2 id="matrix-title" class="card-title">Permissions</h2>
+      <p class="text-sm text-muted-foreground">{{ permission_total }} permission{{ permission_total|pluralize }} granted. {{ role.member_count|default:0 }} member{{ role.member_count|default:0|pluralize }} hold this role in {{ organization.name }}.</p>
+    </div>
+  </div>
+  <div class="card-body">{% include "permissions/_matrix.html" with matrix=matrix editable=False %}</div>
+</section>
+{% endblock %}
