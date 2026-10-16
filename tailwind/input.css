@@ -319,11 +319,31 @@
 
   /* --- Breadcrumbs ------------------------------------------------------ */
   .breadcrumbs {
-    @apply flex flex-wrap items-center gap-1 text-sm text-muted-foreground;
+    @apply text-sm text-muted-foreground;
+  }
+  .breadcrumbs ol {
+    @apply flex-wrap items-center gap-0.5;
+  }
+  .breadcrumbs li {
+    @apply flex min-w-0 items-center;
   }
   .breadcrumbs li:not(:last-child)::after {
-    content: "/";
-    @apply mx-1 text-muted-foreground;
+    content: "\203A";
+    @apply mx-1 text-base leading-none text-muted-foreground;
+  }
+  .breadcrumb-link,
+  .breadcrumb-back {
+    @apply inline-flex max-w-[16rem] items-center gap-1.5 rounded-md px-1.5 py-1 text-link;
+  }
+  .breadcrumb-link:hover,
+  .breadcrumb-back:hover {
+    @apply bg-muted no-underline;
+  }
+  .breadcrumb-current {
+    @apply max-w-[22rem] truncate rounded-md px-1.5 py-1 font-medium text-foreground;
+  }
+  .breadcrumb-text {
+    @apply px-1.5 py-1;
   }
 
   /* --- Empty / loading states ------------------------------------------ */

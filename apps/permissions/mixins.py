@@ -43,9 +43,19 @@ class OrganizationAccessMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003, ANN201
         if request.user.is_authenticated:
             organization = self.organization
-            if organization is None or not can_access_organization(request.user, organization):
+            if organization is None:
+                return self.no_organization()
+            if not can_access_organization(request.user, organization):
                 raise Http404
         return super().dispatch(request, *args, **kwargs)
+
+    def no_organization(self):  # noqa: ANN201
+        """A helpful page (not a bare 404) for a user who has no organization to act in."""
+        from django.template.response import TemplateResponse
+
+        response = TemplateResponse(self.request, "permissions/no_organization.html", {}, status=403)
+        response.render()
+        return response
 
 
 class PermissionRequiredMixin(OrganizationAccessMixin):
@@ -65,7 +75,9 @@ class PermissionRequiredMixin(OrganizationAccessMixin):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
         organization = self.organization
-        if organization is None or not can_access_organization(request.user, organization):
+        if organization is None:
+            return self.no_organization()
+        if not can_access_organization(request.user, organization):
             raise Http404
         if not self.has_required_permission():
             raise PermissionDenied

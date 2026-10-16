@@ -269,11 +269,12 @@ class TestCardsPageHeaderBreadcrumbs:
     def test_breadcrumbs_mark_the_current_page_and_collapse_on_phones(self):
         html = render('{% breadcrumbs "Home" "core:home" "Checklists" "core:ui" "Templates" "core:ui" "Safety" %}')
         assert 'aria-label="Breadcrumbs"' in html and html.count('aria-current="page"') == 1
-        assert 'class="hidden sm:list-item"' in html and "&hellip;" in html and ">Safety<" in html
+        assert 'breadcrumb-back' in html and 'Back to Templates' in html and 'hidden sm:flex' in html  # phones: one back link
+        assert 'data-lucide="house"' in html and ">Safety<" in html  # home icon; current page last
 
     def test_breadcrumbs_render_unreversible_targets_as_text_not_broken_links(self):
         html = render('{% breadcrumbs "Home" "core:home" "Ghost" "no:such" "Here" %}')
-        assert "<span>Ghost</span>" in html and 'href=""' not in html
+        assert ">Ghost</span>" in html and "breadcrumb-text" in html and 'href=""' not in html
 
     def test_breadcrumbs_accept_paths_and_spliced_lists(self):
         html = render('{% breadcrumbs "Home" "/" crumbs "Now" %}', crumbs=["A", "/a/", "B", "/b/"])

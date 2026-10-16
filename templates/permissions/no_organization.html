@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}No organization &middot; {{ APP_NAME }}{% endblock %}
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "No organization" %}{% endblock %}
+{% block content %}
+{% url "organizations:list" as orgs_url %}
+{% include "components/states/empty.html" with icon="building-2" title="No organization to manage" message="Roles and members belong to an organization. You are not a member of an active organization yet; ask an administrator to add you, or create an organization first." action_url=orgs_url action_label="Go to organizations" action_icon="building-2" %}
+{% endblock %}

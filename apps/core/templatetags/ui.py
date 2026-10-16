@@ -132,7 +132,9 @@ def breadcrumbs(*parts: str) -> SafeString:
                 except NoReverseMatch:
                     url = None
         trail.append({"label": label, "url": url})
-    return _render("components/navigation/breadcrumbs.html", {"trail": trail})
+    linked = [crumb for crumb in trail[:-1] if crumb["url"]]
+    parent = linked[-1] if len(trail) > 2 and linked else None  # the phone "back" target
+    return _render("components/navigation/breadcrumbs.html", {"trail": trail, "parent_crumb": parent})
 
 @register.filter
 def as_crumbs(objects: Any, url_name: str) -> list[str]:

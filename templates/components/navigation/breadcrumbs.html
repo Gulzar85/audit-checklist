@@ -1,17 +1,21 @@
 {% comment %}
 Breadcrumbs: `{% breadcrumbs "Home" "core:home" "Organizations" "organizations:list" "Acme" %}`.
-The last item is the current page.  On phones only the first and last items show, with an
-ellipsis between, so the trail never wraps into several lines.
+The last item is the current page.  The first item is shown as a home icon (its label stays for screen
+readers).  On phones the trail collapses to one "Back to <parent>" link, so it never wraps or truncates
+awkwardly; from `sm` up the full trail shows, with long labels truncated (full text in the tooltip).
 {% endcomment %}
+{% load ui %}
 <nav class="breadcrumbs mb-3" aria-label="Breadcrumbs">
-  <ol>
+  {% if parent_crumb %}
+    <a href="{{ parent_crumb.url }}" class="breadcrumb-back sm:hidden">{% icon "arrow-left" %}<span>Back to {{ parent_crumb.label }}</span></a>
+  {% endif %}
+  <ol class="{% if parent_crumb %}hidden sm:flex{% else %}flex{% endif %}">
     {% for crumb in trail %}
-      <li{% if not forloop.first and not forloop.last %} class="hidden sm:list-item"{% endif %}>
-        {% if forloop.last %}<span aria-current="page" class="font-medium text-foreground">{{ crumb.label }}</span>
-        {% elif crumb.url %}<a href="{{ crumb.url }}">{{ crumb.label }}</a>
-        {% else %}<span>{{ crumb.label }}</span>{% endif %}
+      <li>
+        {% if forloop.last %}<span aria-current="page" class="breadcrumb-current" title="{{ crumb.label }}">{{ crumb.label }}</span>
+        {% elif crumb.url %}<a href="{{ crumb.url }}" class="breadcrumb-link">{% if forloop.first %}{% icon "house" %}<span class="sr-only">{{ crumb.label }}</span>{% else %}<span class="truncate" title="{{ crumb.label }}">{{ crumb.label }}</span>{% endif %}</a>
+        {% else %}<span class="breadcrumb-text">{{ crumb.label }}</span>{% endif %}
       </li>
-      {% if forloop.first and trail|length > 2 %}<li class="sm:hidden" aria-hidden="true">&hellip;</li>{% endif %}
     {% endfor %}
   </ol>
 </nav>
