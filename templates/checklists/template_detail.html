@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ template.name }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Checklist templates" "checklists:list" template.name %}{% endblock %}
+
+{% block page_header %}
+{% with sub=template.code|add:" · "|add:template.organization.name %}
+{% page_header title=template.name subtitle=sub icon="clipboard-list" status=template.status %}
+  {% if can_update and template.status != "archived" %}<a href="{% url 'checklists:builder' template.pk %}" class="btn btn-primary">{% icon "layout-list" %} Open builder</a>{% endif %}
+  {% if can_update and template.status != "archived" %}<a href="{% url 'checklists:edit' template.pk %}" class="btn btn-secondary">{% icon "pencil" %} Edit details</a>{% endif %}
+  {% if can_duplicate %}<a href="{% url 'checklists:duplicate' template.pk %}" class="btn btn-secondary">{% icon "copy" %} Duplicate</a>{% endif %}
+  {% if can_update and template.status == "draft" and published_exists %}
+    <form method="post" action="{% url 'checklists:status' template.pk %}">{% csrf_token %}<input type="hidden" name="action" value="activate"><button type="submit" class="btn btn-success">{% icon "power" %} Activate</button></form>
+  {% endif %}
+  {% if can_manage %}
+    {% if template.status == "archived" %}
+      <form method="post" action="{% url 'checklists:status' template.pk %}">{% csrf_token %}<input type="hidden" name="action" value="restore"><button type="submit" class="btn btn-secondary">{% icon "archive-restore" %} Restore</button></form>
+    {% else %}
+      <div x-data="confirmDialog">
+        <button type="button" class="btn btn-danger" @click="show">{% icon "archive" %} Archive</button>
+        <dialog x-ref="dialog" class="modal-dialog" @click="onBackdrop" @close="onClose" aria-labelledby="archive-title">
+          <form method="post" action="{% url 'checklists:status' template.pk %}" class="p-6">
+            {% csrf_token %}<input type="hidden" name="action" value="archive">
+            <h2 id="archive-title" class="text-lg font-semibold">Archive “{{ template.name }}”?</h2>
+            <p class="mt-2 text-sm text-muted-foreground">It stays available for history but no longer appears when choosing a checklist. Nothing is deleted; you can restore it later.</p>
+            <div class="mt-6 flex justify-end gap-2"><button type="button" class="btn btn-secondary" @click="hide">Cancel</button><button type="submit" class="btn btn-danger">Archive</button></div>
+          </form>
+        </dialog>
+      </div>
+    {% endif %}
+  {% endif %}
+{% endpage_header %}
+{% endwith %}
+{% endblock %}
+
+{% block content %}
+{% if template.status == "archived" %}
+  <div class="alert alert-warning mb-6" role="status">{% icon "archive" "md" %}<span>This checklist is <strong>archived</strong>. It is kept for reference and cannot be changed.</span></div>
+{% endif %}
+
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="min-w-0 space-y-6 lg:col-span-2" x-data="tabs">
+    {% include "components/navigation/tab_buttons.html" with tabs=detail_tabs label="Checklist sections" %}
+    <div role="tabpanel" id="panel-structure" data-tab-panel="structure" aria-labelledby="tab-structure">
+      {% if shown_version %}
+        <p class="mb-3 text-sm text-muted-foreground">Showing version {{ shown_version.version_number }} ({{ shown_version.get_status_display|lower }}).</p>
+      {% endif %}
+      {% include "checklists/_structure.html" with sections=sections %}
+    </div>
+    <div role="tabpanel" id="panel-versions" data-tab-panel="versions" aria-labelledby="tab-versions" hidden>
+      {% include "checklists/_versions_table.html" with versions=versions %}
+    </div>
+    <div role="tabpanel" id="panel-activity" data-tab-panel="activity" aria-labelledby="tab-activity" hidden>
+      <div class="card"><div class="card-body">{% include "components/activity_list.html" with entries=activity %}</div></div>
+    </div>
+  </div>
+
+  <div class="space-y-6">
+    <section class="card" aria-labelledby="about-title">
+      <div class="card-header"><h2 id="about-title" class="card-title">Details</h2></div>
+      <dl class="card-body grid gap-3 text-sm">
+        <div><dt class="text-muted-foreground">Code</dt><dd class="font-mono">{{ template.code }}</dd></div>
+        <div><dt class="text-muted-foreground">Category</dt><dd>{{ template.category.name|default:"—" }}</dd></div>
+        <div><dt class="text-muted-foreground">Current version</dt><dd>{% if template.latest_version_number %}v{{ template.latest_version_number }}{% if draft %} (draft in progress){% endif %}{% else %}—{% endif %}</dd></div>
+        <div><dt class="text-muted-foreground">Estimated duration</dt><dd>{% if template.estimated_duration_minutes %}{{ template.estimated_duration_minutes }} minutes{% else %}—{% endif %}</dd></div>
+        <div><dt class="text-muted-foreground">Created by</dt><dd>{{ template.created_by.get_short_name|default:"—" }}</dd></div>
+        <div><dt class="text-muted-foreground">Updated</dt><dd>{{ template.updated_at|date:"M d, Y H:i" }}</dd></div>
+        {% if template.description %}<div><dt class="text-muted-foreground">Description</dt><dd>{{ template.description|linebreaksbr }}</dd></div>{% endif %}
+        {% if template.instructions %}<div><dt class="text-muted-foreground">Instructions</dt><dd>{{ template.instructions|linebreaksbr }}</dd></div>{% endif %}
+      </dl>
+    </section>
+    {% if can_delete %}
+      <section class="card"><div class="card-body">
+        <form method="post" action="{% url 'checklists:status' template.pk %}">{% csrf_token %}<input type="hidden" name="action" value="delete">
+          <p class="mb-2 text-sm text-muted-foreground">This draft was never published, so it can be deleted.</p>
+          <button type="submit" class="btn btn-danger btn-sm">{% icon "trash-2" %} Delete draft</button>
+        </form>
+      </div></section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

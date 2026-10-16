@@ -1,3 +1,176 @@
-"""Checklist admin registrations (none in Phase 0)."""
+"""Checklist admin.  The builder UI is the primary authoring tool; the admin is for support and inspection.
+
+Published structure is read-only here too: sections, items, options and rules of a published version, and
+published versions themselves, cannot be edited or deleted from the admin (the model-level service rules
+cannot be bypassed by a form).  Exports are limited to organizations the staff member may see.
+"""
 
 from __future__ import annotations
+
+from django.contrib import admin
+from import_export import fields, resources
+from import_export.admin import ExportMixin
+from simple_history.admin import SimpleHistoryAdmin
+
+from apps.core.resources import FormulaSafeExportMixin
+
+from .constants import VersionStatus
+from .models import (
+    ChecklistCategory,
+    ChecklistItem,
+    ChecklistOption,
+    ChecklistRule,
+    ChecklistSection,
+    ChecklistTemplate,
+    ChecklistVersion,
+)
+
+
+class TemplateExportResource(FormulaSafeExportMixin, resources.ModelResource):
+    """Export-only: templates are created through the builder (services), never by file import."""
+
+    organization = fields.Field(attribute="organization__code", column_name="organization")
+    category = fields.Field(attribute="category__name", column_name="category")
+
+    class Meta:
+        model = ChecklistTemplate
+        fields = ("organization", "code", "name", "category", "status", "description", "estimated_duration_minutes")
+        export_order = fields
+
+    def before_import(self, dataset, **kwargs):  # noqa: ANN001, ANN003
+        raise PermissionError("Checklist templates cannot be imported here; use the builder or the items import.")
+
+
+def _published(obj) -> bool:  # noqa: ANN001
+    version = (
+        getattr(obj, "version", None) or getattr(getattr(obj, "section", None), "version", None)
+        or getattr(getattr(getattr(obj, "item", None), "section", None), "version", None)
+    )
+    return bool(version and version.status == VersionStatus.PUBLISHED)
+
+
+class _FrozenWhenPublished:
+    """Mixin: no change/delete of anything that belongs to a published version."""
+
+    def has_change_permission(self, request, obj=None) -> bool:  # noqa: ANN001
+        return not (obj is not None and _published(obj)) and super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None) -> bool:  # noqa: ANN001
+        return not (obj is not None and _published(obj)) and super().has_delete_permission(request, obj)
+
+
+@admin.register(ChecklistCategory)
+class ChecklistCategoryAdmin(SimpleHistoryAdmin):
+    list_display = ("name", "organization", "sort_order")
+    list_filter = ("organization",)
+    search_fields = ("name",)
+    autocomplete_fields = ("organization",)
+
+
+class VersionInline(admin.TabularInline):
+    model = ChecklistVersion
+    extra = 0
+    fields = ("version_number", "status", "change_summary", "published_at")
+    readonly_fields = fields
+    can_delete = False
+    show_change_link = True
+
+    def has_add_permission(self, request, obj=None) -> bool:  # noqa: ANN001
+        return False
+
+
+@admin.register(ChecklistTemplate)
+class ChecklistTemplateAdmin(ExportMixin, SimpleHistoryAdmin):
+    resource_classes = [TemplateExportResource]
+    list_display = ("code", "name", "organization", "category", "status", "updated_at")
+    list_filter = ("status", "organization", "category")
+    search_fields = ("code", "name", "description")
+    autocomplete_fields = ("organization",)
+    readonly_fields = ("id", "slug", "created_by", "updated_by", "created_at", "updated_at")
+    inlines = [VersionInline]
+
+    def get_readonly_fields(self, request, obj=None):  # noqa: ANN001, ANN201
+        fields_ = list(super().get_readonly_fields(request, obj))
+        return fields_ + (["organization", "code"] if obj is not None else [])  # identity never changes
+
+    def has_delete_permission(self, request, obj=None) -> bool:  # noqa: ANN001
+        return False  # archive instead (later phases reference templates)
+
+    def get_export_queryset(self, request):  # noqa: ANN001, ANN201
+        """Exports start from the same authorized selector as every other channel."""
+        from . import selectors
+
+        return selectors.templates_for_user(request.user).order_by("organization__code", "code")
+
+
+class SectionInline(admin.TabularInline):
+    model = ChecklistSection
+    extra = 0
+    fields = ("sort_order", "name", "is_required")
+    show_change_link = True
+
+    def has_add_permission(self, request, obj=None) -> bool:  # noqa: ANN001
+        return obj is not None and obj.status == VersionStatus.DRAFT
+
+    def has_change_permission(self, request, obj=None) -> bool:  # noqa: ANN001
+        return obj is not None and obj.status == VersionStatus.DRAFT
+
+    def has_delete_permission(self, request, obj=None) -> bool:  # noqa: ANN001
+        return obj is not None and obj.status == VersionStatus.DRAFT
+
+
+@admin.register(ChecklistVersion)
+class ChecklistVersionAdmin(SimpleHistoryAdmin):
+    list_display = ("__str__", "status", "published_at", "created_at")
+    list_filter = ("status",)
+    search_fields = ("template__code", "template__name")
+    readonly_fields = ("id", "template", "version_number", "status", "published_at", "created_by", "created_at", "updated_at")
+    inlines = [SectionInline]
+
+    def has_add_permission(self, request) -> bool:  # noqa: ANN001
+        return False
+
+    def has_delete_permission(self, request, obj=None) -> bool:  # noqa: ANN001
+        return False
+
+
+class ItemInline(admin.TabularInline):
+    model = ChecklistItem
+    extra = 0
+    fields = ("sort_order", "code", "question", "answer_type", "is_required", "is_active")
+    show_change_link = True
+
+
+@admin.register(ChecklistSection)
+class ChecklistSectionAdmin(_FrozenWhenPublished, SimpleHistoryAdmin):
+    list_display = ("name", "version", "sort_order", "is_required")
+    search_fields = ("name", "version__template__code")
+    list_select_related = ("version__template",)
+    inlines = [ItemInline]
+
+
+class OptionInline(admin.TabularInline):
+    model = ChecklistOption
+    extra = 0
+    fields = ("sort_order", "value", "label", "is_active")
+
+
+@admin.register(ChecklistItem)
+class ChecklistItemAdmin(_FrozenWhenPublished, SimpleHistoryAdmin):
+    list_display = ("code", "question", "answer_type", "section", "is_required", "is_active")
+    list_filter = ("answer_type", "is_required", "is_active")
+    search_fields = ("code", "question", "section__version__template__code")
+    list_select_related = ("section__version__template",)
+    inlines = [OptionInline]
+
+
+@admin.register(ChecklistOption)
+class ChecklistOptionAdmin(_FrozenWhenPublished, SimpleHistoryAdmin):
+    list_display = ("label", "value", "item", "sort_order", "is_active")
+    search_fields = ("label", "value", "item__code")
+
+
+@admin.register(ChecklistRule)
+class ChecklistRuleAdmin(_FrozenWhenPublished, SimpleHistoryAdmin):
+    list_display = ("source_item", "operator", "action", "is_active")
+    list_filter = ("operator", "action", "is_active")

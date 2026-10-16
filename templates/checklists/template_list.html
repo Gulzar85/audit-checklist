@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load django_tables2 ui %}
+{% block title %}Checklist templates &middot; {{ APP_NAME }}{% endblock %}
+
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Checklist templates" %}{% endblock %}
+
+{% block page_header %}
+{% page_header title="Checklist templates" subtitle="Reusable checklist definitions. Each template has versions; a published version never changes." icon="clipboard-list" %}
+  {% if can_create %}<a href="{% url 'checklists:create' %}" class="btn btn-primary">{% icon "plus" %} Create template</a>{% endif %}
+{% endpage_header %}
+{% endblock %}
+
+{% block content %}
+<div class="card mb-6">
+  {% include "components/filter_bar.html" with filter=filter reset_url=request.path hidden=hidden_filters %}
+</div>
+
+<div class="card">
+  {% if table.rows %}
+    {% render_table table %}
+  {% else %}
+    {% url "checklists:create" as create_url %}
+    {% if can_create %}{% include "components/states/empty.html" with icon="clipboard-list" title="No checklist templates found" message="Create your first checklist template, or adjust the filters." action_url=create_url action_label="Create template" %}{% else %}{% include "components/states/empty.html" with icon="clipboard-list" title="No checklist templates found" message="Nothing matches the current filters." %}{% endif %}
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags ui %}
+{% block title %}{% if template %}Edit {{ template.name }}{% else %}Create template{% endif %} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-narrow{% endblock %}
+
+{% block breadcrumbs %}{% if template %}{% url 'checklists:detail' template.pk as crumb_url %}{% breadcrumbs "Home" "core:home" "Checklist templates" "checklists:list" template.name crumb_url "Edit" %}{% else %}{% breadcrumbs "Home" "core:home" "Checklist templates" "checklists:list" "Create" %}{% endif %}{% endblock %}
+
+{% block page_header %}{% if template %}{% page_header title="Edit checklist" subtitle="Change the description and guidance. The code is permanent." icon="clipboard-list" %}{% endpage_header %}{% else %}{% page_header title="Create checklist template" subtitle="Define the checklist first; add sections and items in the builder." icon="clipboard-plus" %}{% endpage_header %}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="card">
+  <form method="post" novalidate x-data="formGuard" @submit="onSubmit" @input="markDirty" @beforeunload.window="warn" @pageshow.window="reset">
+    <div class="card-body">
+      {% csrf_token %}
+      {% include "tailwind/errors.html" %}
+      <fieldset>
+        <legend class="form-section-title w-full">Basics</legend>
+        <div class="grid gap-x-6 sm:grid-cols-2">
+          <div class="sm:col-span-2">{{ form.organization|as_crispy_field }}</div>
+          <div>{{ form.name|as_crispy_field }}</div>
+          <div>{{ form.code|as_crispy_field }}</div>
+          <div>{{ form.category|as_crispy_field }}</div>
+          <div>{{ form.new_category|as_crispy_field }}</div>
+          <div>{{ form.estimated_duration_minutes|as_crispy_field }}</div>
+        </div>
+      </fieldset>
+      <fieldset class="mt-8">
+        <legend class="form-section-title w-full">Description and guidance</legend>
+        {{ form.description|as_crispy_field }}
+        {{ form.instructions|as_crispy_field }}
+      </fieldset>
+    </div>
+    <div class="card-footer">
+      {% if template %}{% url 'checklists:detail' template.pk as cancel_url %}{% else %}{% url 'checklists:list' as cancel_url %}{% endif %}
+      {% include "components/forms/actions.html" with submit_label="Save" submit_icon="save" cancel_url=cancel_url %}
+    </div>
+  </form>
+</div>
+{% endblock %}

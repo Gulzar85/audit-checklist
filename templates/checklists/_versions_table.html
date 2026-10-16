@@ -1,0 +1,20 @@
+{# Params: versions. #}
+{% load ui %}
+<div class="card">
+  <div class="table-wrap overflow-x-auto">
+    <table class="table table-stack" aria-label="Versions">
+      <thead><tr><th scope="col">Version</th><th scope="col">Status</th><th scope="col">Summary</th><th scope="col">Created</th><th scope="col" class="text-right">Actions</th></tr></thead>
+      <tbody>
+        {% for version in versions %}
+          <tr>
+            <td data-label="Version" class="font-medium">v{{ version.version_number }}</td>
+            <td data-label="Status">{% status_badge version.status %}</td>
+            <td data-label="Summary">{{ version.change_summary|default:"—" }}</td>
+            <td data-label="Created">{{ version.created_at|date:"M d, Y" }}{% if version.created_by %} · {{ version.created_by.get_short_name }}{% endif %}</td>
+            <td data-label="Actions" class="text-right"><div class="flex justify-end gap-0.5">{% url 'checklists:version_detail' version.template_id version.version_number as vurl %}{% row_action "View structure" "eye" href=vurl subject=version.version_number %}</div></td>
+          </tr>
+        {% empty %}<tr><td colspan="5">No versions yet.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ template.code }} v{{ version.version_number }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+
+{% block breadcrumbs %}{% url 'checklists:detail' template.pk as c1 %}{% url 'checklists:versions' template.pk as c2 %}{% breadcrumbs "Home" "core:home" "Checklist templates" "checklists:list" template.name c1 "Versions" c2 "Version" %}{% endblock %}
+
+{% block page_header %}
+{% with sub=version.change_summary|default:"Read-only snapshot of this version's structure." %}
+{% page_header title=version_label subtitle=sub icon="history" status=version.status %}
+  {% if can_edit %}<a href="{% url 'checklists:builder' template.pk %}" class="btn btn-primary">{% icon "layout-list" %} Open builder</a>{% endif %}
+{% endpage_header %}
+{% endwith %}
+{% endblock %}
+
+{% block content %}
+{% if not version.is_draft %}<div class="alert alert-info mb-6" role="status">{% icon "lock" "md" %}<span>Published {{ version.published_at|date:"M d, Y H:i" }}. This version is immutable.</span></div>{% endif %}
+{% include "checklists/_structure.html" with sections=sections %}
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Versions of {{ template.name }} &middot; {{ APP_NAME }}{% endblock %}
+
+{% block breadcrumbs %}{% url 'checklists:detail' template.pk as crumb_url %}{% breadcrumbs "Home" "core:home" "Checklist templates" "checklists:list" template.name crumb_url "Versions" %}{% endblock %}
+
+{% block page_header %}{% page_header title="Versions" subtitle="A published version is frozen. Changes go into a new draft version." icon="history" %}{% endpage_header %}{% endblock %}
+
+{% block content %}
+{% if can_create_version %}
+  <form method="post" action="{% url 'checklists:version_new' template.pk %}" class="card mb-6">
+    {% csrf_token %}
+    <div class="card-body flex flex-wrap items-end gap-3">
+      <div class="w-full sm:w-96"><label class="label" for="change_summary">What will change?</label><input id="change_summary" name="change_summary" class="input" maxlength="300" placeholder="Optional summary"></div>
+      <button type="submit" class="btn btn-primary">{% icon "git-branch-plus" %} New draft version</button>
+    </div>
+  </form>
+{% endif %}
+{% include "checklists/_versions_table.html" with versions=versions %}
+{% endblock %}

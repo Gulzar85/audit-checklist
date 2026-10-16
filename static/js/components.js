@@ -820,4 +820,19 @@ document.addEventListener("alpine:init", function () {
         this.needsLocation = !!select && select.value !== "organization";
       },
     };
+  });  /* Checklist item editor: show the configuration fieldsets that apply to the selected answer type.
+   * Without JavaScript every fieldset stays visible and the server validates whatever is posted. */
+  Alpine.data("answerType", function () {
+    return {
+      init: function () {
+        this.onChange();
+      },
+      onChange: function () {
+        var select = this.$root.querySelector('[name="answer_type"]');
+        var type = select ? select.value : "";
+        this.$root.querySelectorAll("[data-for]").forEach(function (el) {
+          el.hidden = el.getAttribute("data-for").split(" ").indexOf(type) === -1;
+        });
+      },
+    };
   });});

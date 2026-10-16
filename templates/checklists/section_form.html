@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags ui %}
+{% block title %}{% if section %}Edit section{% else %}Add section{% endif %} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-narrow{% endblock %}
+
+{% block breadcrumbs %}{% url 'checklists:detail' template.pk as c1 %}{% url 'checklists:builder' template.pk as c2 %}{% breadcrumbs "Home" "core:home" "Checklist templates" "checklists:list" template.name c1 "Builder" c2 "Section" %}{% endblock %}
+
+{% block page_header %}{% page_header title="Section" subtitle="A titled group of related items." icon="layout-list" %}{% endpage_header %}{% endblock %}
+
+{% block content %}
+<div class="card">
+  <form method="post" novalidate x-data="formGuard" @submit="onSubmit" @input="markDirty" @pageshow.window="reset">
+    <div class="card-body">
+      {% csrf_token %}
+      {% include "tailwind/errors.html" %}
+      {{ form.name|as_crispy_field }}
+      {{ form.description|as_crispy_field }}
+      {{ form.instructions|as_crispy_field }}
+      {{ form.is_required|as_crispy_field }}
+    </div>
+    <div class="card-footer">
+      {% url 'checklists:builder' template.pk as cancel_url %}
+      {% include "components/forms/actions.html" with submit_label="Save section" submit_icon="save" cancel_url=cancel_url %}
+    </div>
+  </form>
+</div>
+{% endblock %}

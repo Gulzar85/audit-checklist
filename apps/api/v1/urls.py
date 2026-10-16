@@ -5,6 +5,7 @@ from __future__ import annotations
 from django.urls import include, path
 from rest_framework.routers import SimpleRouter
 
+from .checklists import ChecklistViewSet
 from .access import MemberViewSet, MyAccessView, PermissionListView, RoleViewSet
 from .locations import LocationTypeViewSet, LocationViewSet
 from .identity import MePreferencesView, MeView, UserViewSet
@@ -22,6 +23,7 @@ router.register("locations", LocationViewSet, basename="location")
 router.register("themes", ThemeViewSet, basename="theme")
 router.register("users", UserViewSet, basename="user")
 router.register("roles", RoleViewSet, basename="role")
+router.register("checklists", ChecklistViewSet, basename="checklist")
 router.register("members", MemberViewSet, basename="member")
 
 urlpatterns = [

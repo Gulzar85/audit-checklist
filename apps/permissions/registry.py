@@ -91,10 +91,13 @@ REGISTRY: tuple[PermissionDef, ...] = (
     _p("role", "delete", "Delete custom roles", org_wide_only=True),
     _p("role", "manage", "Manage roles and permission assignment", org_wide_only=True),
     # Reserved for later phases: the authorization contract exists before the modules do.
-    _p("checklist", "view", "View checklists"),
-    _p("checklist", "create", "Create checklists"),
-    _p("checklist", "update", "Edit checklists"),
-    _p("checklist", "publish", "Publish checklists"),
+    # Checklist *definitions* belong to the organization (not to a location), so they are org-wide.
+    _p("checklist", "view", "View checklist templates", legacy="checklists.view_checklisttemplate", org_wide_only=True),
+    _p("checklist", "create", "Create and duplicate checklist templates", legacy="checklists.add_checklisttemplate", org_wide_only=True),
+    _p("checklist", "update", "Edit checklist templates and their draft structure", legacy="checklists.change_checklisttemplate", org_wide_only=True),
+    _p("checklist", "publish", "Publish checklist versions", org_wide_only=True),
+    _p("checklist", "delete", "Delete unused draft checklist templates", legacy="checklists.delete_checklisttemplate", org_wide_only=True),
+    _p("checklist", "manage", "Archive and restore checklist templates, manage categories", org_wide_only=True),
     _p("execution", "view", "View checklist executions"),
     _p("execution", "create", "Start checklist executions"),
     _p("execution", "update", "Continue checklist executions"),
@@ -162,7 +165,7 @@ SYSTEM_ROLES: dict[str, tuple[str, str, tuple[str, ...]]] = {
         "QA Manager",
         "Oversees quality across the organization; read access plus location upkeep.",
         (*_VIEW_ALL, P.LOCATION_CREATE, P.LOCATION_UPDATE, P.LOCATION_MOVE, P.AUDIT_LOG_VIEW,
-         P.CHECKLIST_CREATE, P.CHECKLIST_UPDATE, P.CHECKLIST_PUBLISH, P.FINDING_CREATE, P.FINDING_UPDATE,
+         P.CHECKLIST_CREATE, P.CHECKLIST_UPDATE, P.CHECKLIST_PUBLISH, P.CHECKLIST_MANAGE, P.FINDING_CREATE, P.FINDING_UPDATE,
          P.FINDING_CLOSE, P.CORRECTIVE_ACTION_CREATE, P.CORRECTIVE_ACTION_ASSIGN, P.CORRECTIVE_ACTION_VERIFY),
     ),
     "auditor": (

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags ui %}
+{% block title %}{% if item %}Edit item{% else %}Add item{% endif %} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-narrow{% endblock %}
+
+{% block breadcrumbs %}{% url 'checklists:detail' template.pk as c1 %}{% url 'checklists:builder' template.pk as c2 %}{% breadcrumbs "Home" "core:home" "Checklist templates" "checklists:list" template.name c1 "Builder" c2 section.name %}{% endblock %}
+
+{% block page_header %}{% with sub="In section “"|add:section.name|add:"”." %}{% if item %}{% page_header title="Edit item" subtitle=sub icon="list-checks" %}{% endpage_header %}{% else %}{% page_header title="Add item" subtitle=sub icon="list-plus" %}{% endpage_header %}{% endif %}{% endwith %}{% endblock %}
+
+{% block content %}
+<div class="card">
+  <form method="post" novalidate x-data="formGuard" @submit="onSubmit" @input="markDirty" @pageshow.window="reset">
+    <div class="card-body" x-data="answerType">
+      {% csrf_token %}
+      {% include "tailwind/errors.html" %}
+      {{ form.question|as_crispy_field }}
+      <div class="grid gap-x-6 sm:grid-cols-2">
+        <div>{{ form.code|as_crispy_field }}</div>
+        <div data-answer-type-field @change="onChange">{{ form.answer_type|as_crispy_field }}</div>
+      </div>
+      <div class="flex flex-wrap gap-x-8">
+        <div class="min-w-[9rem]">{{ form.is_required|as_crispy_field }}</div>
+        <div class="min-w-[9rem]">{{ form.is_active|as_crispy_field }}</div>
+      </div>
+
+      {# Type-specific configuration: shown for the selected type, always validated on the server. #}
+      <fieldset class="mt-4 rounded-lg border border-border p-4" data-for="score">
+        <legend class="px-1 text-sm font-semibold">Score range</legend>
+        <div class="grid gap-x-6 sm:grid-cols-2"><div>{{ form.score_min|as_crispy_field }}</div><div>{{ form.score_max|as_crispy_field }}</div></div>
+        <p class="help-text">Leave blank for 1–5. The scoring engine (a later phase) interprets this range.</p>
+      </fieldset>
+      <fieldset class="mt-4 rounded-lg border border-border p-4" data-for="numeric">
+        <legend class="px-1 text-sm font-semibold">Numeric settings</legend>
+        <div class="grid gap-x-6 sm:grid-cols-2"><div>{{ form.numeric_min|as_crispy_field }}</div><div>{{ form.numeric_max|as_crispy_field }}</div><div>{{ form.numeric_unit|as_crispy_field }}</div><div>{{ form.numeric_decimals|as_crispy_field }}</div></div>
+      </fieldset>
+      <fieldset class="mt-4 rounded-lg border border-border p-4" data-for="text long_text">
+        <legend class="px-1 text-sm font-semibold">Text settings</legend>
+        {{ form.max_length|as_crispy_field }}
+      </fieldset>
+      <fieldset class="mt-4 rounded-lg border border-border p-4" data-for="matrix">
+        <legend class="px-1 text-sm font-semibold">Matrix</legend>
+        <div class="grid gap-x-6 sm:grid-cols-2"><div>{{ form.matrix_rows|as_crispy_field }}</div><div>{{ form.matrix_columns|as_crispy_field }}</div></div>
+      </fieldset>
+      <p class="mt-4 rounded-lg bg-muted p-3 text-sm text-muted-foreground" data-for="single_choice multiple_choice">{% if item %}Add the choices below, after saving.{% else %}Save the item first, then add its choices.{% endif %}</p>
+
+      <fieldset class="mt-6">
+        <legend class="form-section-title w-full">Guidance</legend>
+        {{ form.description|as_crispy_field }}
+        {{ form.help_text|as_crispy_field }}
+        {{ form.instructions|as_crispy_field }}
+      </fieldset>
+    </div>
+    <div class="card-footer">
+      {% url 'checklists:builder' template.pk as cancel_url %}
+      {% include "components/forms/actions.html" with submit_label="Save item" submit_icon="save" cancel_url=cancel_url %}
+    </div>
+  </form>
+</div>
+
+{% if item and options or item and custom_options %}
+  <section class="card mt-6" aria-labelledby="options-title">
+    <div class="card-header"><h2 id="options-title" class="card-title">Options</h2>{% if fixed_options %}{% tone_badge "Fixed by the answer type" "neutral" icon="lock" %}{% endif %}</div>
+    <ul class="divide-y divide-border">
+      {% for option in options %}
+        <li class="flex flex-wrap items-center justify-between gap-2 px-5 py-3">
+          {% if custom_options %}
+            <form method="post" action="{% url 'checklists:option_edit' template.pk item.pk option.pk %}" class="flex min-w-0 flex-1 items-center gap-2">
+              {% csrf_token %}
+              <label class="sr-only" for="opt-{{ option.pk }}">Label of option {{ forloop.counter }}</label>
+              <input id="opt-{{ option.pk }}" name="label" class="input" value="{{ option.label }}" maxlength="200">
+              <button type="submit" class="btn btn-secondary btn-sm">Rename</button>
+            </form>
+            <span class="flex items-center">
+              {% url 'checklists:option_move' template.pk item.pk option.pk as omove %}
+              {% if not forloop.first %}{% row_action "Move up" "arrow-up" post_url=omove subject=option.label field_name="direction" field_value="up" %}{% endif %}
+              {% if not forloop.last %}{% row_action "Move down" "arrow-down" post_url=omove subject=option.label field_name="direction" field_value="down" %}{% endif %}
+              {% url 'checklists:option_delete' template.pk item.pk option.pk as odel %}{% row_action "Delete option" "trash-2" post_url=odel subject=option.label tone="danger" %}
+            </span>
+          {% else %}
+            <span>{{ option.label }} <span class="font-mono text-xs text-muted-foreground">({{ option.value }})</span></span>
+          {% endif %}
+        </li>
+      {% empty %}
+        <li class="px-5 py-4 text-sm text-muted-foreground">No options yet. Add at least two.</li>
+      {% endfor %}
+    </ul>
+    {% if custom_options %}
+      <form method="post" action="{% url 'checklists:option_add' template.pk item.pk %}" class="card-footer flex flex-wrap items-end gap-2">
+        {% csrf_token %}
+        <div class="w-full sm:w-80"><label class="label" for="new-option">New option</label><input id="new-option" name="label" class="input" maxlength="200" placeholder="e.g. Excellent"></div>
+        <button type="submit" class="btn btn-primary">{% icon "plus" %} Add option</button>
+      </form>
+    {% endif %}
+  </section>
+{% endif %}
+{% endblock %}

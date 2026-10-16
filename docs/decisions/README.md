@@ -49,3 +49,4 @@ consequences. New records are appended; existing ones are superseded, not edited
 | [0042](0042-layered-authorization-model.md) | Layered authorization: membership, role, scope | Accepted |
 | [0043](0043-policies-escalation-and-404-403.md) | Policies, no escalation, and the 404 / 403 rule | Accepted |
 | [0044](0044-rbac-permission-cache.md) | RBAC grant cache | Accepted |
+| [0045](0045-generic-checklist-definition-model.md) | A generic, versioned checklist definition model | Accepted |

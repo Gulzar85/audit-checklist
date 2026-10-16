@@ -12,6 +12,12 @@
 | Manage membership status | membership.manage | organization (never yourself) |
 | Roles | role.view/create/update/deactivate | organization; may not exceed your own permissions |
 | Assign role | role.assign | target scope; role permissions must be held at that scope |
+| View checklist templates | checklist.view | organization |
+| Create / duplicate template | checklist.create | organization |
+| Edit template and draft structure | checklist.update | organization; version must be a draft |
+| Publish a version | checklist.publish | organization |
+| Archive / restore | checklist.manage | organization |
+| Delete an unpublished draft | checklist.delete | organization |
 | Themes / audit log | theme.*, audit_log.view | organization |
 
 Platform operations (create/suspend organizations, user lifecycle) remain with platform staff.

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Builder · {{ template.name }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+
+{% block breadcrumbs %}{% url 'checklists:detail' template.pk as crumb_url %}{% breadcrumbs "Home" "core:home" "Checklist templates" "checklists:list" template.name crumb_url "Builder" %}{% endblock %}
+
+{% block page_header %}
+{% with sub=template.code|add:" · "|add:template.organization.name %}
+{% page_header title="Checklist builder" subtitle=sub icon="layout-list" status="draft" status_label="Draft" %}
+  <a href="{% url 'checklists:detail' template.pk %}" class="btn btn-secondary">{% icon "eye" %} Overview</a>
+  {% if can_publish %}
+    <div x-data="confirmDialog">
+      <button type="button" class="btn btn-primary" @click="show" {% if problems %}aria-describedby="publish-problems"{% endif %}>{% icon "send" %} Publish version</button>
+      <dialog x-ref="dialog" class="modal-dialog" @click="onBackdrop" @close="onClose" aria-labelledby="publish-title">
+        <form method="post" action="{% url 'checklists:version_publish' template.pk draft.version_number %}" class="p-6">
+          {% csrf_token %}
+          <h2 id="publish-title" class="text-lg font-semibold">Publish version {{ draft.version_number }}?</h2>
+          <p class="mt-2 text-sm text-muted-foreground">A published version is frozen: it can no longer be edited. Later changes go into a new draft version.</p>
+          {% if problems %}<ul class="alert alert-warning mt-4 list-disc pl-6" role="alert">{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul>{% endif %}
+          <label class="label mt-4" for="publish-summary">Change summary</label>
+          <input id="publish-summary" name="change_summary" class="input" maxlength="300" value="{{ draft.change_summary }}">
+          <div class="mt-6 flex justify-end gap-2"><button type="button" class="btn btn-secondary" @click="hide">Cancel</button><button type="submit" class="btn btn-primary" {% if problems %}disabled{% endif %}>Publish</button></div>
+        </form>
+      </dialog>
+    </div>
+  {% endif %}
+{% endpage_header %}
+{% endwith %}
+{% endblock %}
+
+{% block content %}
+{% if not draft %}
+  <div class="card"><div class="card-body">
+    {% include "components/states/empty.html" with icon="lock" title="No draft version" message="Every version is published and frozen. Start a new draft version (a copy of the latest) to make changes." %}
+    {% if can_create_version %}
+      <form method="post" action="{% url 'checklists:version_new' template.pk %}" class="mx-auto mt-2 flex max-w-lg flex-wrap items-end justify-center gap-3">
+        {% csrf_token %}
+        <div class="w-full"><label class="label" for="change_summary">What will change?</label><input id="change_summary" name="change_summary" class="input" maxlength="300"></div>
+        <button type="submit" class="btn btn-primary">{% icon "git-branch-plus" %} New draft version</button>
+      </form>
+    {% endif %}
+  </div></div>
+{% else %}
+  <p class="mb-4 text-sm text-muted-foreground">Editing <strong>draft version {{ draft.version_number }}</strong>{% if latest_published %} (copied from v{{ latest_published.version_number }}, which is frozen){% endif %}. Changes save immediately.</p>
+
+  {% for section in sections %}
+    <section class="card mb-6" aria-labelledby="sec-{{ section.pk }}">
+      <div class="card-header flex-wrap">
+        <div class="min-w-0">
+          <h2 id="sec-{{ section.pk }}" class="card-title">{{ forloop.counter }}. {{ section.name }}</h2>
+          {% if section.description %}<p class="text-sm text-muted-foreground">{{ section.description }}</p>{% endif %}
+        </div>
+        <div class="flex items-center gap-0.5">
+          {% if not section.is_required %}{% tone_badge "Optional" "neutral" %}{% endif %}
+          {% url 'checklists:section_move' template.pk section.pk as move_url %}
+          {% if not forloop.first %}{% row_action "Move up" "arrow-up" post_url=move_url subject=section.name field_name="direction" field_value="up" %}{% endif %}
+          {% if not forloop.last %}{% row_action "Move down" "arrow-down" post_url=move_url subject=section.name field_name="direction" field_value="down" %}{% endif %}
+          {% url 'checklists:section_edit' template.pk section.pk as edit_url %}{% row_action "Edit section" "pencil" href=edit_url subject=section.name %}
+          <div x-data="confirmDialog" class="inline-block">
+            <button type="button" class="btn btn-ghost btn-icon btn-sm" @click="show" aria-label="Delete section {{ section.name }}">{% icon "trash-2" %}</button>
+            <dialog x-ref="dialog" class="modal-dialog" @click="onBackdrop" @close="onClose" aria-labelledby="del-{{ section.pk }}">
+              <form method="post" action="{% url 'checklists:section_delete' template.pk section.pk %}" class="p-6">
+                {% csrf_token %}
+                <h2 id="del-{{ section.pk }}" class="text-lg font-semibold">Remove “{{ section.name }}”?</h2>
+                <p class="mt-2 text-sm text-muted-foreground">Its {{ section.items.all|length }} item{{ section.items.all|length|pluralize }} will be removed from this draft. Published versions are not affected.</p>
+                <div class="mt-6 flex justify-end gap-2"><button type="button" class="btn btn-secondary" @click="hide">Cancel</button><button type="submit" class="btn btn-danger">Remove</button></div>
+              </form>
+            </dialog>
+          </div>
+        </div>
+      </div>
+      <ol class="divide-y divide-border">
+        {% for item in section.items.all %}
+          <li class="flex flex-wrap items-center justify-between gap-2 px-5 py-3">
+            <div class="min-w-0">
+              <p class="font-medium">{{ forloop.parentloop.counter }}.{{ forloop.counter }} {{ item.question }}</p>
+              <p class="text-xs text-muted-foreground"><span class="font-mono">{{ item.code }}</span>{% if item.options.all %} · {{ item.options.all|length }} options{% endif %}</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-1">
+              {% tone_badge item.get_answer_type_display "info" %}
+              {% if item.is_required %}{% tone_badge "Required" "neutral" icon="asterisk" %}{% endif %}
+              {% if not item.is_active %}{% status_badge "inactive" %}{% endif %}
+              <span class="flex items-center">
+                {% url 'checklists:item_move' template.pk item.pk as imove %}
+                {% if not forloop.first %}{% row_action "Move up" "arrow-up" post_url=imove subject=item.code field_name="direction" field_value="up" %}{% endif %}
+                {% if not forloop.last %}{% row_action "Move down" "arrow-down" post_url=imove subject=item.code field_name="direction" field_value="down" %}{% endif %}
+                {% url 'checklists:item_edit' template.pk item.pk as iedit %}{% row_action "Edit item" "pencil" href=iedit subject=item.code %}
+                {% url 'checklists:item_delete' template.pk item.pk as idel %}{% row_action "Delete item" "trash-2" post_url=idel subject=item.code tone="danger" %}
+              </span>
+            </div>
+          </li>
+        {% empty %}
+          <li class="px-5 py-4 text-sm text-muted-foreground">No items yet.</li>
+        {% endfor %}
+      </ol>
+      <div class="card-footer"><a href="{% url 'checklists:item_new' template.pk section.pk %}" class="btn btn-secondary btn-sm">{% icon "plus" %} Add item</a></div>
+    </section>
+  {% empty %}
+    <div class="card mb-6"><div class="card-body">{% include "components/states/empty.html" with icon="layout-list" title="No sections yet" message="Sections group related items, for example “Personal hygiene” or “Food storage”." %}</div></div>
+  {% endfor %}
+
+  <a href="{% url 'checklists:section_new' template.pk %}" class="btn btn-primary">{% icon "plus" %} Add section</a>
+{% endif %}
+{% endblock %}
