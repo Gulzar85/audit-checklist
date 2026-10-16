@@ -263,6 +263,11 @@ class MemberAssignRoleView(MembershipObjectMixin, View):
             raise PermissionDenied
         form = AssignRoleForm(request.POST, membership=membership, actor=request.user)
         if not form.is_valid():
+            from apps.core.utils import parse_uuid
+
+            offered = parse_uuid(form.data.get("role"))
+            if "role" in form.errors and offered and form.all_roles.filter(pk=offered).exists():
+                form.denied = True  # a real role this actor is not allowed to hand out
             if form.denied:  # a forged role/scope the actor may not grant: 403, not a form error
                 raise PermissionDenied
             for errors in form.errors.values():

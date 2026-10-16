@@ -284,6 +284,7 @@
 
   /* --- Tables ----------------------------------------------------------- */
   .table-wrap {
+    position: relative; /* contains absolutely-positioned .sr-only text so it cannot widen the page */
     border-radius: var(--table-radius);
   }
   .table {
@@ -321,31 +322,46 @@
   .breadcrumbs {
     @apply text-sm text-muted-foreground;
   }
-  .breadcrumbs ol {
-    @apply flex-wrap items-center gap-0.5;
+  .breadcrumb-trail {
+    @apply flex-wrap items-center gap-y-1;
   }
   .breadcrumbs li {
     @apply flex min-w-0 items-center;
   }
-  .breadcrumbs li:not(:last-child)::after {
-    content: "\203A";
-    @apply mx-1 text-base leading-none text-muted-foreground;
+  .breadcrumb-sep {
+    @apply mx-0.5 inline-flex text-muted-foreground opacity-60;
   }
   .breadcrumb-link,
   .breadcrumb-back {
-    @apply inline-flex max-w-[16rem] items-center gap-1.5 rounded-md px-1.5 py-1 text-link;
+    @apply inline-flex max-w-[16rem] items-center gap-1.5 rounded-full px-2.5 py-1 font-medium
+      text-muted-foreground transition-colors;
   }
   .breadcrumb-link:hover,
   .breadcrumb-back:hover {
-    @apply bg-muted no-underline;
+    @apply bg-muted text-foreground no-underline;
+  }
+  .breadcrumb-home {
+    @apply h-7 w-7 justify-center rounded-full bg-muted px-0 py-0 text-foreground;
+  }
+  .breadcrumb-home:hover {
+    background-color: color-mix(in srgb, var(--color-primary) 14%, var(--color-surface));
+    color: var(--color-link);
+  }
+  .breadcrumb-back {
+    @apply border border-border bg-surface;
   }
   .breadcrumb-current {
-    @apply max-w-[22rem] truncate rounded-md px-1.5 py-1 font-medium text-foreground;
+    @apply max-w-[22rem] truncate rounded-full px-3 py-1 font-semibold;
+    color: var(--color-link);
+    background-color: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
   }
   .breadcrumb-text {
-    @apply px-1.5 py-1;
+    @apply px-2.5 py-1;
   }
-
+  .breadcrumbs a.breadcrumb-link,
+  .breadcrumbs a.breadcrumb-back {
+    color: inherit;
+  }
   /* --- Empty / loading states ------------------------------------------ */
   .empty-state {
     @apply flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed

@@ -1,19 +1,20 @@
 {% comment %}
 Breadcrumbs: `{% breadcrumbs "Home" "core:home" "Organizations" "organizations:list" "Acme" %}`.
-The last item is the current page.  The first item is shown as a home icon (its label stays for screen
-readers).  On phones the trail collapses to one "Back to <parent>" link, so it never wraps or truncates
-awkwardly; from `sm` up the full trail shows, with long labels truncated (full text in the tooltip).
+The last item is the current page (a tinted pill).  The first is a home icon (its label stays for screen
+readers).  Separators are chevron icons.  On phones the trail collapses to one "Back to <parent>" pill, so it
+never wraps; from `sm` up the full trail shows, long labels truncated (full text in the tooltip).
 {% endcomment %}
 {% load ui %}
-<nav class="breadcrumbs mb-3" aria-label="Breadcrumbs">
+<nav class="breadcrumbs mb-4" aria-label="Breadcrumbs">
   {% if parent_crumb %}
-    <a href="{{ parent_crumb.url }}" class="breadcrumb-back sm:hidden">{% icon "arrow-left" %}<span>Back to {{ parent_crumb.label }}</span></a>
+    <a href="{{ parent_crumb.url }}" class="breadcrumb-back sm:hidden">{% icon "arrow-left" %}<span class="truncate">Back to {{ parent_crumb.label }}</span></a>
   {% endif %}
-  <ol class="{% if parent_crumb %}hidden sm:flex{% else %}flex{% endif %}">
+  <ol class="breadcrumb-trail {% if parent_crumb %}hidden sm:flex{% else %}flex{% endif %}">
     {% for crumb in trail %}
       <li>
+        {% if not forloop.first %}<span class="breadcrumb-sep" aria-hidden="true">{% icon "chevron-right" "xs" %}</span>{% endif %}
         {% if forloop.last %}<span aria-current="page" class="breadcrumb-current" title="{{ crumb.label }}">{{ crumb.label }}</span>
-        {% elif crumb.url %}<a href="{{ crumb.url }}" class="breadcrumb-link">{% if forloop.first %}{% icon "house" %}<span class="sr-only">{{ crumb.label }}</span>{% else %}<span class="truncate" title="{{ crumb.label }}">{{ crumb.label }}</span>{% endif %}</a>
+        {% elif crumb.url %}<a href="{{ crumb.url }}" class="breadcrumb-link{% if forloop.first %} breadcrumb-home{% endif %}">{% if forloop.first %}{% icon "house" %}<span class="sr-only">{{ crumb.label }}</span>{% else %}<span class="truncate" title="{{ crumb.label }}">{{ crumb.label }}</span>{% endif %}</a>
         {% else %}<span class="breadcrumb-text">{{ crumb.label }}</span>{% endif %}
       </li>
     {% endfor %}

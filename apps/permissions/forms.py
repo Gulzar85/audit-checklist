@@ -16,7 +16,7 @@ from apps.locations.widgets import LocationPickerWidget
 
 from . import registry
 from .authorization import get_accessible_locations
-from .models import MembershipRole, Role
+from .models import MembershipRole, Role, RolePermission
 from .policies import assignable_codes, can_assign_role, role_permission_codes
 
 
@@ -78,9 +78,22 @@ class AssignRoleForm(DesignSystemFormMixin, forms.Form):
         self.denied = False
         organization_id = membership.organization_id
         # Only roles the actor could actually grant are offered (the policy re-checks on submit).
-        self.fields["role"].queryset = Role.objects.filter(
+        roles = Role.objects.filter(
             Q(organization_id=organization_id) | Q(organization__isnull=True), is_active=True
         ).order_by("-is_system", "name")
+        if not getattr(actor, "is_superuser", False):
+            held = assignable_codes(actor, membership.organization)  # at its widest: a scoped grant narrows further
+            by_role: dict = {}
+            for role_id, code in RolePermission.objects.filter(role__in=roles, permission__is_active=True).values_list(
+                "role_id", "permission__code"
+            ):
+                by_role.setdefault(role_id, set()).add(code)
+            allowed = [r.pk for r in roles if by_role.get(r.pk, set()) <= held and r.slug != "super-administrator"]
+            roles = roles.filter(pk__in=allowed)
+        self.fields["role"].queryset = roles
+        self.all_roles = Role.objects.filter(
+            Q(organization_id=organization_id) | Q(organization__isnull=True), is_active=True
+        )  # for telling "not offered to you" (403) apart from "does not exist" (form error)
         reachable = get_accessible_locations(actor, registry.P.LOCATION_VIEW, organization=organization_id).filter(
             is_active=True
         )
