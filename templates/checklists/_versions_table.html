@@ -1,19 +1,26 @@
-{# Params: versions. #}
+{# The version history.  Params: versions (annotated with section_count/item_count), template, can_create_draft_from, can_compare. #}
 {% load ui %}
 <div class="card">
   <div class="table-wrap overflow-x-auto">
     <table class="table table-stack" aria-label="Versions">
-      <thead><tr><th scope="col">Version</th><th scope="col">Status</th><th scope="col">Summary</th><th scope="col">Created</th><th scope="col" class="text-right">Actions</th></tr></thead>
+      <thead><tr><th scope="col">Version</th><th scope="col">Status</th><th scope="col">Summary</th><th scope="col">Created</th><th scope="col">Published</th><th scope="col" class="text-right">Structure</th><th scope="col" class="text-right">Actions</th></tr></thead>
       <tbody>
         {% for version in versions %}
           <tr>
-            <td data-label="Version" class="font-medium">v{{ version.version_number }}</td>
+            <td data-label="Version" class="font-medium">v{{ version.version_number }}{% if version.based_on %}<span class="block text-xs font-normal text-muted-foreground">from v{{ version.based_on.version_number }}</span>{% endif %}</td>
             <td data-label="Status">{% status_badge version.status %}</td>
             <td data-label="Summary">{{ version.change_summary|default:"—" }}</td>
-            <td data-label="Created">{{ version.created_at|date:"M d, Y" }}{% if version.created_by %} · {{ version.created_by.get_short_name }}{% endif %}</td>
-            <td data-label="Actions" class="text-right"><div class="flex justify-end gap-0.5">{% url 'checklists:version_detail' version.template_id version.version_number as vurl %}{% row_action "View structure" "eye" href=vurl subject=version.version_number %}</div></td>
+            <td data-label="Created">{{ version.created_at|date:"M d, Y" }}{% if version.created_by %}<span class="block text-xs text-muted-foreground">{{ version.created_by.get_short_name }}</span>{% endif %}</td>
+            <td data-label="Published">{% if version.published_at %}{{ version.published_at|date:"M d, Y H:i" }}{% if version.published_by %}<span class="block text-xs text-muted-foreground">{{ version.published_by.get_short_name }}</span>{% endif %}{% if version.superseded_at %}<span class="block text-xs text-muted-foreground">superseded {{ version.superseded_at|date:"M d, Y" }}</span>{% endif %}{% else %}—{% endif %}</td>
+            <td data-label="Structure" class="text-right">{{ version.section_count }} section{{ version.section_count|pluralize }} · {{ version.item_count }} item{{ version.item_count|pluralize }}</td>
+            <td data-label="Actions" class="text-right"><div class="flex justify-end gap-0.5">
+              {% url 'checklists:version_detail' template.pk version.version_number as vurl %}{% row_action "View version" "eye" href=vurl subject=version.version_number %}
+              {% url 'checklists:version_preview' template.pk version.version_number as purl %}{% row_action "Preview" "monitor" href=purl subject=version.version_number %}
+              {% if can_compare and version.compare_url %}{% row_action "Compare with the previous version" "git-compare" href=version.compare_url subject=version.version_number %}{% endif %}
+              {% if can_create_draft_from and not version.is_draft %}{% url 'checklists:version_draft_from' template.pk version.version_number as durl %}{% row_action "Create a draft from this version" "git-branch-plus" post_url=durl subject=version.version_number %}{% endif %}
+            </div></td>
           </tr>
-        {% empty %}<tr><td colspan="5">No versions yet.</td></tr>{% endfor %}
+        {% empty %}<tr><td colspan="7">No versions yet.</td></tr>{% endfor %}
       </tbody>
     </table>
   </div>

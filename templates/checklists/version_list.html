@@ -1,20 +1,41 @@
 {% extends "base.html" %}
 {% load ui %}
 {% block title %}Versions of {{ template.name }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
 
 {% block breadcrumbs %}{% url 'checklists:detail' template.pk as crumb_url %}{% breadcrumbs "Home" "core:home" "Checklist templates" "checklists:list" template.name crumb_url "Versions" %}{% endblock %}
 
-{% block page_header %}{% page_header title="Versions" subtitle="A published version is frozen. Changes go into a new draft version." icon="history" %}{% endpage_header %}{% endblock %}
+{% block page_header %}
+{% page_header title="Version history" subtitle="A published version is frozen. Changes go into a new draft version." icon="history" %}
+  {% if can_compare %}<a href="{% url 'checklists:compare' template.pk %}" class="btn btn-secondary">{% icon "git-compare" %} Compare versions</a>{% endif %}
+  {% if draft %}{% url 'checklists:builder' template.pk as burl %}<a href="{{ burl }}" class="btn btn-primary">{% icon "layout-list" %} Open the draft</a>{% endif %}
+{% endpage_header %}
+{% endblock %}
 
 {% block content %}
+{% if template.status == "archived" %}<div class="alert alert-warning mb-4" role="status">{% icon "archive" %}<p>This checklist is archived. Its versions are kept for history; no new draft can be created until it is restored.</p></div>{% endif %}
+<ul class="mb-4 flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground" aria-label="What the statuses mean">
+  <li>{% status_badge "draft" %} being edited, not available for use</li>
+  <li>{% status_badge "published" %} the current approved version (frozen)</li>
+  <li>{% status_badge "superseded" %} replaced by a newer version (frozen, kept)</li>
+</ul>
 {% if can_create_version %}
   <form method="post" action="{% url 'checklists:version_new' template.pk %}" class="card mb-6">
     {% csrf_token %}
     <div class="card-body flex flex-wrap items-end gap-3">
       <div class="w-full sm:w-96"><label class="label" for="change_summary">What will change?</label><input id="change_summary" name="change_summary" class="input" maxlength="300" placeholder="Optional summary"></div>
-      <button type="submit" class="btn btn-primary">{% icon "git-branch-plus" %} New draft version</button>
+      <button type="submit" class="btn btn-primary">{% icon "git-branch-plus" %} New draft from {% if current %}the current version (v{{ current.version_number }}){% else %}the latest version{% endif %}</button>
     </div>
   </form>
 {% endif %}
 {% include "checklists/_versions_table.html" with versions=versions %}
+{% if page_obj.has_other_pages %}
+  <nav class="mt-4 flex items-center justify-between text-sm" aria-label="Version pages">
+    <span class="text-muted-foreground">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} · {{ page_obj.paginator.count }} versions</span>
+    <span class="flex gap-2">
+      {% if page_obj.has_previous %}<a class="btn btn-secondary btn-sm" href="?page={{ page_obj.previous_page_number }}">{% icon "chevron-left" %} Newer</a>{% endif %}
+      {% if page_obj.has_next %}<a class="btn btn-secondary btn-sm" href="?page={{ page_obj.next_page_number }}">Older {% icon "chevron-right" %}</a>{% endif %}
+    </span>
+  </nav>
+{% endif %}
 {% endblock %}

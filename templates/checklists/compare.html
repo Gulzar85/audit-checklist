@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Compare versions · {{ template.name }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+
+{% block breadcrumbs %}{% url 'checklists:detail' template.pk as c1 %}{% url 'checklists:versions' template.pk as c2 %}{% breadcrumbs "Home" "core:home" "Checklist templates" "checklists:list" template.name c1 "Versions" c2 "Compare" %}{% endblock %}
+
+{% block page_header %}
+{% with sub=template.code|add:" · "|add:summary_line %}
+{% page_header title="Compare versions" subtitle=sub icon="git-compare" %}
+  <a href="{% url 'checklists:versions' template.pk %}" class="btn btn-secondary">{% icon "history" %} Version history</a>
+{% endpage_header %}
+{% endwith %}
+{% endblock %}
+
+{% block content %}
+<form method="get" class="card mb-6" aria-label="Choose versions to compare">
+  <div class="card-body flex flex-wrap items-end gap-3">
+    <div class="w-full sm:w-52">
+      <label class="label" for="cmp-from">From (older)</label>
+      <select id="cmp-from" name="from" class="select">{% for v in versions %}<option value="{{ v.version_number }}"{% if v.pk == old.pk %} selected{% endif %}>v{{ v.version_number }} · {{ v.get_status_display }}</option>{% endfor %}</select>
+    </div>
+    <div class="w-full sm:w-52">
+      <label class="label" for="cmp-to">To (newer)</label>
+      <select id="cmp-to" name="to" class="select">{% for v in versions %}<option value="{{ v.version_number }}"{% if v.pk == new.pk %} selected{% endif %}>v{{ v.version_number }} · {{ v.get_status_display }}</option>{% endfor %}</select>
+    </div>
+    <div class="w-full sm:w-40">
+      <label class="label" for="cmp-category">Show</label>
+      <select id="cmp-category" name="category" class="select"><option value="">Everything</option>{% for key, label in category_choices %}<option value="{{ key }}"{% if key == filters.category %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    </div>
+    <div class="w-full sm:w-40">
+      <label class="label" for="cmp-kind">Kind</label>
+      <select id="cmp-kind" name="kind" class="select"><option value="">Any</option>{% for key, label in kind_choices %}<option value="{{ key }}"{% if key == filters.kind %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    </div>
+    <div class="w-full sm:w-44">
+      <label class="label" for="cmp-impact">Impact</label>
+      <select id="cmp-impact" name="impact" class="select"><option value="">Any</option>{% for key, label in impact_choices %}<option value="{{ key }}"{% if key == filters.impact %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    </div>
+    <button type="submit" class="btn btn-primary">{% icon "git-compare" %} Compare</button>
+  </div>
+</form>
+
+<div class="mb-4 flex flex-wrap items-center gap-2 text-sm" role="status">
+  <span class="font-medium">v{{ old.version_number }} → v{{ new.version_number }}</span>
+  {% if comparison.identical %}
+    {% tone_badge "No differences" "success" icon="equal" %}
+  {% else %}
+    {% tone_badge counts.total|stringformat:"s"|add:" change"|add:counts.plural "info" icon="diff" %}
+    {% if counts.by_kind.added %}{% tone_badge counts.by_kind.added|stringformat:"s"|add:" added" "success" icon="plus" %}{% endif %}
+    {% if counts.by_kind.removed %}{% tone_badge counts.by_kind.removed|stringformat:"s"|add:" removed" "danger" icon="minus" %}{% endif %}
+    {% if counts.by_kind.modified %}{% tone_badge counts.by_kind.modified|stringformat:"s"|add:" modified" "warning" icon="pencil" %}{% endif %}
+    {% if counts.by_kind.reordered %}{% tone_badge counts.by_kind.reordered|stringformat:"s"|add:" reordered" "neutral" icon="arrow-up-down" %}{% endif %}
+    {% if counts.by_impact.behavior %}{% tone_badge counts.by_impact.behavior|stringformat:"s"|add:" change how it behaves" "warning" icon="triangle-alert" %}{% endif %}
+  {% endif %}
+</div>
+
+{% if comparison.identical %}
+  <div class="card"><div class="card-body">{% include "components/states/empty.html" with icon="equal" title="These versions are identical" message="Every section, question, option and rule matches." %}</div></div>
+{% elif not groups %}
+  <div class="card"><div class="card-body">{% include "components/states/empty.html" with icon="filter" title="Nothing matches these filters" message="Change the filters above to see the other differences." %}</div></div>
+{% else %}
+  {% for group in groups %}
+    <section class="card mb-6" aria-labelledby="cmp-{{ group.key }}">
+      <div class="card-header"><h2 id="cmp-{{ group.key }}" class="card-title">{% icon group.icon %} {{ group.label }} <span class="font-normal text-muted-foreground">({{ group.changes|length }})</span></h2></div>
+      <ul class="divide-y divide-border">
+        {% for change in group.changes %}
+          <li class="px-5 py-3">
+            <p class="flex flex-wrap items-center gap-2">
+              {% if change.kind == "added" %}{% tone_badge "Added" "success" icon="plus" %}{% elif change.kind == "removed" %}{% tone_badge "Removed" "danger" icon="minus" %}{% elif change.kind == "modified" %}{% tone_badge "Modified" "warning" icon="pencil" %}{% else %}{% tone_badge "Reordered" "neutral" icon="arrow-up-down" %}{% endif %}
+              {% if change.impact == "behavior" %}{% tone_badge "Changes behaviour" "warning" %}{% elif change.impact == "wording" %}{% tone_badge "Wording" "neutral" %}{% endif %}
+              <span class="font-mono text-xs text-muted-foreground">{{ change.code }}</span>
+            </p>
+            <p class="mt-1 text-sm">{{ change.summary }}</p>
+            {% if change.field %}
+              <details class="mt-1 text-xs text-muted-foreground">
+                <summary class="cursor-pointer">Details</summary>
+                <dl class="mt-1 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+                  <dt>Field</dt><dd class="font-mono">{{ change.field }}</dd>
+                  <dt>Before</dt><dd class="break-words font-mono">{{ change.before }}</dd>
+                  <dt>After</dt><dd class="break-words font-mono">{{ change.after }}</dd>
+                </dl>
+              </details>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endfor %}
+{% endif %}
+{% endblock %}

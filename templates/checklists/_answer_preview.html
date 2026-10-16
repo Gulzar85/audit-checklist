@@ -5,7 +5,7 @@
 {% else %}
   <p class="sr-only">Preview of a {{ definition.label }} question. The controls below are not interactive.</p>
   <div inert aria-hidden="true" class="space-y-2">
-    <p class="font-medium">{{ question|default:"Your question appears here" }}</p>
+    {% if not hide_question %}<p class="font-medium">{{ question|default:"Your question appears here" }}</p>{% endif %}
     {% if kind == "boolean" %}
       <div class="flex gap-4"><label class="inline-flex items-center gap-2"><input type="radio" class="radio" disabled> True</label><label class="inline-flex items-center gap-2"><input type="radio" class="radio" disabled> False</label></div>
     {% elif kind == "yes_no" or kind == "yes_no_na" or kind == "single" and config.display != "dropdown" %}

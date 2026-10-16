@@ -8,13 +8,36 @@
 {% block page_header %}
 {% with sub=version.change_summary|default:"Read-only snapshot of this version's structure." %}
 {% page_header title=version_label subtitle=sub icon="history" status=version.status %}
-  <a href="{% url 'checklists:rules' template.pk %}?version={{ version.version_number }}" class="btn btn-secondary">{% icon "git-branch" %} Rules</a>
+  <a href="{% url 'checklists:version_preview' template.pk version.version_number %}" class="btn btn-secondary">{% icon "eye" %} Preview</a>
+  {% if previous_number %}<a href="{% url 'checklists:compare' template.pk %}?from={{ previous_number }}&to={{ version.version_number }}" class="btn btn-secondary">{% icon "git-compare" %} Compare with v{{ previous_number }}</a>{% endif %}
+  {% if can_create_draft_from %}
+    <form method="post" action="{% url 'checklists:version_draft_from' template.pk version.version_number %}">{% csrf_token %}<button type="submit" class="btn btn-secondary">{% icon "git-branch-plus" %} Create a draft from this version</button></form>
+  {% endif %}
   {% if can_edit %}<a href="{% url 'checklists:builder' template.pk %}" class="btn btn-primary">{% icon "layout-list" %} Open builder</a>{% endif %}
 {% endpage_header %}
 {% endwith %}
 {% endblock %}
 
 {% block content %}
-{% if not version.is_draft %}<div class="alert alert-info mb-6" role="status">{% icon "lock" "md" %}<span>Published {{ version.published_at|date:"M d, Y H:i" }}. This version is immutable.</span></div>{% endif %}
+{% if not version.is_draft %}
+  <div class="alert alert-info mb-6" role="status">{% icon "lock" "md" %}<span>{% if version.is_superseded %}Published {{ version.published_at|date:"M d, Y H:i" }} and superseded {{ version.superseded_at|date:"M d, Y H:i" }}.{% else %}Published {{ version.published_at|date:"M d, Y H:i" }}.{% endif %} This version is immutable.</span></div>
+  <section class="card mb-6" aria-labelledby="pub-record">
+    <div class="card-header"><h2 id="pub-record" class="card-title">Publication record</h2>
+      {% if integrity.ok %}{% tone_badge "Integrity verified" "success" icon="shield-check" %}{% elif integrity.status == "mismatch" %}{% tone_badge "Integrity mismatch" "danger" icon="shield-alert" %}{% else %}{% tone_badge integrity.label "neutral" icon="shield" %}{% endif %}
+    </div>
+    <dl class="card-body grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+      <div><dt class="text-muted-foreground">Published</dt><dd>{{ version.published_at|date:"M d, Y H:i" }}{% if version.published_by %} by {{ version.published_by.get_short_name }}{% endif %}</dd></div>
+      {% if version.superseded_at %}<div><dt class="text-muted-foreground">Superseded</dt><dd>{{ version.superseded_at|date:"M d, Y H:i" }}</dd></div>{% endif %}
+      {% if version.based_on %}<div><dt class="text-muted-foreground">Based on</dt><dd><a class="underline" href="{% url 'checklists:version_detail' template.pk version.based_on.version_number %}">Version {{ version.based_on.version_number }}</a></dd></div>{% endif %}
+      <div><dt class="text-muted-foreground">Available for new assignments</dt><dd>{% if assignable %}Yes - the current version{% elif version.is_superseded %}No - superseded by a newer version{% else %}No{% endif %}</dd></div>
+      {% if version.integrity_hash %}<div class="sm:col-span-2"><dt class="text-muted-foreground">Integrity hash</dt><dd class="break-all font-mono text-xs">{{ version.integrity_hash }}</dd></div>{% endif %}
+    </dl>
+    {% if integrity.status == "mismatch" %}<p class="alert alert-danger mx-5 mb-4" role="alert">{% icon "shield-alert" %}<span>The stored definition no longer matches the hash recorded at publication. Report this to an administrator; do not use this version for new work.</span></p>{% endif %}
+    {% if publication_warnings %}
+      <div class="border-t border-border px-5 py-3 text-sm"><p class="font-medium">Warnings accepted at publication</p>
+        <ul class="mt-1 list-disc pl-5 text-muted-foreground">{% for w in publication_warnings %}<li>{{ w.message }}</li>{% endfor %}</ul></div>
+    {% endif %}
+  </section>
+{% endif %}
 {% include "checklists/_structure.html" with sections=sections %}
 {% endblock %}

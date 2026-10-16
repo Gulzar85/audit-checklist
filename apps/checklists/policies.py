@@ -10,7 +10,12 @@ view                  ``checklist.view``                          -
 create / duplicate    ``checklist.create``                        -
 update (metadata,     ``checklist.update``                        structure: version must be a draft
 builder)
+create / discard a    ``checklist.update``                        one draft per template; archived: no
+draft
+validate a draft      ``checklist.update`` or ``checklist.publish`` draft versions only
 publish a version     ``checklist.publish``                       -
+view / compare /      ``checklist.view``                          read-only, any version
+preview / history
 archive / restore     ``checklist.manage``                        -
 delete                ``checklist.delete``                        only an unpublished draft template
 ====================  ==========================================  ==================================
@@ -83,8 +88,13 @@ def can_create_version(user: Any, template: Any) -> bool:
     return can_update_template(user, template)
 
 
+def can_publish_template(user: Any, template: Any) -> bool:
+    """May the user publish this checklist's drafts at all (status-independent, so a repeated request is a conflict, not a 403)?"""
+    return _can(user, P.CHECKLIST_PUBLISH, template.organization_id)
+
+
 def can_publish_version(user: Any, version: Any) -> bool:
-    return version.status == VersionStatus.DRAFT and _can(user, P.CHECKLIST_PUBLISH, version.template.organization_id)
+    return version.status == VersionStatus.DRAFT and can_publish_template(user, version.template)
 
 
 def can_edit_version(user: Any, version: Any) -> bool:
@@ -94,6 +104,21 @@ def can_edit_version(user: Any, version: Any) -> bool:
         and version.template.status != TemplateStatus.ARCHIVED
         and can_update_template(user, version.template)
     )
+
+
+def can_validate_version(user: Any, version: Any) -> bool:
+    """Run the publication validation of a draft (authors, and publishers who review before publishing)."""
+    return version.status == VersionStatus.DRAFT and (can_edit_version(user, version) or can_publish_version(user, version))
+
+
+def can_discard_version(user: Any, version: Any) -> bool:
+    """Delete a draft nobody has relied upon (never a published or superseded version)."""
+    return can_edit_version(user, version)
+
+
+def can_compare_versions(user: Any, template: Any) -> bool:
+    """Compare, preview and read the history of any version: viewing the checklist is enough (history is read-only)."""
+    return can_view_template(user, template)
 
 
 # --- Sections, items, options, rules: all follow their version --------------------------------

@@ -18,6 +18,22 @@ from rest_framework.views import exception_handler as drf_exception_handler
 
 from .response import ErrorCode
 
+class StructuredValidationError(drf_exceptions.ValidationError):
+    """A 400 whose ``details`` also carry typed, structured data (DRF would turn nested values into strings)."""
+
+    def __init__(self, detail=None, *, extra: dict[str, Any] | None = None) -> None:  # noqa: ANN001
+        super().__init__(detail)
+        self.extra = extra or {}
+
+
+class ConflictAPIException(drf_exceptions.APIException):
+    """409: the request raced with another change (stale draft, already published, concurrent draft)."""
+
+    status_code = 409
+    default_detail = "The request conflicts with the current state of the resource."
+    default_code = "conflict"
+
+
 _STATUS_TO_CODE = {
     400: ErrorCode.VALIDATION_ERROR,
     401: ErrorCode.NOT_AUTHENTICATED,
@@ -44,6 +60,9 @@ def api_exception_handler(exc: Exception, context: dict[str, Any]) -> Response |
 
     message = _message_for(exc)
     details = response.data if isinstance(response.data, (dict, list)) else {}
+    extra = getattr(exc, "extra", None)
+    if extra and isinstance(details, dict):
+        details = {**details, **extra}
 
     response.data = {
         "error": {

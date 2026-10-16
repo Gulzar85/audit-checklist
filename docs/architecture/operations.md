@@ -13,7 +13,13 @@
 .\venv\Scripts\python manage.py makemigrations --check     # must report no changes
 ```
 
-Earlier migrations are never edited. The triggers are created by migration, never by hand.
+Earlier migrations are never edited. The location triggers are created by migration, never by hand.
+
+**Checklist immutability triggers** (ADR 0049) are different: they are installed by a `post_migrate` handler
+(`apps/checklists/guards.py`), idempotently, after *every* `migrate` - so they exist in every environment and test database
+even though migration files are not committed. `ChecklistVersion` gained lifecycle columns in `checklists.0005`
+(a data step marks older published versions as superseded); after migrating an existing database run
+`seal_checklist_versions` once so versions published before Phase 7 get an integrity hash, then `verify_checklist_integrity`.
 
 ## Management commands
 
@@ -23,6 +29,11 @@ Earlier migrations are never edited. The triggers are created by migration, neve
 
 # Demo data (development only; refuses when DJANGO_ENVIRONMENT is production)
 .\venv\Scripts\python manage.py seed_demo_data
+
+# Checklist versioning (Phase 7)
+.\venv\Scripts\python manage.py seal_checklist_versions [--organization SLUG]       # idempotent; maintenance override, logged
+.\venv\Scripts\python manage.py verify_checklist_integrity [--organization SLUG] [--strict]   # non-zero exit on mismatch
+.\venv\Scripts\python manage.py seed_demo_versioning --organization SLUG            # v1 -> v2 walkthrough on a generic checklist
 ```
 
 `seed_demo_data` is idempotent and creates two clearly-labelled organizations with different

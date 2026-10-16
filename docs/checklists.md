@@ -31,6 +31,15 @@ no score either; scoring (Phase 15) will be an independent capability that reads
 Configuration and answer validation are handled by the Phase 5 answer-type engine: see [answer-types.md](answer-types.md),
 [answer-validation.md](answer-validation.md) and [checklist-item-configuration.md](checklist-item-configuration.md).
 
+## Versioning, publishing and lifecycle (Phase 7)
+A version moves `draft -> published -> superseded`; exactly one version of a template is published (the current one) and a
+published definition is immutable down to PostgreSQL. Cloning, the publication validator, the publish service, comparison,
+integrity hashes and archival are documented in [checklist-versioning.md](checklist-versioning.md),
+[checklist-lifecycle.md](checklist-lifecycle.md), [checklist-publishing.md](checklist-publishing.md),
+[version-comparison.md](version-comparison.md) and [api/checklist-versions.md](api/checklist-versions.md)
+(ADRs [0048](decisions/0048-version-lifecycle-and-archival.md), [0049](decisions/0049-published-definitions-are-immutable.md),
+[0050](decisions/0050-version-manifest-and-integrity-hash.md)).
+
 ## Versions and immutability
 * A template always has a version history; `create_checklist_template` starts draft v1.
 * Only a **draft** version can change. `publish_checklist_version` freezes it (`published_at`); every structure

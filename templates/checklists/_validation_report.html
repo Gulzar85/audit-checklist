@@ -1,0 +1,14 @@
+{# The publication report: errors block publication, warnings inform.  Params: report, can_publish, draft. #}
+{% load ui %}
+<div id="validation-report" aria-live="polite" class="space-y-3">
+  {% if report.ok %}
+    <div class="alert alert-success" role="status">{% icon "circle-check" %}<div><p class="font-medium">Ready to publish.</p><p class="text-xs">{{ report.stats.sections }} section{{ report.stats.sections|pluralize }}, {{ report.stats.items }} question{{ report.stats.items|pluralize }}, {{ report.stats.rules }} rule{{ report.stats.rules|pluralize }}{% if report.warnings %} · {{ report.warnings|length }} warning{{ report.warnings|length|pluralize }}{% endif %}.</p></div></div>
+  {% else %}
+    <div class="alert alert-danger" role="alert">{% icon "octagon-alert" %}<div><p class="font-medium">This draft cannot be published yet.</p>
+      <ul class="mt-1 list-disc pl-5">{% for f in report.errors %}<li>{{ f.message }}</li>{% endfor %}</ul></div></div>
+  {% endif %}
+  {% if report.warnings %}
+    <div class="alert alert-warning" role="status">{% icon "triangle-alert" %}<div><p class="font-medium">Worth a look (does not block publishing)</p>
+      <ul class="mt-1 list-disc pl-5">{% for f in report.warnings %}<li>{{ f.message }}</li>{% endfor %}</ul></div></div>
+  {% endif %}
+</div>

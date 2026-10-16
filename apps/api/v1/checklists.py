@@ -18,9 +18,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.api.exceptions import ConflictAPIException, StructuredValidationError
 from apps.api.permissions import IsActiveUser, PolicyPermission
 from apps.checklists import constants as c
-from apps.checklists import policies, selectors, services
+from apps.checklists import lifecycle, policies, selectors, services
+from apps.checklists.comparison import CATEGORIES, IMPACTS, KINDS
+from apps.checklists.manifest import build_manifest, manifest_hash, verify_version_integrity
 from apps.checklists.filters import TemplateFilter
 from apps.checklists.models import ChecklistCategory, ChecklistItem, ChecklistRule
 from apps.checklists.answer_types import registry
@@ -48,15 +51,22 @@ from apps.checklists.serializers import (
     ChecklistVersionSerializer,
     DuplicateSerializer,
     NewVersionSerializer,
+    PublishSerializer,
 )
 from apps.organizations.models import Organization
 from apps.permissions.authorization import visible_organization_ids
 
 
 def _raise(exc: DjangoValidationError) -> None:
+    if isinstance(exc, lifecycle.ConflictError):  # a race, a stale draft or a repeated request: 409, never 400
+        raise ConflictAPIException(detail={"detail": " ".join(exc.messages), "code": exc.lifecycle_code}) from exc
     detail = exc.message_dict if hasattr(exc, "error_dict") else exc.messages
     if hasattr(exc, "issues") and isinstance(detail, dict):  # rule validation: add the structured findings
         detail = {**detail, "issues": [i.as_dict() for i in exc.issues]}
+    if isinstance(exc, lifecycle.PublicationBlocked):  # publication validation: the structured report (typed, not stringified)
+        raise StructuredValidationError({"__all__": list(exc.messages)}, extra={"report": exc.report.as_dict(), "code": exc.lifecycle_code}) from exc
+    if isinstance(exc, lifecycle.LifecycleError):
+        raise StructuredValidationError({"__all__": list(exc.messages)}, extra={"code": exc.lifecycle_code}) from exc
     raise serializers.ValidationError(detail) from exc
 
 
@@ -208,10 +218,66 @@ class ChecklistViewSet(
             raise NotFound("Version not found.")
         return version
 
-    @extend_schema(responses=ChecklistVersionSerializer(many=True))
-    @action(detail=True, methods=["get"], pagination_class=None)
+    @extend_schema(request=NewVersionSerializer, responses=ChecklistVersionSerializer(many=True))
+    @action(detail=True, methods=["get", "post"], pagination_class=None)
     def versions(self, request: Request, pk=None) -> Response:  # noqa: ANN001
-        return Response(ChecklistVersionSerializer(selectors.versions_of(self.get_object()), many=True).data)
+        """GET: the version history (newest first).  POST: create a draft - a copy of ``source`` or of the current version."""
+        template = self.get_object()
+        if request.method == "POST":
+            return self._create_draft(template, request)
+        return Response(ChecklistVersionSerializer(selectors.versions_of(template), many=True).data)
+
+    def _create_draft(self, template, request: Request) -> Response:  # noqa: ANN001
+        payload = NewVersionSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        data = dict(payload.validated_data)
+        source = None
+        if data.get("source"):
+            source = template.versions.filter(pk=data.pop("source")).first()
+            if source is None:  # another checklist's version, or unknown: indistinguishable
+                raise NotFound("Version not found.")
+        data.pop("source", None)
+        try:
+            version = services.create_checklist_version(template, actor=request.user, source=source, **data)
+        except DjangoValidationError as exc:
+            _raise(exc)
+        return Response(ChecklistVersionSerializer(version).data, status=status.HTTP_201_CREATED)
+
+    @extend_schema(responses=dict, parameters=[])
+    @action(detail=True, methods=["get"], url_path="versions/compare")
+    def versions_compare(self, request: Request, pk=None) -> Response:  # noqa: ANN001
+        """Compare two versions of this checklist: ``?from=<id|number>&to=<id|number>`` (+ ``category``, ``kind``, ``impact`` filters)."""
+        template = self.get_object()
+        old, new = (self._version_ref(template, request.query_params.get(key)) for key in ("from", "to"))
+        try:
+            comparison = lifecycle.compare_versions(template, old, new, actor=request.user)
+        except DjangoValidationError as exc:
+            _raise(exc)
+        filters = {}
+        for key, allowed in (("category", CATEGORIES), ("kind", KINDS), ("impact", IMPACTS)):
+            value = request.query_params.get(key, "")
+            if value and value not in allowed:
+                raise serializers.ValidationError({key: f"Must be one of: {', '.join(allowed)}."})
+            filters[key] = value
+        payload = comparison.as_dict()
+        payload["changes"] = [c.as_dict() for c in comparison.filtered(**filters)]
+        payload["from"], payload["to"] = old.version_number, new.version_number
+        return Response(payload)
+
+    @staticmethod
+    def _version_ref(template, raw):  # noqa: ANN001, ANN205
+        """A version of ``template`` by id (UUID) or number; anything else - including another checklist's - is simply not found."""
+        if not raw:
+            raise serializers.ValidationError({"from/to": "Both ?from= and ?to= (a version id or number) are required."})
+        version = template.versions.filter(version_number=int(raw)).first() if raw.isascii() and raw.isdigit() else None
+        if version is None and not raw.isdigit():
+            from apps.core.utils import parse_uuid
+
+            pk = parse_uuid(raw)
+            version = template.versions.filter(pk=pk).first() if pk else None
+        if version is None:
+            raise NotFound("Version not found.")
+        return version
 
     @extend_schema(responses=ChecklistSectionSerializer(many=True))
     @action(detail=True, methods=["get"], pagination_class=None)
@@ -427,6 +493,106 @@ class ChecklistViewSet(
                       for i in snapshot.items.values()},
             "sections": {s.code: {"name": s.name} for s in snapshot.sections.values()},
         })
+
+
+class ChecklistVersionViewSet(mixins.RetrieveModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
+    """``/api/v1/checklist-versions/{id}/`` - one version, its lifecycle actions and its integrity.
+
+    The queryset is ``selectors.versions_visible_to`` (organization isolation: another organization's version is 404),
+    authorization is the checklist policies, and every transition is ``lifecycle`` - the same service the builder uses.
+    ``DELETE`` discards a *draft*; published and superseded versions are never deleted.
+    """
+
+    serializer_class = ChecklistVersionSerializer
+    permission_classes = [IsActiveUser, PolicyPermission]
+
+    def get_queryset(self):  # noqa: ANN201
+        return selectors.versions_visible_to(self.request.user)
+
+    def policy_allows_object(self, request: Request, obj) -> bool:  # noqa: ANN001
+        user, template = request.user, obj.template
+        if self.action == "validate":
+            return policies.can_update_template(user, template) or policies.can_publish_template(user, template)
+        if self.action == "publish":
+            return policies.can_publish_template(user, template)
+        if self.action == "create_draft":
+            return policies.can_create_version(user, template)
+        if self.action == "destroy":
+            return policies.can_update_template(user, template)
+        return True  # retrieve, manifest, integrity: viewing is enough (history is read-only)
+
+    def retrieve(self, request: Request, *args, **kwargs) -> Response:  # noqa: ANN002, ANN003
+        version = self.get_object()
+        data = ChecklistVersionSerializer(version).data
+        integrity = verify_version_integrity(version)
+        data["integrity"] = {"status": integrity.status, "verified": integrity.ok}
+        data["assignable"] = lifecycle.is_assignable(version)
+        data["publication_warnings"] = (version.publication_report or {}).get("warnings", [])
+        return Response(data)
+
+    def destroy(self, request: Request, *args, **kwargs) -> Response:  # noqa: ANN002, ANN003
+        version = self.get_object()
+        if version.status != c.VersionStatus.DRAFT:
+            raise serializers.ValidationError({"__all__": ["Only a draft can be discarded; published versions are kept for history."], "code": "not_draft"})
+        try:
+            lifecycle.discard_draft(version, actor=request.user)
+        except DjangoValidationError as exc:
+            _raise(exc)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @extend_schema(request=None, responses=dict)
+    @action(detail=True, methods=["post"])
+    def validate(self, request: Request, pk=None) -> Response:  # noqa: ANN001
+        """Run the publication validation (the same report publishing uses).  The result is data: ``200`` with ``valid`` true/false."""
+        return Response(lifecycle.run_validation(self.get_object(), actor=request.user).as_dict())
+
+    @extend_schema(request=PublishSerializer, responses=ChecklistVersionSerializer)
+    @action(detail=True, methods=["post"])
+    def publish(self, request: Request, pk=None) -> Response:  # noqa: ANN001
+        """Publish a draft.  ``400`` with the validation report when blocked; ``409`` when stale or already published."""
+        version = self.get_object()
+        payload = PublishSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        data = payload.validated_data
+        try:
+            published = services.publish_checklist_version(
+                version, actor=request.user, change_summary=data.get("change_summary"), expected_hash=data.get("expected_hash") or None
+            )
+        except DjangoValidationError as exc:
+            _raise(exc)
+        return Response(ChecklistVersionSerializer(selectors.versions_visible_to(request.user).get(pk=published.pk)).data)
+
+    @extend_schema(request=NewVersionSerializer, responses=ChecklistVersionSerializer)
+    @action(detail=True, methods=["post"], url_path="create-draft")
+    def create_draft(self, request: Request, pk=None) -> Response:  # noqa: ANN001
+        """A new draft that is an independent copy of this version (the way to roll back a definition)."""
+        version = self.get_object()
+        payload = NewVersionSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        try:
+            draft = services.create_checklist_version(
+                version.template, actor=request.user, source=version, change_summary=payload.validated_data.get("change_summary", "")
+            )
+        except DjangoValidationError as exc:
+            _raise(exc)
+        return Response(ChecklistVersionSerializer(draft).data, status=status.HTTP_201_CREATED)
+
+    @extend_schema(responses=dict)
+    @action(detail=True, methods=["get"])
+    def manifest(self, request: Request, pk=None) -> Response:  # noqa: ANN001
+        """The canonical manifest of this version's definition and its current hash (compare with ``integrity_hash``)."""
+        version = self.get_object()
+        manifest = build_manifest(version)
+        return Response({"version": version.version_number, "status": version.status, "hash": manifest_hash(version),
+                         "integrity_hash": version.integrity_hash, "manifest": manifest})
+
+    @extend_schema(responses=dict)
+    @action(detail=True, methods=["get"])
+    def integrity(self, request: Request, pk=None) -> Response:  # noqa: ANN001
+        """Re-derive the hash and compare it with the one sealed at publication."""
+        result = verify_version_integrity(self.get_object())
+        return Response({"status": result.status, "verified": result.ok, "label": result.label,
+                         "expected": result.expected, "actual": result.actual})
 
 
 class RuleMetadataView(APIView):

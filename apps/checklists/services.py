@@ -4,7 +4,9 @@ Every write - from the builder UI, the API, imports and the admin actions - goes
 validation, locking, version safety, history and the activity log apply uniformly.  Callers authorize
 first (``apps.checklists.policies``); services enforce the *data* rules that must hold for every writer:
 
-* a **published version is immutable** - structure changes are refused, create a new draft version instead;
+* a **published or superseded version is immutable** - structure changes are refused, create a new draft version instead
+  (the lifecycle - draft, validate, publish, supersede, discard, compare - lives in ``lifecycle.py``; the services below
+  keep the original entry points and delegate);
 * an archived template, or one of an inactive organization, cannot be edited;
 * codes are normalised and stable (a template's ``code`` and ``slug`` never change; an item's ``code`` is
   changed only deliberately);
@@ -53,6 +55,13 @@ VERBS = {
     "template_deleted": "checklist.deleted",
     "version_created": "checklist_version.created",
     "version_published": "checklist_version.published",
+    "version_validated": "checklist_version.validated",
+    "version_validation_failed": "checklist_version.validation_failed",
+    "version_cloned": "checklist_version.cloned",
+    "version_superseded": "checklist_version.superseded",
+    "version_discarded": "checklist_version.discarded",
+    "version_compared": "checklist_version.compared",
+    "version_sealed": "checklist_version.sealed",
     "section_added": "checklist_section.added",
     "section_updated": "checklist_section.updated",
     "section_removed": "checklist_section.removed",
@@ -123,7 +132,7 @@ def _editable(version: ChecklistVersion) -> tuple[ChecklistTemplate, ChecklistVe
     fresh = ChecklistVersion.objects.get(pk=version.pk)
     if fresh.status != c.VersionStatus.DRAFT:
         raise ValidationError(
-            _("Version %(n)s is published and cannot be changed. Create a new draft version to make changes.")
+            _("Version %(n)s is already published and cannot be edited. Create a new draft version to make changes.")
             % {"n": fresh.version_number},
             code="version_immutable",
         )
@@ -335,7 +344,7 @@ def restore_checklist_template(template: ChecklistTemplate, *, actor: Any = None
 def delete_checklist_template(template: ChecklistTemplate, *, actor: Any = None) -> None:
     """Delete only a draft template that was never published (nothing can reference it)."""
     template = _lock_template(template.pk)
-    if template.status != c.TemplateStatus.DRAFT or template.versions.filter(status=c.VersionStatus.PUBLISHED).exists():
+    if template.status != c.TemplateStatus.DRAFT or template.versions.exclude(status=c.VersionStatus.DRAFT).exists():
         raise ValidationError(_("Only a draft checklist that was never published can be deleted. Archive it instead."))
     label, organization = f"{template.code} {template.name}", template.organization
     stamp_history(template, actor, VERBS["template_deleted"])
@@ -349,33 +358,10 @@ def delete_checklist_template(template: ChecklistTemplate, *, actor: Any = None)
 
 
 def _clone_structure(source: ChecklistVersion, target: ChecklistVersion, actor: Any) -> None:
-    """Copy sections, items, options and rules of ``source`` into ``target`` with new identifiers."""
-    item_map: dict[Any, ChecklistItem] = {}
-    section_map: dict[Any, ChecklistSection] = {}
-    for section in source.sections.prefetch_related("items__options").order_by("sort_order"):
-        new_section = ChecklistSection.objects.create(
-            version=target, code=section.code, name=section.name, description=section.description,
-            instructions=section.instructions, sort_order=section.sort_order, is_required=section.is_required,
-        )
-        section_map[section.pk] = new_section
-        for item in section.items.all():
-            new_item = ChecklistItem.objects.create(
-                section=new_section, code=item.code, question=item.question, description=item.description,
-                help_text=item.help_text, instructions=item.instructions, answer_type=item.answer_type,
-                config=item.config, metadata=item.metadata, is_required=item.is_required, is_active=item.is_active,
-                sort_order=item.sort_order,
-            )
-            item_map[item.pk] = new_item
-            ChecklistOption.objects.bulk_create(
-                [ChecklistOption(item=new_item, value=o.value, label=o.label, sort_order=o.sort_order, is_active=o.is_active)
-                 for o in item.options.all()]
-            )
-    # Rules reference questions and sections by *code*, and codes are copied unchanged, so the JSON copies verbatim.
-    ChecklistRule.objects.bulk_create(
-        [ChecklistRule(version=target, code=r.code, name=r.name, description=r.description, condition=r.condition,
-                       actions=r.actions, sort_order=r.sort_order, is_active=r.is_active)
-         for r in source.rules.order_by("sort_order")]
-    )
+    """Copy sections, items, options and rules of ``source`` into ``target`` (see ``lifecycle.clone_definition``)."""
+    from .lifecycle import clone_definition
+
+    clone_definition(source, target, actor=actor)
 
 
 @transaction.atomic
@@ -407,77 +393,32 @@ def duplicate_checklist_template(
 # ---------------------------------------------------------------------------
 # Versions
 # ---------------------------------------------------------------------------
-@transaction.atomic
-def create_checklist_version(template: ChecklistTemplate, *, actor: Any = None, change_summary: str = "") -> ChecklistVersion:
-    """Start the next draft version as a copy of the latest one (refused while a draft exists)."""
-    template = _lock_template(template.pk)
-    if template.status == c.TemplateStatus.ARCHIVED:
-        raise ValidationError(_("An archived checklist cannot be changed. Restore it first."))
-    if template.versions.filter(status=c.VersionStatus.DRAFT).exists():
-        raise ValidationError(_("This checklist already has a draft version. Publish or finish it first."))
-    latest = template.versions.order_by("-version_number").first()
-    version = _new_draft_version(template, actor, change_summary.strip()[:300])
-    if latest is not None:
-        _clone_structure(latest, version, actor)
-    _touch(template, actor)
-    _log(verb=VERBS["version_created"], organization=template.organization, actor=actor, target=version,
-                 description=f"Created draft version {version.version_number} of {template.code}")
-    return version
+def create_checklist_version(template: ChecklistTemplate, *, actor: Any = None, change_summary: str = "", source: ChecklistVersion | None = None) -> ChecklistVersion:
+    """Start the next draft as an independent copy of the current published version (or of ``source``).
 
+    Refused while a draft exists or when the template is archived; see ``lifecycle.create_draft``.
+    """
+    from .lifecycle import create_draft
 
-def _version_problems(version: ChecklistVersion) -> tuple[list[str], list[Issue]]:
-    """``(problems, rule_errors)``: everything that stops a version being published."""
-    problems: list[str] = []
-    sections = list(version.sections.prefetch_related("items__options"))
-    if not sections:
-        problems.append(str(_("Add at least one section.")))
-    for section in sections:
-        active = [i for i in section.items.all() if i.is_active]
-        if not active:
-            problems.append(str(_("Section “%(name)s” has no active items.") % {"name": section.name}))
-        for item in active:
-            if item.answer_type in c.CUSTOM_OPTIONS and sum(1 for o in item.options.all() if o.is_active) < 2:
-                problems.append(str(_("Item %(code)s needs at least two options.") % {"code": item.code}))
-    rule_errors: list[Issue] = []
-    if version.rules.exists():  # a version may only be published with a valid rule set (references, cycles, conflicts)
-        rule_errors = validate_rule_set(snapshot_for_version(version)).errors
-        problems.extend(f"Rule {i.rule}: {i.message}" if i.rule else i.message for i in rule_errors)
-    return problems, rule_errors
+    return create_draft(template, actor=actor, change_summary=change_summary, source=source)
 
 
 def validate_version_complete(version: ChecklistVersion) -> list[str]:
-    """Problems that stop a version being published (empty list = publishable)."""
-    return _version_problems(version)[0]
+    """Problems that stop a version being published (empty list = publishable); the blocking errors of the publication report."""
+    from .publication import validate_for_publication
+
+    return validate_for_publication(ChecklistVersion.objects.select_related("template__organization", "based_on").get(pk=version.pk)).messages()
 
 
-def publish_checklist_version(version: ChecklistVersion, *, actor: Any = None, change_summary: str | None = None) -> ChecklistVersion:
-    """Freeze a draft.  From here the version is immutable (Phase 7 adds the full release workflow)."""
-    try:
-        return _publish(version, actor=actor, change_summary=change_summary)
-    except RuleValidationError as exc:  # outside the transaction, so the audit entry survives the refusal
-        template = ChecklistTemplate.objects.select_related("organization").get(pk=version.template_id)
-        _log_rule_failure(template, version, actor, exc.issues, "publishing")
-        raise
+def publish_checklist_version(version: ChecklistVersion, *, actor: Any = None, change_summary: str | None = None, expected_hash: str | None = None) -> ChecklistVersion:
+    """Publish a draft: validated, atomic, serialised per template; the previous published version is superseded.
 
+    Raises ``lifecycle.PublicationBlocked`` (a ``ValidationError``) for blocking problems and ``lifecycle.ConflictError`` for a
+    stale draft or an already published version.  See ``lifecycle.publish_version``.
+    """
+    from .lifecycle import publish_version
 
-@transaction.atomic
-def _publish(version: ChecklistVersion, *, actor: Any = None, change_summary: str | None = None) -> ChecklistVersion:
-    template, version = _editable(version)
-    problems, rule_errors = _version_problems(version)
-    if rule_errors:
-        raise RuleValidationError(rule_errors, show_rule=True)
-    if problems:
-        raise ValidationError(problems)
-    if change_summary is not None:
-        version.change_summary = change_summary.strip()[:300]
-    version.status = c.VersionStatus.PUBLISHED
-    version.published_at = timezone.now()
-    stamp_history(version, actor, VERBS["version_published"])
-    version.save()
-    _touch(template, actor)
-    _log(verb=VERBS["version_published"], organization=template.organization, actor=actor, target=version,
-                 description=f"Published {template.code} v{version.version_number}")
-    return version
+    return publish_version(version, actor=actor, change_summary=change_summary, expected_hash=expected_hash)
 
 
 # ---------------------------------------------------------------------------

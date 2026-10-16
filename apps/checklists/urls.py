@@ -21,6 +21,11 @@ urlpatterns = [
     path("<uuid:pk>/versions/new/", v.VersionCreateView.as_view(), name="version_new"),
     path("<uuid:pk>/versions/<int:number>/", v.VersionDetailView.as_view(), name="version_detail"),
     path("<uuid:pk>/versions/<int:number>/publish/", v.VersionPublishView.as_view(), name="version_publish"),
+    path("<uuid:pk>/versions/<int:number>/validate/", v.VersionValidateView.as_view(), name="version_validate"),
+    path("<uuid:pk>/versions/<int:number>/discard/", v.VersionDiscardView.as_view(), name="version_discard"),
+    path("<uuid:pk>/versions/<int:number>/draft/", v.VersionDraftFromView.as_view(), name="version_draft_from"),
+    path("<uuid:pk>/versions/<int:number>/preview/", v.VersionPreviewView.as_view(), name="version_preview"),
+    path("<uuid:pk>/compare/", v.VersionCompareView.as_view(), name="compare"),
     # Builder (edits the draft version).
     path("<uuid:pk>/builder/", v.BuilderView.as_view(), name="builder"),
     path("<uuid:pk>/builder/sections/new/", v.SectionCreateView.as_view(), name="section_new"),

@@ -25,6 +25,7 @@ STATUSES: dict[str, StatusInfo] = {
     "pending": StatusInfo("warning", "clock", "Pending"),
     "draft": StatusInfo("warning", "pencil", "Draft"),
     "published": StatusInfo("info", "send", "Published"),
+    "superseded": StatusInfo("neutral", "history", "Superseded"),
     "archived": StatusInfo("neutral", "archive", "Archived"),
     "completed": StatusInfo("success", "circle-check-big", "Completed"),
     "in_progress": StatusInfo("info", "loader", "In progress"),

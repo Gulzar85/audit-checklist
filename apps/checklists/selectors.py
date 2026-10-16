@@ -9,7 +9,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.db.models import Max, OuterRef, Prefetch, QuerySet, Subquery
+from django.db.models import Count, Max, OuterRef, Prefetch, QuerySet, Subquery
+from django.db.models.functions import Coalesce
 
 from apps.core.policies import is_active_user
 from apps.core.utils import parse_uuid
@@ -56,7 +57,29 @@ def categories_for_user(user: Any) -> QuerySet[ChecklistCategory]:
 
 
 def versions_of(template: ChecklistTemplate) -> QuerySet[ChecklistVersion]:
-    return template.versions.select_related("created_by").order_by("-version_number")
+    """Every version of the template, newest first, with section/item counts (no per-row queries)."""
+    sections = (ChecklistSection.objects.filter(version=OuterRef("pk")).order_by().values("version").annotate(n=Count("pk")).values("n"))
+    items = (ChecklistItem.objects.filter(section__version=OuterRef("pk")).order_by().values("section__version").annotate(n=Count("pk")).values("n"))
+    return (
+        template.versions.select_related("created_by", "published_by", "based_on")
+        .annotate(section_count=Coalesce(Subquery(sections), 0), item_count=Coalesce(Subquery(items), 0))
+        .order_by("-version_number")
+    )
+
+
+def current_published_version(template: ChecklistTemplate) -> ChecklistVersion | None:
+    """The one published version of the template (the only one a new assignment may use), if any."""
+    return template.versions.filter(status=VersionStatus.PUBLISHED).first()
+
+
+def get_version_for_user(user: Any, pk: Any) -> ChecklistVersion | None:
+    """One version of a template the user may view, or ``None`` (404): organization isolation for version resources."""
+    pk = parse_uuid(pk)
+    if not pk:
+        return None
+    visible = templates_for_user(user).values("pk")
+    return (ChecklistVersion.objects.filter(pk=pk, template_id__in=visible)
+            .select_related("template__organization", "created_by", "published_by", "based_on").first())
 
 
 def get_draft_version(template: ChecklistTemplate) -> ChecklistVersion | None:
@@ -132,3 +155,11 @@ def get_rule(version: ChecklistVersion, pk: Any) -> Any:
 
 def rules_for_version(version: ChecklistVersion):  # noqa: ANN201
     return version.rules.order_by("sort_order")
+
+
+def versions_visible_to(user: Any) -> QuerySet[ChecklistVersion]:
+    """Every version of every template the user may view (the choke point of the version API)."""
+    return (
+        ChecklistVersion.objects.filter(template_id__in=templates_for_user(user).values("pk"))
+        .select_related("template__organization", "created_by", "published_by", "based_on")
+    )

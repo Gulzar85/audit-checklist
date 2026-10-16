@@ -1,0 +1,45 @@
+{
+  "code": "DEMO-RSC",
+  "name": "Restaurant Daily Safety Checklist",
+  "category": "Safety",
+  "minutes": 15,
+  "description": "A generic daily safety checklist used to demonstrate versioning: it is published as version 1, then evolved into version 2 without touching version 1.",
+  "instructions": "Walk the restaurant and answer every question. Describe any issue you find.",
+  "change_summary": "Initial version",
+  "sections": [
+    {
+      "code": "FIRE",
+      "name": "Fire Safety",
+      "items": [
+        {"code": "FIRE-EXIT", "question": "Is the fire exit accessible?", "answer_type": "yes_no"}
+      ]
+    },
+    {
+      "code": "FOOD",
+      "name": "Food Storage",
+      "items": [
+        {"code": "HANDWASH", "question": "Is the handwashing station operational?", "answer_type": "yes_no_na"},
+        {"code": "FRIDGE-TEMP", "question": "Record refrigerator temperature.", "answer_type": "numeric",
+         "config": {"min": 0, "max": 10, "decimals": 1, "unit": "°C"}}
+      ]
+    },
+    {
+      "code": "GENERAL",
+      "name": "General Operations",
+      "items": [
+        {"code": "ISSUE", "question": "Describe any identified issue.", "answer_type": "long_text", "required": false}
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "name": "Blocked fire exit needs a description",
+      "description": "Reveal and require the issue description when the fire exit is not accessible.",
+      "condition": {"source_item_code": "FIRE-EXIT", "comparison": "EQUALS", "value": "no"},
+      "actions": [
+        {"type": "SHOW_ITEM", "target": {"type": "item", "code": "ISSUE"}},
+        {"type": "REQUIRE_ITEM", "target": {"type": "item", "code": "ISSUE"}}
+      ]
+    }
+  ]
+}

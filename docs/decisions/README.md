@@ -52,3 +52,6 @@ consequences. New records are appended; existing ones are superseded, not edited
 | [0045](0045-generic-checklist-definition-model.md) | A generic, versioned checklist definition model | Accepted |
 | [0046](0046-answer-type-engine.md) | The answer-type engine: a code registry with schema-validated configuration | Accepted |
 | [0047](0047-conditional-rules-engine.md) | Conditional rules: declarative, versioned, validated as a set, evaluated by one pure function | Accepted |
+| [0048](0048-version-lifecycle-and-archival.md) | Version lifecycle: draft, published, superseded; archival belongs to the template | Accepted |
+| [0049](0049-published-definitions-are-immutable.md) | Published definitions are immutable: services, models and PostgreSQL triggers | Accepted |
+| [0050](0050-version-manifest-and-integrity-hash.md) | A derived manifest and SHA-256 integrity hash (not a snapshot) | Accepted |

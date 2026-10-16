@@ -13,7 +13,9 @@ from typing import Any
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.paginator import Paginator
 from django.http import Http404, HttpRequest, HttpResponse, HttpResponseRedirect
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.views import View
 from django.views.generic import FormView, TemplateView
@@ -27,8 +29,11 @@ from apps.permissions.authorization import has_permission_anywhere
 from apps.permissions.registry import P
 
 from . import constants as c
-from . import policies, selectors, services
+from . import lifecycle, policies, selectors, services
+from .comparison import CATEGORIES, IMPACTS, KINDS
 from .filters import TemplateFilter
+from .manifest import verify_version_integrity
+from .publication import validate_for_publication
 from .answer_types import ConfigurationError, registry
 from .answer_types.preview import preview_context
 from .forms import DuplicateForm, ItemForm, OptionForm, SectionForm, TemplateForm, VersionForm, build_config_form
@@ -274,22 +279,39 @@ class TemplateStatusView(TemplateObjectMixin, View):
 # ---------------------------------------------------------------------------
 # Versions
 # ---------------------------------------------------------------------------
+def _flash_lifecycle_error(request: HttpRequest, exc: ValidationError) -> None:
+    """Turn a lifecycle/validation refusal into messages (one per problem; never a stack trace)."""
+    for problem in exc.messages:
+        messages.error(request, problem)
+
+
 class VersionListView(TemplateObjectMixin, TemplateView):
+    """The version history: every version, newest first, paginated; read-only for anyone who can view the checklist."""
+
     template_name = "checklists/version_list.html"
+    paginate_by = 20
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
+        user, template = self.request.user, self.template
+        page = Paginator(selectors.versions_of(template), self.paginate_by).get_page(self.request.GET.get("page"))
+        draft = self.draft
+        can_create = policies.can_create_version(user, template) and draft is None and template.status != c.TemplateStatus.ARCHIVED
+        rows = list(page.object_list)
+        compare = reverse("checklists:compare", args=[template.pk])
+        for row in rows:  # "compare with the previous version" (numbers are contiguous: a draft is always the newest)
+            row.compare_url = f"{compare}?from={row.version_number - 1}&to={row.version_number}" if row.version_number > 1 else ""
         context.update(
-            template=self.template, versions=list(selectors.versions_of(self.template)),
-            can_create_version=policies.can_create_version(self.request.user, self.template)
-            and self.draft is None and self.template.status != c.TemplateStatus.ARCHIVED,
-            form=VersionForm(),
+            template=template, versions=rows, page_obj=page, draft=draft,
+            current=selectors.current_published_version(template),
+            can_create_version=can_create, can_compare=policies.can_compare_versions(user, template) and page.paginator.count > 1,
+            can_create_draft_from=can_create, form=VersionForm(),
         )
         return context
 
 
 class VersionDetailView(TemplateObjectMixin, TemplateView):
-    """A read-only view of any version's structure."""
+    """A read-only view of any version's structure, its publication record and its integrity."""
 
     template_name = "checklists/version_detail.html"
 
@@ -298,10 +320,17 @@ class VersionDetailView(TemplateObjectMixin, TemplateView):
         version = selectors.get_version(self.template, self.kwargs["number"])
         if version is None:
             raise Http404
+        user, template = self.request.user, self.template
+        can_draft = (policies.can_create_version(user, template) and self.draft is None and not version.is_draft
+                     and template.status != c.TemplateStatus.ARCHIVED)
         context.update(
-            template=self.template, version=version, version_label=f"Version {version.version_number}",
+            template=template, version=version, version_label=f"Version {version.version_number}",
             sections=list(selectors.get_sections_for_version(version)),
-            can_edit=policies.can_edit_version(self.request.user, version),
+            can_edit=policies.can_edit_version(user, version), can_create_draft_from=can_draft,
+            integrity=verify_version_integrity(version),
+            publication_warnings=(version.publication_report or {}).get("warnings", []),
+            previous_number=version.version_number - 1 if version.version_number > 1 else None,
+            assignable=lifecycle.is_assignable(version),
         )
         return context
 
@@ -324,6 +353,28 @@ class VersionCreateView(TemplateObjectMixin, View):
         return HttpResponseRedirect(self.builder_url())
 
 
+class VersionDraftFromView(TemplateObjectMixin, View):
+    """POST: a new draft that is a copy of *this* (published or superseded) version - the way to roll back."""
+
+    http_method_names = ["post"]
+
+    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        source = selectors.get_version(self.template, self.kwargs["number"])
+        if source is None:
+            raise Http404
+        if not policies.can_create_version(request.user, self.template):
+            raise PermissionDenied
+        try:
+            version = services.create_checklist_version(
+                self.template, actor=request.user, change_summary=request.POST.get("change_summary", ""), source=source
+            )
+        except ValidationError as exc:
+            _flash_lifecycle_error(request, exc)
+            return HttpResponseRedirect(reverse("checklists:version_detail", args=[self.template.pk, source.version_number]))
+        messages.success(request, f"Draft version {version.version_number} created as a copy of version {source.version_number}.")
+        return HttpResponseRedirect(self.builder_url())
+
+
 class VersionPublishView(TemplateObjectMixin, View):
     http_method_names = ["post"]
 
@@ -331,16 +382,171 @@ class VersionPublishView(TemplateObjectMixin, View):
         version = selectors.get_version(self.template, self.kwargs["number"])
         if version is None:
             raise Http404
-        if not policies.can_publish_version(request.user, version):
+        if not policies.can_publish_template(request.user, self.template):  # status-independent: a repeated click is a message, not a 403
             raise PermissionDenied
         try:
-            services.publish_checklist_version(version, actor=request.user, change_summary=request.POST.get("change_summary"))
+            services.publish_checklist_version(
+                version, actor=request.user, change_summary=request.POST.get("change_summary"),
+                expected_hash=request.POST.get("expected_hash") or None,
+            )
+        except lifecycle.ConflictError as exc:
+            if exc.lifecycle_code == "already_published":  # a repeated click or a retried request: not an error
+                messages.info(request, _text(exc))
+                return HttpResponseRedirect(reverse("checklists:version_detail", args=[self.template.pk, version.version_number]))
+            _flash_lifecycle_error(request, exc)
+            return HttpResponseRedirect(self.builder_url())
         except ValidationError as exc:
-            for problem in exc.messages:
-                messages.error(request, problem)
+            if isinstance(exc, lifecycle.PublicationBlocked):
+                messages.error(request, "The draft contains validation errors and cannot be published.")
+            _flash_lifecycle_error(request, exc)
             return HttpResponseRedirect(self.builder_url())
         messages.success(request, f"Version {version.version_number} published. It can no longer be edited.")
         return HttpResponseRedirect(reverse("checklists:detail", args=[self.template.pk]))
+
+
+class VersionValidateView(TemplateObjectMixin, View):
+    """POST: run the publication validation of a draft.  HTMX gets the report fragment, a plain post gets messages."""
+
+    http_method_names = ["post"]
+
+    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        version = selectors.get_version(self.template, self.kwargs["number"])
+        if version is None:
+            raise Http404
+        if not policies.can_validate_version(request.user, version):
+            raise PermissionDenied
+        report = lifecycle.run_validation(version, actor=request.user)
+        if request.headers.get("HX-Request") == "true":
+            return HttpResponse(render_to_string("checklists/_validation_report.html", {"report": report}, request=request))
+        if report.ok:
+            messages.success(request, "The draft is valid and can be published." + (f" {len(report.warnings)} warning(s)." if report.warnings else ""))
+        else:
+            for finding in report.errors:
+                messages.error(request, finding.message)
+        return HttpResponseRedirect(self.builder_url())
+
+
+class VersionDiscardView(TemplateObjectMixin, View):
+    """POST: delete a draft that was never published.  Published and superseded versions are kept for history."""
+
+    http_method_names = ["post"]
+
+    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        version = selectors.get_version(self.template, self.kwargs["number"])
+        if version is None:
+            raise Http404
+        if not policies.can_update_template(request.user, self.template):  # the service explains why a published version is refused
+            raise PermissionDenied
+        try:
+            lifecycle.discard_draft(version, actor=request.user)
+        except ValidationError as exc:
+            _flash_lifecycle_error(request, exc)
+            return HttpResponseRedirect(self.builder_url())
+        messages.success(request, f"Draft version {version.version_number} discarded. Published versions are unchanged.")
+        return HttpResponseRedirect(reverse("checklists:versions", args=[self.template.pk]))
+
+
+def _item_preview_html(item: Any) -> str:
+    """The inert preview control of one item (the Phase 5 renderer; no input is live)."""
+    definition = registry.get(item.answer_type)
+    if definition.code in ("yes_no", "yes_no_na"):
+        labels = [label for _value, label in c.FIXED_OPTIONS[definition.code]]
+    else:
+        labels = [o.label for o in item.options.all() if o.is_active]
+    context = preview_context(definition, definition.config_with_defaults(item.config), options=labels)
+    return render_to_string("checklists/_answer_preview.html", {**context, "hide_question": True})
+
+
+class VersionPreviewView(TemplateObjectMixin, TemplateView):
+    """A safe preview of any version: sections, questions, controls, options, rules - nothing is answered or saved."""
+
+    template_name = "checklists/preview.html"
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        from .rules import describe_rule, snapshot_for_version
+
+        context = super().get_context_data(**kwargs)
+        version = selectors.get_version(self.template, self.kwargs["number"])
+        if version is None:
+            raise Http404
+        sections = list(selectors.get_sections_for_version(version))
+        snapshot = snapshot_for_version(version)
+        lines: dict[tuple[str, str], list[str]] = {}
+        shown: set[tuple[str, str]] = set()
+        for rule in snapshot.rules:
+            if not rule.is_active or not isinstance(rule.actions, list):
+                continue
+            try:
+                summary = f"{rule.code}: " + describe_rule(snapshot, rule.condition, rule.actions)
+            except (KeyError, TypeError, AttributeError):
+                continue
+            for action in rule.actions:
+                target = action.get("target") if isinstance(action, dict) else None
+                if not target:
+                    continue
+                key = (target.get("type", ""), target.get("code", ""))
+                lines.setdefault(key, []).append(summary)
+                if action.get("type") in ("SHOW_ITEM", "SHOW_SECTION"):
+                    shown.add(key)
+        blocks = []
+        for section in sections:
+            entries = [{
+                "item": item, "control": _item_preview_html(item), "rules": lines.get(("item", item.code), []),
+                "hidden_by_default": ("item", item.code) in shown,
+            } for item in section.items.all()]
+            blocks.append({"section": section, "items": entries, "hidden_by_default": ("section", section.code) in shown})
+        context.update(
+            template=self.template, version=version, version_label=f"Version {version.version_number}", blocks=blocks,
+            can_edit=policies.can_edit_version(self.request.user, version),
+        )
+        return context
+
+
+class VersionCompareView(TemplateObjectMixin, TemplateView):
+    """Compare two versions of this checklist (read-only; filters narrow the list)."""
+
+    template_name = "checklists/compare.html"
+    GROUPS = (("section", "Sections", "layout-list"), ("item", "Questions", "list-checks"), ("option", "Options", "list"), ("rule", "Rules", "git-branch"))
+
+    def _number(self, key: str, default: int | None) -> int | None:
+        raw = self.request.GET.get(key, "")
+        if not raw:
+            return default
+        if not (raw.isascii() and raw.isdigit()):
+            raise Http404
+        return int(raw)
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        template = self.template
+        versions = list(selectors.versions_of(template))
+        if not versions:
+            raise Http404
+        by_number = {v.version_number: v for v in versions}
+        newest = next((v for v in versions if not v.is_draft), versions[0])
+        to_number = self._number("to", newest.version_number)
+        default_from = newest.based_on.version_number if newest.based_on_id else max(newest.version_number - 1, 1)
+        from_number = self._number("from", default_from)
+        old, new = by_number.get(from_number), by_number.get(to_number)
+        if old is None or new is None:
+            raise Http404
+        comparison = lifecycle.compare_versions(template, old, new, actor=self.request.user)
+        filters = {"category": self.request.GET.get("category", ""), "kind": self.request.GET.get("kind", ""), "impact": self.request.GET.get("impact", "")}
+        for key, allowed in (("category", CATEGORIES), ("kind", KINDS), ("impact", IMPACTS)):
+            if filters[key] not in allowed:
+                filters[key] = ""
+        shown = comparison.filtered(**filters)
+        counts = comparison.counts()
+        counts["plural"] = "" if counts["total"] == 1 else "s"
+        groups = [{"key": key, "label": label, "icon": icon, "changes": [ch for ch in shown if ch.category == key]} for key, label, icon in self.GROUPS]
+        context.update(
+            template=template, versions=versions, old=old, new=new, comparison=comparison, counts=counts, filters=filters,
+            groups=[g for g in groups if g["changes"]], summary_line=f"v{old.version_number} → v{new.version_number}",
+            category_choices=[("section", "Sections"), ("item", "Questions"), ("option", "Options"), ("rule", "Rules")],
+            kind_choices=[("added", "Added"), ("removed", "Removed"), ("modified", "Modified"), ("reordered", "Reordered")],
+            impact_choices=[("behavior", "Changes behaviour"), ("wording", "Wording only"), ("structure", "Structure / order")],
+        )
+        return context
 
 
 # ---------------------------------------------------------------------------
@@ -356,6 +562,7 @@ class BuilderView(TemplateObjectMixin, TemplateView):
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         template, draft, user = self.template, self.draft, self.request.user
+        report = validate_for_publication(draft) if draft else None
         context.update(
             template=template, draft=draft,
             can_edit=bool(draft) and policies.can_edit_version(user, draft),
@@ -363,7 +570,11 @@ class BuilderView(TemplateObjectMixin, TemplateView):
             can_create_version=policies.can_create_version(user, template) and draft is None
             and template.status != c.TemplateStatus.ARCHIVED,
             sections=list(selectors.get_sections_for_version(draft)) if draft else [],
-            problems=services.validate_version_complete(draft) if draft else [],
+            problems=report.messages() if report else [], report=report, draft_hash=report.draft_hash if report else "",
+            can_validate=bool(draft) and policies.can_validate_version(user, draft),
+            can_discard=bool(draft) and policies.can_discard_version(user, draft)
+            and template.versions.exclude(pk=draft.pk).exists(),
+            current=selectors.current_published_version(template),
             rule_count=draft.rules.count() if draft else 0,
             version_form=VersionForm(),
             latest_published=template.versions.filter(status=c.VersionStatus.PUBLISHED).order_by("-version_number").first(),

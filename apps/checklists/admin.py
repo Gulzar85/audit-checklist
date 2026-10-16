@@ -1,8 +1,10 @@
 """Checklist admin.  The builder UI is the primary authoring tool; the admin is for support and inspection.
 
-Published structure is read-only here too: sections, items, options and rules of a published version, and
-published versions themselves, cannot be edited or deleted from the admin (the model-level service rules
-cannot be bypassed by a form).  Exports are limited to organizations the staff member may see.
+Published structure is read-only here too: sections, items, options and rules of a published or superseded version, and
+those versions themselves, cannot be edited or deleted from the admin - inlines included - and if a form were ever
+submitted anyway the model guards and the PostgreSQL triggers refuse the write (ADR 0049).  A draft's change summary is the
+only version field the admin can edit; publishing and every other transition happen through ``lifecycle`` (builder / API).
+Exports are limited to organizations the staff member may see.
 """
 
 from __future__ import annotations
@@ -49,11 +51,12 @@ class TemplateExportResource(FormulaSafeExportMixin, resources.ModelResource):
 
 
 def _published(obj) -> bool:  # noqa: ANN001
-    version = (
+    """Does ``obj`` (a version, or anything inside one) belong to a non-draft - published or superseded - version?"""
+    version = obj if isinstance(obj, ChecklistVersion) else (
         getattr(obj, "version", None) or getattr(getattr(obj, "section", None), "version", None)
         or getattr(getattr(getattr(obj, "item", None), "section", None), "version", None)
     )
-    return bool(version and version.status == VersionStatus.PUBLISHED)
+    return bool(version and version.status != VersionStatus.DRAFT)
 
 
 class _FrozenWhenPublished:
@@ -128,17 +131,24 @@ class SectionInline(admin.TabularInline):
 
 @admin.register(ChecklistVersion)
 class ChecklistVersionAdmin(SimpleHistoryAdmin):
-    list_display = ("__str__", "status", "published_at", "created_at")
+    list_display = ("__str__", "status", "published_at", "published_by", "superseded_at", "created_at")
     list_filter = ("status",)
     search_fields = ("template__code", "template__name")
-    readonly_fields = ("id", "template", "version_number", "status", "published_at", "created_by", "created_at", "updated_at")
+    list_select_related = ("template", "published_by")
+    readonly_fields = (
+        "id", "template", "version_number", "status", "based_on", "published_at", "published_by", "superseded_at",
+        "integrity_hash", "publication_report", "created_by", "created_at", "updated_at",
+    )
     inlines = [SectionInline]
 
     def has_add_permission(self, request) -> bool:  # noqa: ANN001
-        return False
+        return False  # drafts are created by the lifecycle service (builder / API), never by a bare form
 
     def has_delete_permission(self, request, obj=None) -> bool:  # noqa: ANN001
-        return False
+        return False  # a draft is discarded through the lifecycle service; published versions are never deleted
+
+    def has_change_permission(self, request, obj=None) -> bool:  # noqa: ANN001
+        return not (obj is not None and obj.status != VersionStatus.DRAFT) and super().has_change_permission(request, obj)
 
 
 class ItemAdminForm(forms.ModelForm):
@@ -163,7 +173,20 @@ class ItemAdminForm(forms.ModelForm):
         return cleaned
 
 
-class ItemInline(admin.TabularInline):
+class _FrozenInline:
+    """Inline mixin: nothing inside a non-draft version can be added, changed or deleted through its parent's page."""
+
+    def has_add_permission(self, request, obj=None) -> bool:  # noqa: ANN001
+        return not (obj is not None and _published(obj)) and super().has_add_permission(request, obj)
+
+    def has_change_permission(self, request, obj=None) -> bool:  # noqa: ANN001
+        return not (obj is not None and _published(obj)) and super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None) -> bool:  # noqa: ANN001
+        return not (obj is not None and _published(obj)) and super().has_delete_permission(request, obj)
+
+
+class ItemInline(_FrozenInline, admin.TabularInline):
     model = ChecklistItem
     extra = 0
     fields = ("sort_order", "code", "question", "answer_type", "is_required", "is_active")
@@ -178,7 +201,7 @@ class ChecklistSectionAdmin(_FrozenWhenPublished, SimpleHistoryAdmin):
     inlines = [ItemInline]
 
 
-class OptionInline(admin.TabularInline):
+class OptionInline(_FrozenInline, admin.TabularInline):
     model = ChecklistOption
     extra = 0
     fields = ("sort_order", "value", "label", "is_active")

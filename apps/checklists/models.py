@@ -4,7 +4,9 @@
                                    \\-> ChecklistRule
 
 A *template* is the stable identity of a checklist; a *version* is a snapshot of its structure.  Sections
-hang off a version, never off the template, so changing a later version can never rewrite an earlier one.
+hang off a version, never off the template, so changing a later version can never rewrite an earlier one.  A version
+moves draft -> published -> superseded (``lifecycle.py``); everything below a non-draft version is immutable (``guards.py``:
+model guards here, PostgreSQL triggers underneath).
 Future executions will reference a ``ChecklistVersion``.  There is exactly one item model: what is asked
 is ``question`` and how it is answered is ``answer_type`` + ``config`` + options - nothing here assumes
 scoring, and no answer is stored in this app.
@@ -23,6 +25,7 @@ from apps.core.models import BaseModel
 from apps.locations.models import normalize_code, validate_code
 
 from .constants import AnswerType, TemplateStatus, VersionStatus
+from .guards import DefinitionGuardMixin, definition_changes_allowed
 
 User = settings.AUTH_USER_MODEL
 
@@ -95,14 +98,24 @@ class ChecklistTemplate(BaseModel):
 
 
 class ChecklistVersion(BaseModel):
-    """A snapshot of a template's structure.  Only a draft version may be edited."""
+    """A reproducible definition of a template.  Only a draft may be edited; see ``lifecycle.py`` for the transitions."""
 
     template = models.ForeignKey(ChecklistTemplate, on_delete=models.PROTECT, related_name="versions")
     version_number = models.PositiveIntegerField()
+    #: The one authoritative lifecycle field: draft -> published -> superseded (no parallel is_published / is_current flags).
     status = models.CharField(max_length=10, choices=VersionStatus.choices, default=VersionStatus.DRAFT, db_index=True)
     change_summary = models.CharField(max_length=300, blank=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    #: The version this one was copied from (None for the first version): "draft cloned from v1", rollback lineage.
+    based_on = models.ForeignKey("self", on_delete=models.PROTECT, null=True, blank=True, related_name="derived_versions")
     published_at = models.DateTimeField(null=True, blank=True)
+    published_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    #: Set when a newer version is published (the version stays readable and immutable).
+    superseded_at = models.DateTimeField(null=True, blank=True)
+    #: ``sha256:v<schema>:<hex>`` of the canonical manifest, sealed at publication (``manifest.py``); never trusted without re-derivation.
+    integrity_hash = models.CharField(max_length=80, blank=True)
+    #: What the publication validator found (warnings accepted at publication, counts); frozen with the version.
+    publication_report = models.JSONField(default=dict, blank=True)
 
     history = HistoricalRecords()
 
@@ -113,12 +126,17 @@ class ChecklistVersion(BaseModel):
             models.UniqueConstraint(
                 fields=["template"], condition=models.Q(status="draft"), name="one_draft_version_per_template"
             ),
+            models.UniqueConstraint(
+                fields=["template"], condition=models.Q(status="published"), name="one_published_version_per_template"
+            ),
             models.CheckConstraint(
-                condition=models.Q(status="published", published_at__isnull=False)
-                | models.Q(status="draft", published_at__isnull=True),
-                name="checklist_version_status_matches_published_at",
+                condition=models.Q(status="draft", published_at__isnull=True, superseded_at__isnull=True)
+                | models.Q(status="published", published_at__isnull=False, superseded_at__isnull=True)
+                | models.Q(status="superseded", published_at__isnull=False, superseded_at__isnull=False),
+                name="checklist_version_lifecycle_consistent",
             ),
             models.CheckConstraint(condition=models.Q(version_number__gte=1), name="checklist_version_number_positive"),
+            models.CheckConstraint(condition=~models.Q(based_on=models.F("id")), name="checklist_version_not_based_on_itself"),
         ]
 
     def __str__(self) -> str:
@@ -128,8 +146,35 @@ class ChecklistVersion(BaseModel):
     def is_draft(self) -> bool:
         return self.status == VersionStatus.DRAFT
 
+    @property
+    def is_published(self) -> bool:
+        return self.status == VersionStatus.PUBLISHED
 
-class ChecklistSection(BaseModel):
+    @property
+    def is_superseded(self) -> bool:
+        return self.status == VersionStatus.SUPERSEDED
+
+    def _stored_status(self) -> str | None:
+        return type(self).objects.filter(pk=self.pk).values_list("status", flat=True).first()
+
+    def save(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
+        """A stored version moves draft -> published -> superseded only; nothing else may rewrite it (ADR 0049)."""
+        if not self._state.adding and not definition_changes_allowed():
+            old = self._stored_status()
+            if old is not None and old != VersionStatus.DRAFT and not (old == VersionStatus.PUBLISHED and self.status == VersionStatus.SUPERSEDED):
+                raise ValidationError(
+                    _("This checklist version is already published and cannot be edited. Create a new draft version to make changes."),
+                    code="version_immutable",
+                )
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):  # noqa: ANN002, ANN003, ANN201
+        if not definition_changes_allowed() and self._stored_status() not in (None, VersionStatus.DRAFT):
+            raise ValidationError(_("A published checklist version cannot be deleted; it is kept for history."), code="version_immutable")
+        return super().delete(*args, **kwargs)
+
+
+class ChecklistSection(DefinitionGuardMixin, BaseModel):
     """A titled group of items.  Flat on purpose (no nesting); repeatable sections can be added later."""
 
     version = models.ForeignKey(ChecklistVersion, on_delete=models.CASCADE, related_name="sections")
@@ -155,7 +200,7 @@ class ChecklistSection(BaseModel):
         return self.name
 
 
-class ChecklistItem(BaseModel):
+class ChecklistItem(DefinitionGuardMixin, BaseModel):
     """One question / check / control point.  The single item model for every answer type."""
 
     section = models.ForeignKey(ChecklistSection, on_delete=models.CASCADE, related_name="items")
@@ -193,7 +238,7 @@ class ChecklistItem(BaseModel):
         return f"{self.code} {self.question[:50]}"
 
 
-class ChecklistOption(BaseModel):
+class ChecklistOption(DefinitionGuardMixin, BaseModel):
     """A predefined choice of an item.  No score lives here: scoring is a later, independent capability."""
 
     item = models.ForeignKey(ChecklistItem, on_delete=models.CASCADE, related_name="options")
@@ -215,7 +260,7 @@ class ChecklistOption(BaseModel):
         return self.label
 
 
-class ChecklistRule(BaseModel):
+class ChecklistRule(DefinitionGuardMixin, BaseModel):
     """A declarative rule: *when* ``condition`` holds, apply ``actions`` (Phase 6).
 
     Items and sections are referenced **by code** inside the JSON, so a rule survives copying to a new version

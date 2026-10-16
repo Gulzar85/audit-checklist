@@ -22,8 +22,11 @@ class TemplateStatus(models.TextChoices):
 
 
 class VersionStatus(models.TextChoices):
+    """Lifecycle of one version (ADR 0048): DRAFT -> PUBLISHED -> SUPERSEDED.  Archiving is a *template* status."""
+
     DRAFT = "draft", _("Draft")
     PUBLISHED = "published", _("Published")
+    SUPERSEDED = "superseded", _("Superseded")
 
 
 class AnswerType(models.TextChoices):

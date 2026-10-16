@@ -87,6 +87,10 @@ recursive queries and row locks are part of what is under test). Point
 .\venv\Scripts\python manage.py makemigrations --check
 .\venv\Scripts\python manage.py validate_location_tree      # audit the hierarchy (non-zero exit on problems)
 .\venv\Scripts\python manage.py seed_demo_data              # demo data; refuses in production
+.\venv\Scripts\python manage.py seed_demo_checklists --organization <slug>   # checklist demos (incl. conditional rules)
+.\venv\Scripts\python manage.py seed_demo_versioning --organization <slug>   # versioning walkthrough (v1 -> v2, comparison)
+.\venv\Scripts\python manage.py seal_checklist_versions   # record integrity hashes of versions published before Phase 7
+.\venv\Scripts\python manage.py verify_checklist_integrity   # non-zero exit if a published definition was altered
 .\venv\Scripts\python manage.py spectacular --validate --fail-on-warn   # OpenAPI schema
 .\venv\Scripts\python manage.py collectstatic --noinput
 npm run css:watch            # rebuild CSS on change

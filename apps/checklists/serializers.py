@@ -47,11 +47,21 @@ class ChecklistSectionSerializer(serializers.ModelSerializer):
 
 
 class ChecklistVersionSerializer(serializers.ModelSerializer):
+    """A version and its lifecycle record.  ``section_count`` / ``item_count`` appear when the queryset is annotated."""
+
     template = serializers.UUIDField(source="template_id", read_only=True)
+    based_on = serializers.IntegerField(source="based_on.version_number", read_only=True, default=None)
+    created_by = serializers.UUIDField(source="created_by_id", read_only=True, default=None)
+    published_by = serializers.UUIDField(source="published_by_id", read_only=True, default=None)
+    section_count = serializers.IntegerField(read_only=True, default=None)
+    item_count = serializers.IntegerField(read_only=True, default=None)
 
     class Meta:
         model = ChecklistVersion
-        fields = ("id", "template", "version_number", "status", "change_summary", "published_at", "created_at")
+        fields = (
+            "id", "template", "version_number", "status", "change_summary", "based_on", "created_by", "created_at",
+            "published_at", "published_by", "superseded_at", "integrity_hash", "section_count", "item_count",
+        )
         read_only_fields = fields
 
 
@@ -95,7 +105,17 @@ class DuplicateSerializer(serializers.Serializer):
 
 
 class NewVersionSerializer(serializers.Serializer):
+    """Create a draft: ``source`` (a version id of this checklist; default: the current published version) is optional."""
+
     change_summary = serializers.CharField(max_length=300, required=False, allow_blank=True, default="")
+    source = serializers.UUIDField(required=False)
+
+
+class PublishSerializer(serializers.Serializer):
+    """Publish a draft.  ``expected_hash`` is the ``draft_hash`` the client last validated (optimistic concurrency)."""
+
+    change_summary = serializers.CharField(max_length=300, required=False, allow_blank=True)
+    expected_hash = serializers.CharField(max_length=80, required=False, allow_blank=True)
 
 
 class ChecklistItemWriteSerializer(serializers.Serializer):
