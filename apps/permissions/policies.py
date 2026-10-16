@@ -148,3 +148,42 @@ def assignable_codes(actor: Any, organization: Any, location: Any = None) -> set
     if location is None:
         return set(access.org_wide)
     return {code for code in access.codes if access.allows_location(code, location.pk)}
+
+
+# --- Object-level, import and export boundaries ----------------------------------------------
+def can_access_object(user: Any, obj: Any, code: str, *, guardian_perm: str | None = None) -> bool:
+    """Object-level check: RBAC at the object's location/organization, plus optional guardian grants.
+
+    The organization boundary is never delegated to django-guardian: an explicit per-object guardian
+    grant (``guardian_perm``, e.g. ``"change_theme"``) only *adds* access inside an organization the
+    user may already enter.  Objects with neither a location nor an organization are denied.
+    """
+    organization_id = getattr(obj, "organization_id", None)
+    location = obj if hasattr(obj, "parent_id") else getattr(obj, "location", None)
+    if organization_id is None and location is None:
+        return False
+    if has_permission(user, code, organization=organization_id, location=location):
+        return True
+    if guardian_perm and is_active_user(user):
+        from .authorization import can_access_organization
+
+        org = organization_id or location.organization_id
+        return can_access_organization(user, org) and user.has_perm(guardian_perm, obj)
+    return False
+
+
+def can_import_into(user: Any, organization: Any, code: str, location: Any = None) -> bool:
+    """May ``user`` import records (needing ``code``, e.g. ``location.create``) into this organization/location?
+
+    Importers must call this for every target row's organization and location.
+    """
+    if location is not None and location.organization_id != _org_id(organization):
+        return False
+    return has_permission(user, code, organization=organization, location=location)
+
+
+def exportable_locations(user: Any, code: str = P.LOCATION_VIEW, *, organization: Any = None):  # noqa: ANN201
+    """The only queryset an export may start from: everything the user may see, nothing else."""
+    from .authorization import get_accessible_locations
+
+    return get_accessible_locations(user, code, organization=organization)

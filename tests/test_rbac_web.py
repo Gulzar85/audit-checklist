@@ -9,7 +9,7 @@ from rest_framework.test import APIClient
 from apps.core.models import ActivityLog
 from apps.locations.models import Location
 from apps.organizations.models import OrganizationMembership
-from apps.permissions import policies, services
+from apps.permissions import policies, registry, services
 from apps.permissions.models import MembershipRole, Role
 from apps.permissions.registry import P
 
@@ -87,7 +87,7 @@ class TestPolicies:
     def test_scoped_assigner_cannot_grant_outside_their_scope(self, world, org_a, assign):
         scoped = world["scoped"]
         assign(scoped, org_a, services.create_role(organization=org_a, name="Delegate",
-                                                   permissions=[P.ROLE_ASSIGN, P.LOCATION_VIEW]),
+                                                   permissions=[P.ROLE_ASSIGN, *registry.SYSTEM_ROLES["auditor"][2]]),
                scope=SCOPE.LOCATION_DESCENDANTS, location=world["r1"])
         target = member_of(world["viewer"], org_a)
         viewer_role = role("auditor")
@@ -585,3 +585,40 @@ class TestScopedLocationsAPI:
         rows = rows.get("data", rows)
         assert "plain@example.com" in {row["email"] for row in rows}
         assert "rbac-admin-b@example.com" not in {row["email"] for row in rows}
+
+
+@pytest.mark.django_db
+class TestObjectImportExportHooks:
+    def test_object_access_follows_scope(self, world, org_a):
+        assert policies.can_access_object(world["scoped"], world["a1"], P.LOCATION_UPDATE)
+        assert not policies.can_access_object(world["scoped"], world["a2"], P.LOCATION_UPDATE)
+        assert not policies.can_access_object(world["plain"], world["a1"], P.LOCATION_VIEW)
+
+    def test_guardian_grant_adds_access_only_inside_the_organization(self, world, org_a, org_b, make_location):
+        from guardian.shortcuts import assign_perm
+
+        plain = world["plain"]
+        assign_perm("change_location", plain, world["a2"])
+        assert policies.can_access_object(plain, world["a2"], P.LOCATION_UPDATE, guardian_perm="locations.change_location")
+        assert not policies.can_access_object(plain, world["a2"], P.LOCATION_UPDATE)  # opt-in only
+        foreign = make_location(org_b, "Foreign")
+        assign_perm("change_location", plain, foreign)
+        assert not policies.can_access_object(plain, foreign, P.LOCATION_UPDATE, guardian_perm="locations.change_location")
+
+    def test_import_targets_are_authorized(self, world, org_a, org_b, make_location):
+        scoped = world["scoped"]
+        assert policies.can_import_into(scoped, org_a, P.LOCATION_CREATE, world["a1"])
+        assert not policies.can_import_into(scoped, org_a, P.LOCATION_CREATE, world["a2"])
+        assert not policies.can_import_into(scoped, org_a, P.LOCATION_CREATE)
+        assert not policies.can_import_into(world["admin"], org_a, P.LOCATION_CREATE, make_location(org_b, "F"))
+
+    def test_exports_start_from_the_authorized_queryset(self, world):
+        names = set(policies.exportable_locations(world["scoped"]).values_list("name", flat=True))
+        assert names == {"Region 1", "Area 1"}
+
+    def test_future_module_permissions_are_registered_and_seeded(self):
+        from apps.permissions import registry
+
+        for code in ("checklist.publish", "execution.submit", "finding.close", "corrective_action.verify",
+                     "report.view", "dashboard.view", "user.manage", "role.manage"):
+            assert registry.is_registered(code)
