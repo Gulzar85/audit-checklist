@@ -1,0 +1,5 @@
+{% load ui rbac %}{% comment %}Icon row actions. Display hint only (RBAC); every destination re-authorises through the policies.{% endcomment %}
+<div class="flex justify-end gap-0.5">
+  {% url 'assignments:detail' record.pk as view_url %}{% row_action "View" "eye" href=view_url subject=record.reference %}
+  {% if record.status == "draft" %}{% can "assignment.create" record.location as can_edit %}{% if can_edit %}{% url 'assignments:edit' record.pk as edit_url %}{% row_action "Edit draft" "pencil" href=edit_url subject=record.reference %}{% endif %}{% endif %}
+</div>

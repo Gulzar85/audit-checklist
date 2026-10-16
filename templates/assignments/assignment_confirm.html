@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Review assignment &middot; {{ APP_NAME }}{% endblock %}
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Assignments" "assignments:list" "Review" %}{% endblock %}
+{% block page_header %}{% page_header title="Review before issuing" subtitle="Nothing is assigned until you confirm." icon="clipboard-check" %}{% endpage_header %}{% endblock %}
+
+{% block content %}
+<form method="post" class="card max-w-3xl" id="assignment-confirm">
+  {% csrf_token %}
+  <input type="hidden" name="version" value="{{ data.version.pk }}"><input type="hidden" name="location" value="{{ data.location.pk }}">
+  <input type="hidden" name="assigned_to" value="{{ data.assigned_to.pk|default:'' }}">
+  <input type="hidden" name="due_at" value="{{ data.due_at|date:'Y-m-d\TH:i'|default:'' }}"><input type="hidden" name="priority" value="{{ data.priority }}">
+  <input type="hidden" name="instructions" value="{{ data.instructions }}">
+  <dl class="card-body grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+    <div><dt class="text-muted-foreground">Checklist</dt><dd class="font-medium">{{ version.template.name }}</dd></div>
+    <div><dt class="text-muted-foreground">Version</dt><dd>Version {{ version.version_number }} {% tone_badge "Published" "info" icon="send" %}</dd></div>
+    <div class="sm:col-span-2"><dt class="text-muted-foreground">Location</dt><dd class="font-medium">{{ path }}</dd></div>
+    <div><dt class="text-muted-foreground">Responsible</dt><dd>{% if assignee %}{{ assignee.display_name|default:assignee.email }}{% else %}The location's eligible users{% endif %}</dd></div>
+    <div><dt class="text-muted-foreground">Due</dt><dd>{% if data.due_at %}{{ data.due_at|date:"M d, Y H:i" }}{% else %}No deadline{% endif %}</dd></div>
+    <div><dt class="text-muted-foreground">Priority</dt><dd>{{ data.priority|capfirst }}</dd></div>
+    <div><dt class="text-muted-foreground">Status after this step</dt><dd>{% status_badge "assigned" %}</dd></div>
+    {% if data.instructions %}<div class="sm:col-span-2"><dt class="text-muted-foreground">Instructions</dt><dd class="whitespace-pre-line">{{ data.instructions }}</dd></div>{% endif %}
+  </dl>
+  <div class="card-footer flex flex-wrap justify-end gap-2">
+    <button type="submit" name="action" value="edit" class="btn btn-secondary">{% icon "arrow-left" %} Back to edit</button>
+    <button type="submit" name="action" value="draft" class="btn btn-secondary">{% icon "save" %} Save as draft instead</button>
+    <button type="submit" name="action" value="issue" class="btn btn-primary">{% icon "send" %} Issue assignment</button>
+  </div>
+</form>
+{% endblock %}

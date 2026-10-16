@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ assignment.reference }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Assignments" "assignments:list" assignment.reference %}{% endblock %}
+
+{% block page_header %}
+{% with sub=assignment.version.template.name|add:" · "|add:path %}
+{% page_header title=assignment.reference subtitle=sub icon="user-check" status=assignment.effective_status %}
+  {% if can_edit %}<a href="{% url 'assignments:edit' assignment.pk %}" class="btn btn-secondary">{% icon "pencil" %} Edit draft</a>{% endif %}
+  {% if can_issue %}
+    <div x-data="confirmDialog">
+      <button type="button" class="btn btn-primary" @click="show">{% icon "send" %} Issue</button>
+      <dialog x-ref="dialog" class="modal-dialog" @click="onBackdrop" @close="onClose" aria-labelledby="issue-title">
+        <form method="post" action="{% url 'assignments:issue' assignment.pk %}" class="p-6">{% csrf_token %}
+          <h2 id="issue-title" class="text-lg font-semibold">Issue {{ assignment.reference }}?</h2>
+          <p class="mt-2 text-sm text-muted-foreground">{{ assignment.version.template.name }} version {{ assignment.version.version_number }} will be assigned to {{ path }}. Everything is validated again when you confirm.</p>
+          <div class="mt-6 flex justify-end gap-2"><button type="button" class="btn btn-secondary" @click="hide">Cancel</button><button type="submit" class="btn btn-primary">Issue</button></div>
+        </form>
+      </dialog>
+    </div>
+  {% endif %}
+  {% if can_reopen %}
+    <div x-data="confirmDialog">
+      <button type="button" class="btn btn-secondary" @click="show">{% icon "rotate-ccw" %} Reopen as draft</button>
+      <dialog x-ref="dialog" class="modal-dialog" @click="onBackdrop" @close="onClose" aria-labelledby="reopen-title">
+        <form method="post" action="{% url 'assignments:reopen' assignment.pk %}" class="p-6">{% csrf_token %}
+          <h2 id="reopen-title" class="text-lg font-semibold">Reopen {{ assignment.reference }}?</h2>
+          <p class="mt-2 text-sm text-muted-foreground">It returns to a draft. Nothing is issued until you issue it again, and it is revalidated then.</p>
+          <div class="mt-6 flex justify-end gap-2"><button type="button" class="btn btn-secondary" @click="hide">Cancel</button><button type="submit" class="btn btn-primary">Reopen</button></div>
+        </form>
+      </dialog>
+    </div>
+  {% endif %}
+  {% if can_cancel %}
+    <div x-data="confirmDialog">
+      <button type="button" class="btn btn-danger" @click="show">{% icon "circle-x" %} Cancel assignment</button>
+      <dialog x-ref="dialog" class="modal-dialog" @click="onBackdrop" @close="onClose" aria-labelledby="cancel-title">
+        <form method="post" action="{% url 'assignments:cancel' assignment.pk %}" class="p-6">{% csrf_token %}
+          <h2 id="cancel-title" class="text-lg font-semibold">Cancel {{ assignment.reference }}?</h2>
+          <p class="mt-2 text-sm text-muted-foreground">The assignment is kept for history. Give a reason.</p>
+          <label class="label mt-4" for="cancel-reason">Reason</label>
+          <textarea id="cancel-reason" name="reason" class="textarea" rows="2" maxlength="300" required></textarea>
+          <div class="mt-6 flex justify-end gap-2"><button type="button" class="btn btn-secondary" @click="hide">Keep it</button><button type="submit" class="btn btn-danger">Cancel assignment</button></div>
+        </form>
+      </dialog>
+    </div>
+  {% endif %}
+{% endpage_header %}
+{% endwith %}
+{% endblock %}
+
+{% block content %}
+{% if assignment.is_overdue %}<div class="alert alert-danger mb-6" role="alert">{% icon "alarm-clock" %}<p>This assignment is overdue: it was due {{ assignment.due_at|date:"M d, Y H:i" }} and is still open.</p></div>{% endif %}
+{% if assignment.status == "cancelled" %}<div class="alert alert-warning mb-6" role="status">{% icon "circle-x" %}<p>Cancelled {{ assignment.cancelled_at|date:"M d, Y H:i" }}{% if assignment.cancelled_by %} by {{ assignment.cancelled_by.get_short_name }}{% endif %}: {{ assignment.cancel_reason }}</p></div>{% endif %}
+
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="min-w-0 space-y-6 lg:col-span-2">
+    <section class="card" aria-labelledby="a-info">
+      <div class="card-header"><h2 id="a-info" class="card-title">Assignment</h2></div>
+      <dl class="card-body grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+        <div><dt class="text-muted-foreground">Status</dt><dd>{% status_badge assignment.effective_status %}{% if assignment.is_overdue %} <span class="text-xs text-muted-foreground">(persisted: {{ assignment.get_status_display }})</span>{% endif %}</dd></div>
+        <div><dt class="text-muted-foreground">Priority</dt><dd>{{ assignment.get_priority_display }}</dd></div>
+        <div class="sm:col-span-2"><dt class="text-muted-foreground">Location</dt><dd class="font-medium">{{ path }} <span class="text-xs text-muted-foreground">({{ assignment.location.location_type.name }})</span></dd></div>
+        <div><dt class="text-muted-foreground">Responsible user</dt><dd>{% if assignment.assigned_to %}{{ assignment.assigned_to.display_name|default:assignment.assigned_to.email }}{% else %}The location's eligible users{% endif %}</dd></div>
+        <div><dt class="text-muted-foreground">Due</dt><dd>{% if assignment.due_at %}{{ assignment.due_at|date:"M d, Y H:i" }}{% else %}No deadline{% endif %}</dd></div>
+        <div><dt class="text-muted-foreground">Created</dt><dd>{{ assignment.created_at|date:"M d, Y H:i" }}{% if assignment.created_by %} by {{ assignment.created_by.get_short_name }}{% endif %}</dd></div>
+        <div><dt class="text-muted-foreground">Issued</dt><dd>{% if assignment.issued_at %}{{ assignment.issued_at|date:"M d, Y H:i" }}{% if assignment.issued_by %} by {{ assignment.issued_by.get_short_name }}{% endif %}{% else %}Not yet{% endif %}</dd></div>
+        {% if assignment.instructions %}<div class="sm:col-span-2"><dt class="text-muted-foreground">Instructions</dt><dd class="whitespace-pre-line">{{ assignment.instructions }}</dd></div>{% endif %}
+      </dl>
+    </section>
+
+    <section class="card" aria-labelledby="a-version">
+      <div class="card-header"><h2 id="a-version" class="card-title">Assigned checklist</h2>{% tone_badge "Published version" "info" icon="send" %}</div>
+      <div class="card-body text-sm">
+        <p class="font-medium">{{ assignment.version.template.name }} <span class="font-mono text-xs text-muted-foreground">{{ assignment.version.template.code }}</span></p>
+        <p class="text-muted-foreground">Version {{ assignment.version.version_number }} · {% status_badge assignment.version.status %} · published {{ assignment.version.published_at|date:"M d, Y" }}. This assignment always uses exactly this version, even when a newer one is published.</p>
+        {% if can_view_checklist %}<p class="mt-3 flex flex-wrap gap-2"><a class="btn btn-secondary btn-sm" href="{% url 'checklists:version_preview' assignment.version.template_id assignment.version.version_number %}">{% icon "eye" %} Preview the checklist</a><a class="btn btn-ghost btn-sm" href="{% url 'checklists:version_detail' assignment.version.template_id assignment.version.version_number %}">Version details</a></p>{% endif %}
+      </div>
+    </section>
+
+    {% if can_details %}
+    <section class="card" aria-labelledby="a-change">
+      <div class="card-header"><h2 id="a-change" class="card-title">Change details</h2></div>
+      <div class="card-body grid gap-4 md:grid-cols-3">
+        <form method="post" action="{% url 'assignments:assignee' assignment.pk %}" class="space-y-2">{% csrf_token %}
+          <label class="label" for="chg-assignee">Responsible user</label>
+          <select id="chg-assignee" name="assigned_to" class="select"><option value="">No one in particular</option>{% for u in assignees %}<option value="{{ u.pk }}"{% if u.pk == assignment.assigned_to_id %} selected{% endif %}>{{ u.display_name|default:u.email }}</option>{% endfor %}</select>
+          <button type="submit" class="btn btn-secondary btn-sm">Change</button>
+        </form>
+        <form method="post" action="{% url 'assignments:due_date' assignment.pk %}" class="space-y-2">{% csrf_token %}
+          <label class="label" for="chg-due">Due date</label>
+          <input id="chg-due" name="due_at" type="datetime-local" class="input" value="{{ assignment.due_at|date:'Y-m-d\TH:i' }}">
+          <button type="submit" class="btn btn-secondary btn-sm">Change</button>
+        </form>
+        <form method="post" action="{% url 'assignments:priority' assignment.pk %}" class="space-y-2">{% csrf_token %}
+          <label class="label" for="chg-priority">Priority</label>
+          <select id="chg-priority" name="priority" class="select">{% for value, label in priorities %}<option value="{{ value }}"{% if value == assignment.priority %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+          <button type="submit" class="btn btn-secondary btn-sm">Change</button>
+        </form>
+      </div>
+    </section>
+    {% endif %}
+  </div>
+
+  <aside class="min-w-0">
+    <section class="card" aria-labelledby="a-history">
+      <div class="card-header"><h2 id="a-history" class="card-title">History</h2></div>
+      <ol class="divide-y divide-border">
+        {% for event in timeline %}
+          <li class="px-5 py-3 text-sm"><p>{{ event.description }}</p><p class="text-xs text-muted-foreground">{{ event.created_at|date:"M d, Y H:i" }}{% if event.actor %} · {{ event.actor.get_short_name }}{% endif %}{% if event.metadata.reason %} · “{{ event.metadata.reason }}”{% endif %}</p></li>
+        {% empty %}<li class="px-5 py-3 text-sm text-muted-foreground">No activity yet.</li>{% endfor %}
+      </ol>
+    </section>
+  </aside>
+</div>
+{% endblock %}

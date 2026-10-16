@@ -36,6 +36,7 @@ def test_all_local_apps_are_installed():
         "apps.accounts",
         "apps.permissions",
         "apps.checklists",
+        "apps.assignments",
         "apps.executions",
         "apps.findings",
         "apps.corrective_actions",

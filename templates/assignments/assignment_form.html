@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags ui %}
+{% block title %}{% if assignment %}Edit {{ assignment.reference }}{% else %}New assignment{% endif %} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+
+{% block breadcrumbs %}{% if assignment %}{% url 'assignments:detail' assignment.pk as c1 %}{% breadcrumbs "Home" "core:home" "Assignments" "assignments:list" assignment.reference c1 "Edit draft" %}{% else %}{% breadcrumbs "Home" "core:home" "Assignments" "assignments:list" "New assignment" %}{% endif %}{% endblock %}
+
+{% block page_header %}{% if assignment %}{% page_header title="Edit draft" subtitle=assignment.reference icon="pencil" %}{% endpage_header %}{% else %}{% page_header title="New assignment" subtitle="Choose a checklist and a location. Review before issuing." icon="user-plus" %}{% endpage_header %}{% endif %}{% endblock %}
+
+{% block content %}
+<form method="post" novalidate x-data="formGuard" @submit="onSubmit" id="assignment-form" class="card max-w-3xl">
+  <div class="card-body">
+    {% csrf_token %}
+    {% include "tailwind/errors.html" %}
+    {{ form.version|as_crispy_field }}
+    <div hx-get="{% url 'assignments:assignee_options' %}" hx-trigger="change" hx-target="#id_assigned_to" hx-swap="innerHTML" hx-include="this" hx-params="location">
+      {{ form.location|as_crispy_field }}
+    </div>
+    {{ form.assigned_to|as_crispy_field }}
+    <div class="grid gap-x-6 sm:grid-cols-2">
+      <div>{{ form.due_at|as_crispy_field }}</div>
+      <div>{{ form.priority|as_crispy_field }}</div>
+    </div>
+    {{ form.instructions|as_crispy_field }}
+  </div>
+  <div class="card-footer flex flex-wrap justify-end gap-2">
+    <a href="{% if assignment %}{% url 'assignments:detail' assignment.pk %}{% else %}{% url 'assignments:list' %}{% endif %}" class="btn btn-secondary">Cancel</a>
+    <button type="submit" name="action" value="draft" class="btn btn-secondary">{% icon "save" %} Save as draft</button>
+    <button type="submit" name="action" value="review" class="btn btn-primary">{% icon "clipboard-check" %} Review and issue</button>
+  </div>
+</form>
+{% endblock %}

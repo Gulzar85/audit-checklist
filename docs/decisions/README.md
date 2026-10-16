@@ -55,3 +55,6 @@ consequences. New records are appended; existing ones are superseded, not edited
 | [0048](0048-version-lifecycle-and-archival.md) | Version lifecycle: draft, published, superseded; archival belongs to the template | Accepted |
 | [0049](0049-published-definitions-are-immutable.md) | Published definitions are immutable: services, models and PostgreSQL triggers | Accepted |
 | [0050](0050-version-manifest-and-integrity-hash.md) | A derived manifest and SHA-256 integrity hash (not a snapshot) | Accepted |
+| [0051](0051-checklist-assignment-model-and-lifecycle.md) | Checklist assignments: exact version, explicit lifecycle, derived overdue | Accepted |
+| [0052](0052-duplicate-policy-and-bulk-all-or-nothing.md) | One open assignment per version and location; bulk assignment is all-or-nothing | Accepted |
+| [0053](0053-assignment-authorization-and-scope.md) | Assignment authorization: scope in the selector, 404 for invisible, 403 for forbidden | Accepted |

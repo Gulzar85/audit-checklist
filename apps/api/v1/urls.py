@@ -1,10 +1,11 @@
-"""API v1 URL configuration."""
+﻿"""API v1 URL configuration."""
 
 from __future__ import annotations
 
 from django.urls import include, path
 from rest_framework.routers import SimpleRouter
 
+from .assignments import AssignmentViewSet
 from .checklists import AnswerTypeDetailView, AnswerTypeListView, ChecklistVersionViewSet, ChecklistViewSet, RuleMetadataView
 from .access import MemberViewSet, MyAccessView, PermissionListView, RoleViewSet
 from .locations import LocationTypeViewSet, LocationViewSet
@@ -25,6 +26,7 @@ router.register("users", UserViewSet, basename="user")
 router.register("roles", RoleViewSet, basename="role")
 router.register("checklists", ChecklistViewSet, basename="checklist")
 router.register("checklist-versions", ChecklistVersionViewSet, basename="checklist-version")
+router.register("assignments", AssignmentViewSet, basename="assignment")
 router.register("members", MemberViewSet, basename="member")
 
 urlpatterns = [
@@ -41,3 +43,4 @@ urlpatterns = [
     path("preferences/appearance/", AppearancePreferenceView.as_view(), name="appearance"),
     path("", include(router.urls)),
 ]
+

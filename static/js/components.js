@@ -271,6 +271,53 @@ document.addEventListener("alpine:init", function () {
    *   </div>
    * `cascade` mirrors an optional "include descendants" checkbox so the dialog
    * can reveal an extra warning (see locations/location_detail.html). */
+  /* Searchable checkbox list of locations (bulk assignment).  CSP-safe: methods only, no inline expressions.
+   * Rows are `[data-loc-row]` (with `data-text` = lower-case path) and checkboxes carry `data-loc`. */
+  Alpine.data("locationPicker", function () {
+    return {
+      selected: 0,
+      init: function () {
+        this.recount();
+      },
+      boxes: function (onlyVisible) {
+        var out = [];
+        this.$root.querySelectorAll("[data-loc-row]").forEach(function (row) {
+          if (onlyVisible && row.hidden) {
+            return;
+          }
+          var box = row.querySelector("input[data-loc]");
+          if (box) {
+            out.push(box);
+          }
+        });
+        return out;
+      },
+      recount: function () {
+        this.selected = this.boxes(false).filter(function (box) {
+          return box.checked;
+        }).length;
+      },
+      filter: function (event) {
+        var query = (event.target.value || "").toLowerCase();
+        this.$root.querySelectorAll("[data-loc-row]").forEach(function (row) {
+          row.hidden = query !== "" && row.getAttribute("data-text").indexOf(query) === -1;
+        });
+      },
+      all: function () {
+        this.boxes(true).forEach(function (box) {
+          box.checked = true;
+        });
+        this.recount();
+      },
+      none: function () {
+        this.boxes(false).forEach(function (box) {
+          box.checked = false;
+        });
+        this.recount();
+      },
+    };
+  });
+
   Alpine.data("confirmDialog", function () {
     return {
       cascade: false,

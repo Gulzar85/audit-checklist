@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Bulk assignment &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Assignments" "assignments:list" "Bulk assignment" %}{% endblock %}
+{% block page_header %}{% if created %}{% page_header title="Assignments created" subtitle=data.version.template.name icon="circle-check" %}{% endpage_header %}{% else %}{% page_header title="Review the targets" subtitle="Final list of locations. Nothing is created until you confirm." icon="clipboard-check" %}{% endpage_header %}{% endif %}{% endblock %}
+
+{% block content %}
+<section class="card" aria-labelledby="bulk-result">
+  <div class="card-header flex-wrap">
+    <h2 id="bulk-result" class="card-title">{{ data.version.template.name }} · version {{ data.version.version_number }}</h2>
+    <p class="text-sm text-muted-foreground">{{ result.results|length }} location{{ result.results|length|pluralize }} · {{ data.priority|capfirst }} priority{% if data.due_at %} · due {{ data.due_at|date:"M d, Y H:i" }}{% endif %} · {% if data.issue %}will be issued{% else %}saved as drafts{% endif %}</p>
+  </div>
+  {% if skipped %}<p class="alert alert-info m-5" role="status">{% icon "info" %}<span>{{ skipped }} location{{ skipped|pluralize }} beneath your selection {{ skipped|pluralize:"is,are" }} outside your scope and {{ skipped|pluralize:"was,were" }} not included.</span></p>{% endif %}
+  <ul class="divide-y divide-border">
+    {% for r in result.results %}
+      <li class="flex flex-wrap items-start justify-between gap-2 px-5 py-3 text-sm">
+        <div class="min-w-0"><p class="font-medium">{{ r.name }}</p>{% for e in r.errors %}<p class="text-danger-text">{{ e }}</p>{% endfor %}</div>
+        {% if r.assignment %}<a class="btn btn-ghost btn-sm" href="{{ r.assignment.get_absolute_url }}">{{ r.assignment.reference }}</a>{% elif r.ok %}{% tone_badge "Ready" "success" icon="check" %}{% else %}{% tone_badge "Cannot assign" "danger" icon="octagon-alert" %}{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+  <div class="card-footer flex flex-wrap justify-end gap-2">
+    {% if created %}
+      <a href="{% url 'assignments:list' %}" class="btn btn-primary">View assignments</a>
+    {% else %}
+      <a href="{% url 'assignments:bulk' %}" class="btn btn-secondary">{% icon "arrow-left" %} Start over</a>
+      {% if all_ok and stage == "review" %}
+        <form method="post" action="{% url 'assignments:bulk' %}">{% csrf_token %}
+          <input type="hidden" name="stage" value="confirm"><input type="hidden" name="skipped" value="{{ skipped }}">
+          <input type="hidden" name="version" value="{{ data.version.pk }}"><input type="hidden" name="priority" value="{{ data.priority }}">
+          <input type="hidden" name="due_at" value="{{ data.due_at|date:'Y-m-d\TH:i'|default:'' }}"><input type="hidden" name="instructions" value="{{ data.instructions }}">
+          {% if data.issue %}<input type="hidden" name="issue" value="on">{% endif %}
+          {% for id in ids %}<input type="hidden" name="locations" value="{{ id }}">{% endfor %}
+          <button type="submit" class="btn btn-primary">{% icon "send" %} Confirm and {% if data.issue %}issue{% else %}create drafts{% endif %}</button>
+        </form>
+      {% else %}
+        <p class="self-center text-sm text-danger-text">Fix or remove the highlighted locations, then try again. Nothing was created.</p>
+      {% endif %}
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

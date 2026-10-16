@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load django_tables2 ui %}
+{% block title %}Assignments &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Assignments" %}{% endblock %}
+
+{% block page_header %}
+{% page_header title="Assignments" subtitle="Published checklist versions assigned to locations. An assignment always keeps the exact version it was issued with." icon="user-check" %}
+  {% if can_bulk %}<a href="{% url 'assignments:bulk' %}" class="btn btn-secondary">{% icon "layers" %} Bulk assign</a>{% endif %}
+  {% if can_create %}<a href="{% url 'assignments:create' %}" class="btn btn-primary">{% icon "plus" %} New assignment</a>{% endif %}
+{% endpage_header %}
+{% endblock %}
+
+{% block content %}
+<section class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5" aria-label="Summary">
+  <a class="card card-body block" href="?status=assigned"><p class="text-xs text-muted-foreground">Open</p><p class="text-2xl font-semibold">{{ summary.open }}</p></a>
+  <a class="card card-body block" href="?status=overdue"><p class="text-xs text-muted-foreground">{% icon "alarm-clock" %} Overdue</p><p class="text-2xl font-semibold {% if summary.overdue %}text-danger-text{% endif %}">{{ summary.overdue }}</p></a>
+  <div class="card card-body"><p class="text-xs text-muted-foreground">Due soon</p><p class="text-2xl font-semibold">{{ summary.due_soon }}</p></div>
+  <a class="card card-body block" href="?status=draft"><p class="text-xs text-muted-foreground">Drafts</p><p class="text-2xl font-semibold">{{ summary.by_status.draft }}</p></a>
+  <a class="card card-body block" href="?status=cancelled"><p class="text-xs text-muted-foreground">Cancelled</p><p class="text-2xl font-semibold">{{ summary.by_status.cancelled }}</p></a>
+</section>
+
+<div class="card mb-6">
+  {% include "components/filter_bar.html" with filter=filter reset_url=request.path hidden=hidden_filters %}
+</div>
+
+<div class="card">
+  {% if table.rows %}
+    {% render_table table %}
+  {% else %}
+    {% url "assignments:create" as create_url %}
+    {% if can_create %}{% include "components/states/empty.html" with icon="user-check" title="No assignments found" message="Assign a published checklist to a location, or adjust the filters." action_url=create_url action_label="New assignment" %}{% else %}{% include "components/states/empty.html" with icon="user-check" title="No assignments found" message="Nothing matches the current filters." %}{% endif %}
+  {% endif %}
+</div>
+{% endblock %}

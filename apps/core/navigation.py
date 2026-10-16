@@ -98,7 +98,8 @@ NAVIGATION: tuple[NavItem, ...] = (
     # --- Checklists (planned) ---------------------------------------------------------------
     NavItem("templates", "Checklist Templates", "clipboard-list", "checklists", url_name="checklists:list",
             visible=can_see("checklist.view"), active=("checklists:*",)),
-    NavItem("assignments", "Assignments", "user-check", "checklists"),
+    NavItem("assignments", "Assignments", "user-check", "checklists", url_name="assignments:list",
+            visible=can_see("assignment.view"), active=("assignments:*",)),
     NavItem("executions", "Executions", "play", "checklists"),
     # --- Quality (planned) ------------------------------------------------------------------
     NavItem("findings", "Findings", "triangle-alert", "quality"),
