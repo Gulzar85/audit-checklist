@@ -9,6 +9,7 @@
 {% with sub=template.code|add:" · "|add:template.organization.name %}
 {% page_header title=template.name subtitle=sub icon="clipboard-list" status=template.status %}
   {% if can_update and template.status != "archived" %}<a href="{% url 'checklists:builder' template.pk %}" class="btn btn-primary">{% icon "layout-list" %} Open builder</a>{% endif %}
+  {% if shown_version %}<a href="{% url 'checklists:rules' template.pk %}?version={{ shown_version.version_number }}" class="btn btn-secondary">{% icon "git-branch" %} Rules</a>{% endif %}
   {% if can_update and template.status != "archived" %}<a href="{% url 'checklists:edit' template.pk %}" class="btn btn-secondary">{% icon "pencil" %} Edit details</a>{% endif %}
   {% if can_duplicate %}<a href="{% url 'checklists:duplicate' template.pk %}" class="btn btn-secondary">{% icon "copy" %} Duplicate</a>{% endif %}
   {% if can_update and template.status == "draft" and published_exists %}

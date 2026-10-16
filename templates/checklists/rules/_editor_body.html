@@ -1,0 +1,165 @@
+{# The server-rendered state of the rule editor.  Every control posts the whole form to the editor URL (HTMX); the server applies one operation, re-validates and returns this fragment, so nothing the author sees can disagree with what Save accepts. #}
+{% load ui %}
+<div id="rule-editor-body" class="grid gap-6 lg:grid-cols-3" hx-target="this" hx-swap="outerHTML" aria-live="polite">
+  <div class="min-w-0 space-y-6 lg:col-span-2">
+    {% if state.notice %}<div class="alert alert-info" role="status">{% icon "info" %}<p>{{ state.notice }}</p></div>{% endif %}
+    {% if state.errors %}
+      <div class="alert alert-danger" role="alert">{% icon "octagon-alert" %}<div><p class="font-medium">The rule could not be saved.</p><ul class="mt-1 list-disc pl-5">{% for message in state.errors %}<li>{{ message }}</li>{% endfor %}</ul></div></div>
+    {% endif %}
+    <input type="hidden" name="json_only" value="{% if state.json_only %}1{% else %}0{% endif %}">
+
+    {% if state.json_only %}
+      <div class="alert alert-warning" role="status">{% icon "braces" %}<p>This rule nests its groups deeper than the visual editor shows, so it is edited as JSON below. It is validated exactly like any other rule when you save.</p></div>
+    {% else %}
+      <section class="card" aria-labelledby="when-title">
+        <div class="card-header flex-wrap">
+          <div><h2 id="when-title" class="card-title">When</h2><p class="text-xs text-muted-foreground">Leave this empty for a rule that always applies.</p></div>
+        </div>
+        <div class="card-body space-y-3">
+          {% if roots or groups %}
+            <div class="flex flex-wrap items-center gap-2 text-sm">
+              <label for="logic" class="font-medium">Apply the rule when</label>
+              <select id="logic" name="logic" class="select w-auto"><option value="AND"{% if state.logic == "AND" %} selected{% endif %}>all of these</option><option value="OR"{% if state.logic == "OR" %} selected{% endif %}>any of these</option></select>
+              <span class="text-muted-foreground">match:</span>
+            </div>
+          {% else %}
+            <input type="hidden" name="logic" value="{{ state.logic }}">
+            <p class="text-sm text-muted-foreground">No condition yet — the rule applies every time.</p>
+          {% endif %}
+          {% for row in roots %}{% include "checklists/rules/_condition_row.html" %}{% endfor %}
+          {% for group in groups %}
+            <div class="space-y-2 rounded-xl border border-dashed border-border bg-muted/40 p-3" role="group" aria-label="Group {{ forloop.counter }}">
+              <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <p class="flex flex-wrap items-center gap-2">
+                  <label for="g{{ group.index }}_logic" class="font-medium">Group {{ forloop.counter }}: when</label>
+                  <select id="g{{ group.index }}_logic" name="g{{ group.index }}_logic" class="select w-auto"><option value="AND"{% if group.logic == "AND" %} selected{% endif %}>all of these</option><option value="OR"{% if group.logic == "OR" %} selected{% endif %}>any of these</option></select>
+                </p>
+                <button type="button" class="btn btn-ghost btn-sm" hx-post="{{ editor_url }}" hx-vals='{"op":"remove_group:{{ group.index }}"}'>{% icon "trash-2" %} Remove group</button>
+              </div>
+              {% for row in group.rows %}{% include "checklists/rules/_condition_row.html" %}{% empty %}<p class="text-sm text-muted-foreground">This group has no conditions yet.</p>{% endfor %}
+              {% if group.error %}<p class="errorlist" role="alert">{{ group.error }}</p>{% endif %}
+              {% if can_add_condition %}<button type="button" class="btn btn-secondary btn-sm" hx-post="{{ editor_url }}" hx-vals='{"op":"add_condition:{{ group.index }}"}'>{% icon "plus" %} Add condition to group</button>{% endif %}
+            </div>
+          {% endfor %}
+          <div class="flex flex-wrap gap-2">
+            {% if can_add_condition %}<button type="button" class="btn btn-secondary btn-sm" hx-post="{{ editor_url }}" hx-vals='{"op":"add_condition:root"}'>{% icon "plus" %} Add condition</button>{% endif %}
+            {% if can_add_group %}<button type="button" class="btn btn-secondary btn-sm" hx-post="{{ editor_url }}" hx-vals='{"op":"add_group"}'>{% icon "brackets" %} Add group (and / or)</button>{% endif %}
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="then-title">
+        <div class="card-header flex-wrap">
+          <div><h2 id="then-title" class="card-title">Then</h2><p class="text-xs text-muted-foreground">What happens while the condition holds.</p></div>
+        </div>
+        <div class="card-body space-y-3">
+          {% for action in actions %}
+            <div class="space-y-3 rounded-lg border border-border bg-surface p-3" role="group" aria-label="Action {{ forloop.counter }}">
+              <div class="space-y-2">
+               <div class="flex items-start gap-2">
+                <div class="min-w-0 flex-1">
+                  <label class="sr-only" for="{{ action.prefix }}_type">Action</label>
+                  <select id="{{ action.prefix }}_type" name="{{ action.prefix }}_type" class="select" {% if action.error %}aria-invalid="true"{% endif %} hx-post="{{ editor_url }}" hx-trigger="change" hx-vals='{"op":"refresh"}'>
+                    <option value="">Choose what to do…</option>
+                    {% for group_label, choices in action_groups %}<optgroup label="{{ group_label }}">{% for code, label in choices %}<option value="{{ code }}"{% if code == action.type %} selected{% endif %}>{{ label }}</option>{% endfor %}</optgroup>{% endfor %}
+                  </select>
+                </div>
+                <button type="button" class="btn btn-ghost btn-icon btn-sm shrink-0" aria-label="Remove this action" hx-post="{{ editor_url }}" hx-vals='{"op":"remove_action:{{ action.index }}"}'>{% icon "x" %}</button>
+               </div>
+               {% if action.definition %}
+                <div>
+                  <label class="sr-only" for="{{ action.prefix }}_target">Applies to</label>
+                    <select id="{{ action.prefix }}_target" name="{{ action.prefix }}_target" class="select" hx-post="{{ editor_url }}" hx-trigger="change" hx-vals='{"op":"refresh"}'>
+                      <option value="">{% if action.definition.target == "optional" %}The whole checklist{% else %}Choose…{% endif %}</option>
+                      {% for group_label, choices in action.target_groups %}<optgroup label="{{ group_label }}">{% for value, label in choices %}<option value="{{ value }}"{% if value == action.target %} selected{% endif %}>{{ label }}</option>{% endfor %}</optgroup>{% endfor %}
+                    </select>
+                </div>
+               {% endif %}
+              </div>
+              {% if action.definition %}<p class="text-xs text-muted-foreground">{{ action.definition.description }}</p>{% endif %}
+
+              {% if action.type == "DISPLAY_MESSAGE" %}
+                <div class="flex flex-wrap gap-2">
+                  <div class="w-36"><label class="label" for="{{ action.prefix }}_severity">Style</label>
+                    <select id="{{ action.prefix }}_severity" name="{{ action.prefix }}_severity" class="select">{% for sev in severities %}<option value="{{ sev }}"{% if action.p.severity == sev or not action.p.severity and sev == "info" %} selected{% endif %}>{{ sev|capfirst }}</option>{% endfor %}</select></div>
+                  <div class="min-w-[14rem] flex-1"><label class="label" for="{{ action.prefix }}_message">Message</label>
+                    <input id="{{ action.prefix }}_message" name="{{ action.prefix }}_message" class="input" value="{{ action.p.message }}" maxlength="300" placeholder="e.g. Temperature is outside the safe range"></div>
+                </div>
+              {% elif action.type == "REQUIRE_COMMENT" %}
+                <div><label class="label" for="{{ action.prefix }}_prompt">Prompt (optional)</label>
+                  <input id="{{ action.prefix }}_prompt" name="{{ action.prefix }}_prompt" class="input" value="{{ action.p.prompt }}" maxlength="200" placeholder="e.g. Describe the problem"></div>
+              {% elif action.type == "REQUIRE_EVIDENCE" %}
+                <div class="flex flex-wrap items-start gap-x-6 gap-y-2">
+                  <fieldset><legend class="label">Accepted evidence</legend>
+                    <div class="flex flex-wrap gap-x-4">{% for kind in evidence_kinds %}<label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" class="checkbox" name="{{ action.prefix }}_kinds" value="{{ kind }}"{% if kind in action.selected_kinds %} checked{% endif %}> {{ kind|capfirst }}</label>{% endfor %}</div></fieldset>
+                  <div class="w-28"><label class="label" for="{{ action.prefix }}_min_count">At least</label>
+                    <input id="{{ action.prefix }}_min_count" name="{{ action.prefix }}_min_count" type="number" min="1" max="10" class="input" value="{{ action.p.min_count|default:1 }}"></div>
+                </div>
+              {% elif action.type == "ADD_INSTRUCTIONS" %}
+                <div><label class="label" for="{{ action.prefix }}_text">Instructions</label>
+                  <textarea id="{{ action.prefix }}_text" name="{{ action.prefix }}_text" class="textarea" rows="2" maxlength="500">{{ action.p.text }}</textarea></div>
+              {% elif action.type == "OPTION_AVAILABILITY" %}
+                {% if action.option_choices %}
+                  <div class="space-y-2">
+                    <div class="w-full sm:w-64"><label class="label" for="{{ action.prefix }}_mode">Make available</label>
+                      <select id="{{ action.prefix }}_mode" name="{{ action.prefix }}_mode" class="select"><option value="only"{% if action.p.mode != "exclude" %} selected{% endif %}>Only these options</option><option value="exclude"{% if action.p.mode == "exclude" %} selected{% endif %}>All options except these</option></select></div>
+                    <fieldset><legend class="label">Options</legend>
+                      <div class="flex flex-wrap gap-x-4 gap-y-1">{% for value, label in action.option_choices %}<label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" class="checkbox" name="{{ action.prefix }}_options" value="{{ value }}"{% if value in action.selected_options %} checked{% endif %}> {{ label }}</label>{% endfor %}</div></fieldset>
+                  </div>
+                {% else %}<p class="text-sm text-muted-foreground">{% if action.target_groups %}Choose a question above.{% else %}This version has no single- or multiple-choice question to restrict.{% endif %}</p>{% endif %}
+              {% elif action.type == "SET_VALIDATION_CONSTRAINT" %}
+                {% if action.constraint_fields %}
+                  <div class="grid gap-2 sm:grid-cols-2">
+                    {% for field in action.constraint_fields %}
+                      <div><label class="label" for="{{ action.prefix }}_cons_{{ field.key }}">{{ field.label }}</label>
+                        <input id="{{ action.prefix }}_cons_{{ field.key }}" name="{{ action.prefix }}_cons_{{ field.key }}" type="{{ field.kind }}" {% if field.step %}step="{{ field.step }}"{% endif %} class="input" value="{{ field.value }}" maxlength="40">
+                        <p class="help-text">{% if field.own is not None %}The question's own limit is {{ field.own }}; a rule can only tighten it.{% else %}Leave blank to keep the question's own limit.{% endif %}</p></div>
+                    {% endfor %}
+                  </div>
+                {% elif action.item %}<p class="text-sm text-muted-foreground">{{ action.item.definition.label }} questions have no limits a rule can tighten.</p>
+                {% else %}<p class="text-sm text-muted-foreground">{% if action.target_groups %}Choose a question above.{% else %}No question in this version has limits a rule can tighten.{% endif %}</p>{% endif %}
+              {% endif %}
+              {% if action.error %}<p class="errorlist" role="alert">{{ action.error }}</p>{% endif %}
+            </div>
+          {% empty %}
+            <p class="text-sm text-muted-foreground">A rule needs at least one action.</p>
+          {% endfor %}
+          {% if can_add_action %}<button type="button" class="btn btn-secondary btn-sm" hx-post="{{ editor_url }}" hx-vals='{"op":"add_action"}'>{% icon "plus" %} Add action</button>{% endif %}
+        </div>
+      </section>
+    {% endif %}
+
+    <details class="card"{% if state.json_only or state.errors %} open{% endif %}>
+      <summary class="card-header cursor-pointer list-none"><h2 class="card-title inline-flex items-center gap-2">{% icon "braces" %} Advanced: the rule as JSON</h2>{% icon "chevron-down" %}</summary>
+      <div class="card-body">
+        <p class="help-text mb-2">This is the rule exactly as stored. {% if state.json_only %}Edit it here.{% else %}You can paste or edit JSON and load it into the editor.{% endif %} It is checked with the same validation as the editor, and nothing is saved until you press <strong>Save rule</strong>.</p>
+        <label class="sr-only" for="json_input">Rule JSON</label>
+        <textarea id="json_input" name="json_input" class="textarea font-mono text-xs" rows="12" spellcheck="false" maxlength="50000">{{ state.json_input }}</textarea>
+        <div class="mt-2 flex flex-wrap gap-2">
+          <button type="button" class="btn btn-secondary btn-sm" hx-post="{{ editor_url }}" hx-vals='{"op":"apply_json"}'>{% icon "check" %} {% if state.json_only %}Check this JSON{% else %}Check and load into the editor{% endif %}</button>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <aside class="min-w-0" aria-labelledby="summary-title">
+    <section class="card lg:sticky lg:top-20">
+      <div class="card-header"><h2 id="summary-title" class="card-title">In plain words</h2>{% tone_badge "Design only" "neutral" %}</div>
+      <div class="card-body space-y-3">
+        {% if checks.summary %}
+          <p class="text-sm">{{ checks.summary }}</p>
+          {% if not checks.errors %}<p class="text-xs text-success-text">{% icon "circle-check" %} This rule is valid.</p>{% endif %}
+        {% else %}
+          <p class="text-sm text-muted-foreground">Fill in the condition and at least one action to see a summary here.</p>
+        {% endif %}
+        {% if checks.errors %}
+          <div class="alert alert-danger" role="alert">{% icon "octagon-alert" %}<ul class="list-disc pl-4">{% for message in checks.errors %}<li>{{ message }}</li>{% endfor %}</ul></div>
+        {% endif %}
+        {% if checks.warnings %}
+          <div class="alert alert-warning" role="status">{% icon "triangle-alert" %}<ul class="list-disc pl-4">{% for message in checks.warnings %}<li>{{ message }}</li>{% endfor %}</ul></div>
+        {% endif %}
+        <p class="text-xs text-muted-foreground">Save the rule, then try it with sample answers in the <a href="{{ simulate_url }}" class="text-link underline">simulator</a>.</p>
+      </div>
+    </section>
+  </aside>
+</div>

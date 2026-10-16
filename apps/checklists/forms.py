@@ -101,6 +101,14 @@ class SectionForm(DesignSystemFormMixin, forms.Form):
         super().__init__(*args, **kwargs)
 
 
+class RuleForm(DesignSystemFormMixin, forms.Form):
+    """The plain part of the rule editor (name and note).  The condition and action rows are state-driven (rules/builder)."""
+
+    name = forms.CharField(max_length=120, label="Rule name", help_text="What this rule does, e.g. “Ask for a photo when the fridge is too warm”.")
+    description = forms.CharField(required=False, max_length=300, widget=forms.Textarea(attrs={"rows": 2}), label="Note",
+                                  help_text="Optional. Why the rule exists.")
+
+
 class ItemForm(DesignSystemFormMixin, forms.Form):
     """The *general* part of the item editor.  Type-specific settings are a separate, dynamically built form
     (:func:`build_config_form`) so this form never grows a field per answer type."""

@@ -22,7 +22,7 @@ from simple_history.models import HistoricalRecords
 from apps.core.models import BaseModel
 from apps.locations.models import normalize_code, validate_code
 
-from .constants import AnswerType, RuleAction, RuleOperator, TemplateStatus, VersionStatus
+from .constants import AnswerType, TemplateStatus, VersionStatus
 
 User = settings.AUTH_USER_MODEL
 
@@ -133,6 +133,9 @@ class ChecklistSection(BaseModel):
     """A titled group of items.  Flat on purpose (no nesting); repeatable sections can be added later."""
 
     version = models.ForeignKey(ChecklistVersion, on_delete=models.CASCADE, related_name="sections")
+    #: Stable identifier within the version (``S-001``): rules target sections by code, and the code survives
+    #: copying to a new version, so rule references never need remapping.
+    code = models.CharField(max_length=40)
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     instructions = models.TextField(blank=True)
@@ -145,6 +148,7 @@ class ChecklistSection(BaseModel):
         ordering = ("sort_order",)
         constraints = [
             models.UniqueConstraint(fields=["version", "sort_order"], name="unique_section_order_per_version", deferrable=_DEFERRED),
+            models.UniqueConstraint(fields=["version", "code"], name="unique_section_code_per_version"),
         ]
 
     def __str__(self) -> str:
@@ -212,28 +216,35 @@ class ChecklistOption(BaseModel):
 
 
 class ChecklistRule(BaseModel):
-    """A generic *if source-item <operator> value then <action> [target]* definition (evaluated in Phase 6)."""
+    """A declarative rule: *when* ``condition`` holds, apply ``actions`` (Phase 6).
+
+    Items and sections are referenced **by code** inside the JSON, so a rule survives copying to a new version
+    unchanged.  The JSON is never trusted: ``apps.checklists.rules`` validates it against the version's items, option
+    lists and answer types on every save, on publish and on import, and the evaluator only interprets the
+    registries' operators and actions - there is no expression language and nothing is executed.
+    """
 
     version = models.ForeignKey(ChecklistVersion, on_delete=models.CASCADE, related_name="rules")
-    source_item = models.ForeignKey(ChecklistItem, on_delete=models.CASCADE, related_name="rules")
-    operator = models.CharField(max_length=12, choices=RuleOperator.choices)
-    value = models.JSONField(null=True, blank=True)
-    action = models.CharField(max_length=20, choices=RuleAction.choices)
-    target_item = models.ForeignKey(ChecklistItem, on_delete=models.CASCADE, null=True, blank=True, related_name="targeted_by_rules")
-    target_section = models.ForeignKey(ChecklistSection, on_delete=models.CASCADE, null=True, blank=True, related_name="targeted_by_rules")
-    sort_order = models.PositiveIntegerField(default=0)
+    #: Stable identifier within the version (``R-001``).
+    code = models.CharField(max_length=40)
+    name = models.CharField(max_length=120)
+    description = models.CharField(max_length=300, blank=True)
+    #: Condition tree (``{"operator": "AND"|"OR", "conditions": [...]}``); ``null`` = always applies.
+    condition = models.JSONField(null=True, blank=True)
+    #: List of action objects (``{"type": "SHOW_ITEM", "target": {...}, ...}``).
+    actions = models.JSONField(default=list)
+    #: Evaluation order (also the display order); contiguous, starting at 1.
+    sort_order = models.PositiveIntegerField()
     is_active = models.BooleanField(default=True)
 
     history = HistoricalRecords()
 
     class Meta:
-        ordering = ("sort_order", "created_at")
+        ordering = ("sort_order",)
         constraints = [
-            models.CheckConstraint(
-                condition=models.Q(target_item__isnull=True) | models.Q(target_section__isnull=True),
-                name="checklist_rule_single_target",
-            ),
+            models.UniqueConstraint(fields=["version", "code"], name="unique_rule_code_per_version"),
+            models.UniqueConstraint(fields=["version", "sort_order"], name="unique_rule_order_per_version", deferrable=_DEFERRED),
         ]
 
     def __str__(self) -> str:
-        return f"{self.source_item_id} {self.operator} -> {self.action}"
+        return f"{self.code} {self.name}"

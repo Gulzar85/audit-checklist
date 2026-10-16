@@ -6,6 +6,7 @@ from django.core.management.base import BaseCommand, CommandError
 
 from apps.checklists import services
 from apps.checklists.models import ChecklistTemplate
+from apps.checklists.seed import load_data_file, load_template
 from apps.organizations.models import Organization
 
 DEMOS = (
@@ -92,7 +93,12 @@ class Command(BaseCommand):
             services.publish_checklist_version(draft, change_summary="Initial demo version")
             services.activate_checklist_template(template)
             created += 1
-        self.stdout.write(self.style.SUCCESS(f"Demo checklists: {created} created, {len(DEMOS) - created} already present."))
+        # The conditional-rules demo is a data file, loaded exactly like an organization's own checklist would be.
+        _template, rules_created = load_template(organization, load_data_file("daily_facility_safety.json"))
+        created += int(rules_created)
+        total = len(DEMOS) + 1
+        self.stdout.write(self.style.SUCCESS(f"Demo checklists: {created} created, {total - created} already present."))
+
     def ensure_demo_location(self, organization) -> None:  # noqa: ANN001
         """A ``Restaurant`` location type and a demo restaurant: nothing restaurant-specific is built into the schema."""
         from apps.locations import services as location_services

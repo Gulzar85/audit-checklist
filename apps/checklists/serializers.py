@@ -2,9 +2,21 @@
 
 from __future__ import annotations
 
+import json
+
 from rest_framework import serializers
 
-from .models import ChecklistCategory, ChecklistItem, ChecklistOption, ChecklistSection, ChecklistTemplate, ChecklistVersion
+from .rules import limit
+
+from .models import (
+    ChecklistCategory,
+    ChecklistItem,
+    ChecklistOption,
+    ChecklistRule,
+    ChecklistSection,
+    ChecklistTemplate,
+    ChecklistVersion,
+)
 
 
 class ChecklistOptionSerializer(serializers.ModelSerializer):
@@ -102,3 +114,73 @@ class ChecklistItemWriteSerializer(serializers.Serializer):
     help_text = serializers.CharField(max_length=500, required=False, allow_blank=True)
     instructions = serializers.CharField(required=False, allow_blank=True)
     options = serializers.ListField(child=serializers.JSONField(), required=False, max_length=100)
+
+
+class ChecklistRuleSerializer(serializers.ModelSerializer):
+    """A stored rule plus a readable summary (``context["snapshot"]`` supplies the question texts)."""
+
+    summary = serializers.SerializerMethodField()
+    version = serializers.IntegerField(source="version.version_number", read_only=True)
+
+    class Meta:
+        model = ChecklistRule
+        fields = ("id", "code", "name", "description", "condition", "actions", "sort_order", "is_active", "version", "summary")
+        read_only_fields = fields
+
+    def get_summary(self, rule: ChecklistRule) -> str:
+        from .rules import describe_rule
+
+        snapshot = self.context.get("snapshot")
+        return describe_rule(snapshot, rule.condition, rule.actions) if snapshot is not None else ""
+
+
+def _bounded_json(value, what: str, maximum: int = 60_000):  # noqa: ANN001, ANN202
+    if len(json.dumps(value, default=str)) > maximum:
+        raise serializers.ValidationError(f"{what} is too large.")
+    return value
+
+
+class RuleWriteSerializer(serializers.Serializer):
+    """Shape only: the rule validator (through the service) judges the content, exactly as for the builder."""
+
+    code = serializers.CharField(max_length=40, required=False, allow_blank=True)
+    name = serializers.CharField(max_length=120, required=False)
+    description = serializers.CharField(max_length=300, required=False, allow_blank=True)
+    condition = serializers.JSONField(required=False, allow_null=True)
+    actions = serializers.JSONField(required=False)
+    is_active = serializers.BooleanField(required=False)
+
+    def validate_condition(self, value):  # noqa: ANN001, ANN201
+        return _bounded_json(value, "The condition")
+
+    def validate_actions(self, value):  # noqa: ANN001, ANN201
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Actions must be a list.")
+        return _bounded_json(value, "The actions")
+
+
+class RuleValidateSerializer(serializers.Serializer):
+    version = serializers.IntegerField(required=False, min_value=1)
+    rules = serializers.ListField(child=serializers.JSONField(), required=False, max_length=500)
+
+
+class SimulationSerializer(serializers.Serializer):
+    """A bounded simulation request: answers by question code (raw values) and a list of N/A question codes."""
+
+    version = serializers.IntegerField(required=False, min_value=1)
+    answers = serializers.DictField(child=serializers.JSONField(allow_null=True), required=False)
+    not_applicable = serializers.ListField(child=serializers.CharField(max_length=40), required=False)
+    rules = serializers.ListField(child=serializers.JSONField(), required=False, max_length=500)
+
+    def validate_answers(self, value):  # noqa: ANN001, ANN201
+        if len(value) > limit("max_simulation_answers"):
+            raise serializers.ValidationError(f"At most {limit('max_simulation_answers')} answers may be simulated.")
+        for code, raw in value.items():
+            if len(code) > 40 or len(json.dumps(raw, default=str)) > limit("max_simulation_value_chars"):
+                raise serializers.ValidationError(f"The value for “{code[:40]}” is too large.")
+        return value
+
+    def validate_not_applicable(self, value):  # noqa: ANN001, ANN201
+        if len(value) > limit("max_simulation_answers"):
+            raise serializers.ValidationError("Too many entries.")
+        return value

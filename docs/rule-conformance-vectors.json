@@ -1,0 +1,224 @@
+{
+  "format": 1,
+  "description": "Language-neutral test vectors for the conditional-rules evaluator. A second implementation (for example the PWA's offline evaluator) must produce exactly these results; the Python evaluator is the reference and is tested against this file (tests/test_rules_conformance.py). Answers are raw values as a client would send them; 'expect' lists only the facts being asserted.",
+  "vectors": [
+    {
+      "name": "follow-up question is revealed by a No answer; nothing is revealed while unanswered",
+      "sections": ["S1"],
+      "items": [
+        {"code": "EXIT", "answer_type": "yes_no"},
+        {"code": "WHY", "answer_type": "long_text", "required": false}
+      ],
+      "rules": [
+        {"code": "R1", "condition": {"source_item_code": "EXIT", "comparison": "EQUALS", "value": "no"},
+         "actions": [{"type": "SHOW_ITEM", "target": {"type": "item", "code": "WHY"}}, {"type": "REQUIRE_ITEM", "target": {"type": "item", "code": "WHY"}}]}
+      ],
+      "cases": [
+        {"answers": {}, "expect": {"visible": {"EXIT": true, "WHY": false}}},
+        {"answers": {"EXIT": "yes"}, "expect": {"visible": {"WHY": false}}},
+        {"answers": {"EXIT": "no"}, "expect": {"visible": {"WHY": true}, "required": {"WHY": true}, "unanswered_required": ["WHY"], "complete": false}},
+        {"answers": {"EXIT": "no", "WHY": "Blocked by crates"}, "expect": {"visible": {"WHY": true}, "complete": true}}
+      ]
+    },
+    {
+      "name": "UNKNOWN (missing, invalid or N/A source) never fires a rule, including NOT_EQUALS",
+      "sections": ["S1"],
+      "items": [
+        {"code": "A", "answer_type": "yes_no", "required": false},
+        {"code": "B", "answer_type": "long_text", "required": false}
+      ],
+      "rules": [
+        {"code": "R1", "condition": {"source_item_code": "A", "comparison": "NOT_EQUALS", "value": "yes"},
+         "actions": [{"type": "DISPLAY_MESSAGE", "target": {"type": "item", "code": "B"}, "severity": "info", "message": "A is not yes"}]}
+      ],
+      "cases": [
+        {"answers": {}, "expect": {"messages": []}},
+        {"answers": {"A": "maybe"}, "expect": {"messages": []}},
+        {"answers": {}, "not_applicable": ["A"], "expect": {"messages": []}},
+        {"answers": {"A": "no"}, "expect": {"messages": ["A is not yes"]}},
+        {"answers": {"A": "yes"}, "expect": {"messages": []}}
+      ]
+    },
+    {
+      "name": "IS_EMPTY / IS_NOT_EMPTY distinguish empty from N/A",
+      "sections": ["S1"],
+      "items": [
+        {"code": "A", "answer_type": "text", "required": false},
+        {"code": "M", "answer_type": "long_text", "required": false}
+      ],
+      "rules": [
+        {"code": "EMPTY", "condition": {"source_item_code": "A", "comparison": "IS_EMPTY"},
+         "actions": [{"type": "DISPLAY_MESSAGE", "severity": "info", "message": "empty"}]},
+        {"code": "FILLED", "condition": {"source_item_code": "A", "comparison": "IS_NOT_EMPTY"},
+         "actions": [{"type": "DISPLAY_MESSAGE", "severity": "info", "message": "filled"}]}
+      ],
+      "cases": [
+        {"answers": {}, "expect": {"messages": ["empty"]}},
+        {"answers": {"A": "  "}, "expect": {"messages": ["empty"]}},
+        {"answers": {"A": "hello"}, "expect": {"messages": ["filled"]}},
+        {"answers": {}, "not_applicable": ["A"], "expect": {"messages": []}}
+      ]
+    },
+    {
+      "name": "AND, OR and a nested group",
+      "sections": ["S1"],
+      "items": [
+        {"code": "FIRE", "answer_type": "yes_no"},
+        {"code": "FRIDGE", "answer_type": "yes_no"},
+        {"code": "TEMP", "answer_type": "numeric", "config": {"decimals": 1}, "required": false}
+      ],
+      "rules": [
+        {"code": "OR", "condition": {"operator": "OR", "conditions": [
+            {"source_item_code": "FRIDGE", "comparison": "EQUALS", "value": "no"},
+            {"operator": "OR", "conditions": [
+              {"source_item_code": "TEMP", "comparison": "GREATER_THAN", "value": "5"},
+              {"source_item_code": "TEMP", "comparison": "LESS_THAN", "value": "0"}]}]},
+         "actions": [{"type": "DISPLAY_MESSAGE", "severity": "warning", "message": "fridge"}]},
+        {"code": "AND", "condition": {"operator": "AND", "conditions": [
+            {"source_item_code": "FIRE", "comparison": "EQUALS", "value": "no"},
+            {"source_item_code": "FRIDGE", "comparison": "EQUALS", "value": "no"}]},
+         "actions": [{"type": "DISPLAY_MESSAGE", "severity": "error", "message": "both"}]}
+      ],
+      "cases": [
+        {"answers": {"FRIDGE": "yes", "TEMP": "3"}, "expect": {"messages": []}},
+        {"answers": {"FRIDGE": "no"}, "expect": {"messages": ["fridge"]}},
+        {"answers": {"FRIDGE": "yes", "TEMP": "9.5"}, "expect": {"messages": ["fridge"]}},
+        {"answers": {"FRIDGE": "yes", "TEMP": "-1"}, "expect": {"messages": ["fridge"]}},
+        {"answers": {"FIRE": "no", "FRIDGE": "no"}, "expect": {"messages": ["fridge", "both"]}},
+        {"answers": {"TEMP": "9"}, "expect": {"messages": ["fridge"]}},
+        {"answers": {"FIRE": "no"}, "expect": {"messages": []}}
+      ]
+    },
+    {
+      "name": "BETWEEN includes both ends; NOT_BETWEEN is the complement of answered values",
+      "sections": ["S1"],
+      "items": [{"code": "T", "answer_type": "numeric", "config": {"decimals": 1}, "required": false}],
+      "rules": [
+        {"code": "IN", "condition": {"source_item_code": "T", "comparison": "BETWEEN", "value": ["0", "5"]}, "actions": [{"type": "DISPLAY_MESSAGE", "severity": "info", "message": "in"}]},
+        {"code": "OUT", "condition": {"source_item_code": "T", "comparison": "NOT_BETWEEN", "value": ["0", "5"]}, "actions": [{"type": "DISPLAY_MESSAGE", "severity": "info", "message": "out"}]}
+      ],
+      "cases": [
+        {"answers": {"T": "0"}, "expect": {"messages": ["in"]}},
+        {"answers": {"T": "5"}, "expect": {"messages": ["in"]}},
+        {"answers": {"T": "5.1"}, "expect": {"messages": ["out"]}},
+        {"answers": {"T": "-0.1"}, "expect": {"messages": ["out"]}},
+        {"answers": {}, "expect": {"messages": []}}
+      ]
+    },
+    {
+      "name": "text comparisons are case-insensitive and Unicode-normalised",
+      "sections": ["S1"],
+      "items": [{"code": "N", "answer_type": "text", "required": false}],
+      "rules": [
+        {"code": "C", "condition": {"source_item_code": "N", "comparison": "CONTAINS", "value": "leak"}, "actions": [{"type": "DISPLAY_MESSAGE", "severity": "warning", "message": "contains"}]},
+        {"code": "S", "condition": {"source_item_code": "N", "comparison": "STARTS_WITH", "value": "straße"}, "actions": [{"type": "DISPLAY_MESSAGE", "severity": "info", "message": "starts"}]}
+      ],
+      "cases": [
+        {"answers": {"N": "Water LEAK near sink"}, "expect": {"messages": ["contains"]}},
+        {"answers": {"N": "STRASSE 5"}, "expect": {"messages": ["starts"]}},
+        {"answers": {"N": "all fine"}, "expect": {"messages": []}}
+      ]
+    },
+    {
+      "name": "multiple choice: CONTAINS_ANY / CONTAINS_ALL / NOT_SELECTED",
+      "sections": ["S1"],
+      "items": [{"code": "H", "answer_type": "multiple_choice", "options": ["wet", "blocked", "none"], "required": false}],
+      "rules": [
+        {"code": "ANY", "condition": {"source_item_code": "H", "comparison": "CONTAINS_ANY", "value": ["wet", "blocked"]}, "actions": [{"type": "DISPLAY_MESSAGE", "severity": "warning", "message": "any"}]},
+        {"code": "ALL", "condition": {"source_item_code": "H", "comparison": "CONTAINS_ALL", "value": ["wet", "blocked"]}, "actions": [{"type": "DISPLAY_MESSAGE", "severity": "error", "message": "all"}]},
+        {"code": "NOT", "condition": {"source_item_code": "H", "comparison": "NOT_SELECTED", "value": "none"}, "actions": [{"type": "DISPLAY_MESSAGE", "severity": "info", "message": "not-none"}]}
+      ],
+      "cases": [
+        {"answers": {"H": ["none"]}, "expect": {"messages": []}},
+        {"answers": {"H": ["wet"]}, "expect": {"messages": ["any", "not-none"]}},
+        {"answers": {"H": ["wet", "blocked"]}, "expect": {"messages": ["any", "all", "not-none"]}},
+        {"answers": {}, "expect": {"messages": []}}
+      ]
+    },
+    {
+      "name": "section visibility follows a Yes/No answer; hidden answers are ignored, not deleted",
+      "sections": ["S1", "S2"],
+      "items": [
+        {"code": "NEEDED", "answer_type": "yes_no", "section": "S1"},
+        {"code": "GREASE", "answer_type": "yes_no", "section": "S2"}
+      ],
+      "rules": [
+        {"code": "R1", "condition": {"source_item_code": "NEEDED", "comparison": "EQUALS", "value": "yes"},
+         "actions": [{"type": "SHOW_SECTION", "target": {"type": "section", "code": "S2"}}]}
+      ],
+      "cases": [
+        {"answers": {}, "expect": {"sections": {"S2": false}, "visible": {"GREASE": false}, "unanswered_required": ["NEEDED"]}},
+        {"answers": {"NEEDED": "no", "GREASE": "yes"}, "expect": {"sections": {"S2": false}, "visible": {"GREASE": false}, "answer_status": {"GREASE": "hidden"}, "complete": true}},
+        {"answers": {"NEEDED": "yes"}, "expect": {"sections": {"S2": true}, "visible": {"GREASE": true}, "unanswered_required": ["GREASE"]}},
+        {"answers": {"NEEDED": "yes", "GREASE": "no"}, "expect": {"visible": {"GREASE": true}, "answer_status": {"GREASE": "answered"}, "complete": true}}
+      ]
+    },
+    {
+      "name": "conflicts: hide beats show, required beats optional",
+      "sections": ["S1"],
+      "items": [
+        {"code": "A", "answer_type": "yes_no", "required": false},
+        {"code": "B", "answer_type": "long_text", "required": false},
+        {"code": "C", "answer_type": "long_text", "required": false}
+      ],
+      "rules": [
+        {"code": "SHOW", "condition": {"source_item_code": "A", "comparison": "IS_NOT_EMPTY"}, "actions": [{"type": "SHOW_ITEM", "target": {"type": "item", "code": "B"}}]},
+        {"code": "HIDE", "condition": {"source_item_code": "A", "comparison": "EQUALS", "value": "no"}, "actions": [{"type": "HIDE_ITEM", "target": {"type": "item", "code": "B"}}]},
+        {"code": "REQ", "condition": {"source_item_code": "A", "comparison": "IS_NOT_EMPTY"}, "actions": [{"type": "REQUIRE_ITEM", "target": {"type": "item", "code": "C"}}]},
+        {"code": "OPT", "condition": {"source_item_code": "A", "comparison": "EQUALS", "value": "no"}, "actions": [{"type": "MAKE_OPTIONAL", "target": {"type": "item", "code": "C"}}]}
+      ],
+      "cases": [
+        {"answers": {"A": "yes"}, "expect": {"visible": {"B": true}, "required": {"C": true}}},
+        {"answers": {"A": "no"}, "expect": {"visible": {"B": false}, "required": {"C": true}}}
+      ]
+    },
+    {
+      "name": "comment and evidence requirements are only active on visible questions",
+      "sections": ["S1"],
+      "items": [
+        {"code": "A", "answer_type": "yes_no"},
+        {"code": "P", "answer_type": "photo", "required": false}
+      ],
+      "rules": [
+        {"code": "R1", "condition": {"source_item_code": "A", "comparison": "EQUALS", "value": "no"},
+         "actions": [{"type": "REQUIRE_COMMENT", "target": {"type": "item", "code": "A"}, "prompt": "Why?"},
+                     {"type": "SHOW_ITEM", "target": {"type": "item", "code": "P"}},
+                     {"type": "REQUIRE_EVIDENCE", "target": {"type": "item", "code": "P"}, "kinds": ["photo"], "min_count": 2}]}
+      ],
+      "cases": [
+        {"answers": {"A": "yes"}, "expect": {"comment_required": [], "evidence": {"P": null}}},
+        {"answers": {"A": "no"}, "expect": {"comment_required": ["A"], "comment_prompts": {"A": ["Why?"]}, "evidence": {"P": {"kinds": ["photo"], "min_count": 2}}}}
+      ]
+    },
+    {
+      "name": "option availability and validation constraints narrow what is accepted",
+      "sections": ["S1"],
+      "items": [
+        {"code": "AREA", "answer_type": "single_choice", "options": ["freezer", "chiller"], "required": false},
+        {"code": "GRADE", "answer_type": "single_choice", "options": ["a", "b", "c"], "required": false},
+        {"code": "TEMP", "answer_type": "numeric", "config": {"min": -30, "max": 40, "decimals": 1}, "required": false},
+        {"code": "KIND", "answer_type": "yes_no", "required": false}
+      ],
+      "rules": [
+        {"code": "OPTS", "condition": {"source_item_code": "KIND", "comparison": "EQUALS", "value": "yes"},
+         "actions": [{"type": "OPTION_AVAILABILITY", "target": {"type": "item", "code": "GRADE"}, "mode": "only", "options": ["a", "b"]}]},
+        {"code": "LIMIT", "condition": {"source_item_code": "KIND", "comparison": "EQUALS", "value": "yes"},
+         "actions": [{"type": "SET_VALIDATION_CONSTRAINT", "target": {"type": "item", "code": "TEMP"}, "constraints": {"max": -15}}]}
+      ],
+      "cases": [
+        {"answers": {"KIND": "no", "GRADE": "c", "TEMP": "10"}, "expect": {"answer_status": {"GRADE": "answered", "TEMP": "answered"}}},
+        {"answers": {"KIND": "yes", "GRADE": "c", "TEMP": "10"}, "expect": {"answer_status": {"GRADE": "invalid", "TEMP": "invalid"}, "options": {"GRADE": {"available": ["a", "b"], "unavailable": ["c"]}}, "constraints": {"TEMP": {"max": -15}}, "invalid": ["GRADE", "TEMP"]}},
+        {"answers": {"KIND": "yes", "GRADE": "a", "TEMP": "-20"}, "expect": {"answer_status": {"GRADE": "answered", "TEMP": "answered"}}}
+      ]
+    },
+    {
+      "name": "a declared N/A cannot waive a required visible question",
+      "sections": ["S1"],
+      "items": [{"code": "A", "answer_type": "yes_no"}],
+      "rules": [],
+      "cases": [
+        {"answers": {}, "not_applicable": ["A"], "expect": {"answer_status": {"A": "invalid"}, "complete": false}}
+      ]
+    }
+  ]
+}

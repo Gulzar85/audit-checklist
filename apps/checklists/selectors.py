@@ -121,3 +121,14 @@ def template_activity(template: ChecklistTemplate, limit: int = 30):  # noqa: AN
         .select_related("actor")
         .order_by("-created_at")[:limit]
     )
+
+
+def get_rule(version: ChecklistVersion, pk: Any) -> Any:
+    from .models import ChecklistRule
+
+    pk = parse_uuid(pk)
+    return ChecklistRule.objects.filter(version=version, pk=pk).first() if pk else None
+
+
+def rules_for_version(version: ChecklistVersion):  # noqa: ANN201
+    return version.rules.order_by("sort_order")

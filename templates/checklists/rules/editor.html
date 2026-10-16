@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags ui %}
+{% block title %}{% if rule %}Edit rule {{ rule.code }}{% else %}New rule{% endif %} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+
+{% block breadcrumbs %}{% url 'checklists:detail' template.pk as c1 %}{% url 'checklists:rules' template.pk as c2 %}{% breadcrumbs "Home" "core:home" "Checklist templates" "checklists:list" template.name c1 "Rules" c2 "Rule editor" %}{% endblock %}
+
+{% block page_header %}
+{% if rule %}{% page_header title="Edit rule" subtitle=rule.code icon="git-branch" %}{% endpage_header %}{% else %}{% page_header title="New rule" subtitle=version_label icon="git-branch-plus" %}{% endpage_header %}{% endif %}
+{% endblock %}
+
+{% block content %}
+<form method="post" novalidate id="rule-form" x-data="formGuard" @submit="onSubmit" @pageshow.window="reset">
+  {% csrf_token %}
+  <section class="card mb-6" aria-labelledby="rule-details-title">
+    <div class="card-body">
+      <h2 id="rule-details-title" class="sr-only">Rule details</h2>
+      {% include "tailwind/errors.html" %}
+      <div class="grid gap-x-6 md:grid-cols-2">
+        <div>{{ form.name|as_crispy_field }}</div>
+        <div>{{ form.description|as_crispy_field }}</div>
+      </div>
+    </div>
+  </section>
+
+  {% include "checklists/rules/_editor_body.html" %}
+
+  <div class="mt-6">
+    {% include "components/forms/actions.html" with submit_label="Save rule" submit_icon="save" cancel_url=rules_url %}
+  </div>
+</form>
+{% endblock %}

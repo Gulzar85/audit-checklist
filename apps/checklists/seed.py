@@ -8,8 +8,13 @@ validated exactly as in the builder, and a bad file stops with a clear error ins
 File shape::
 
     {"code", "name", "category", "minutes", "description", "instructions",
-     "sections": [{"name", "description", "instructions", "items": [
-         {"code", "question", "answer_type", "config", "required", "options", "metadata", "help_text"}]}]}
+     "sections": [{"code", "name", "description", "instructions", "items": [
+         {"code", "question", "answer_type", "config", "required", "options", "metadata", "help_text"}]}],
+     "rules": [{"name", "description", "condition", "actions", "enabled"}]}
+
+``rules`` are optional conditional rules (Phase 6): the condition tree and actions reference questions and sections by
+code, exactly as the API and the rule builder do.  They are created after the structure and validated as a set (cycles,
+conflicts ...) before the version is published.
 """
 
 from __future__ import annotations
@@ -48,7 +53,7 @@ def load_template(
     for section_data in data["sections"]:
         section = services.create_section(
             draft, name=section_data["name"], actor=actor, description=section_data.get("description", ""),
-            instructions=section_data.get("instructions", ""),
+            instructions=section_data.get("instructions", ""), code=section_data.get("code", ""),
         )
         for item in section_data["items"]:
             services.create_item(
@@ -57,6 +62,11 @@ def load_template(
                 is_required=item.get("required", True), help_text=item.get("help_text", ""),
                 options=item.get("options", ()), metadata=item.get("metadata"),
             )
+    for rule in data.get("rules", ()):
+        services.create_rule(
+            draft, name=rule["name"], description=rule.get("description", ""), condition=rule.get("condition"),
+            actions=rule["actions"], is_active=rule.get("enabled", True), actor=actor,
+        )
     if publish:
         services.publish_checklist_version(draft, actor=actor, change_summary=data.get("change_summary", "Initial version"))
         services.activate_checklist_template(template, actor=actor)

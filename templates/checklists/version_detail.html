@@ -8,6 +8,7 @@
 {% block page_header %}
 {% with sub=version.change_summary|default:"Read-only snapshot of this version's structure." %}
 {% page_header title=version_label subtitle=sub icon="history" status=version.status %}
+  <a href="{% url 'checklists:rules' template.pk %}?version={{ version.version_number }}" class="btn btn-secondary">{% icon "git-branch" %} Rules</a>
   {% if can_edit %}<a href="{% url 'checklists:builder' template.pk %}" class="btn btn-primary">{% icon "layout-list" %} Open builder</a>{% endif %}
 {% endpage_header %}
 {% endwith %}

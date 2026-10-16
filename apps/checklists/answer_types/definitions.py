@@ -51,6 +51,7 @@ def _text(raw: Any, what: str = "value") -> str:
 # ---------------------------------------------------------------------------
 class BooleanType(AnswerTypeDefinition):
     code, label, category, icon, preview = "boolean", "Boolean", "choice", "toggle-left", "boolean"
+    comparison_family = "equality"
     description = "A true / false answer."
     capabilities = Capabilities(produces_scalar=True)
     example = True
@@ -70,6 +71,7 @@ class BooleanType(AnswerTypeDefinition):
 
 class _FixedChoice(AnswerTypeDefinition):
     category, icon = "choice", "circle-dot"
+    comparison_family = "equality"
     allowed: tuple[str, ...] = ()
     aliases: dict[str, str] = {}
     capabilities = Capabilities(supports_options=True, has_fixed_options=True)
@@ -110,6 +112,7 @@ def _resolve_option(raw: Any, ctx: AnswerContext) -> str:
 
 class SingleChoiceType(AnswerTypeDefinition):
     code, label, category, icon, preview = "single_choice", "Single choice", "choice", "list", "single"
+    comparison_family = "choice"
     description = "Pick exactly one of the defined options."
     capabilities = Capabilities(requires_options=True, supports_options=True)
     config_fields = (
@@ -125,6 +128,8 @@ class SingleChoiceType(AnswerTypeDefinition):
 
 class MultipleChoiceType(AnswerTypeDefinition):
     code, label, category, icon, preview = "multiple_choice", "Multiple choice", "choice", "list-checks", "multiple"
+    comparison_family = "multi_choice"
+    rule_constraints = ("min_select", "max_select")
     description = "Pick any number of the defined options."
     capabilities = Capabilities(requires_options=True, supports_options=True, produces_scalar=False)
     config_fields = (
@@ -158,6 +163,8 @@ class ScoreType(AnswerTypeDefinition):
     """A bounded whole-number rating.  An *answer* score; the checklist score is a later, separate capability."""
 
     code, label, category, icon, preview = "score", "Score", "value", "star", "score"
+    comparison_family = "ordered"
+    rule_constraints = ("min", "max")
     description = "A rating within a range (for example 1-5 or 0-10)."
     capabilities = Capabilities(supports_score=True, supports_numeric_validation=True)
     config_fields = (
@@ -179,7 +186,7 @@ class ScoreType(AnswerTypeDefinition):
         if "default" in c and not (low <= c["default"] <= high and (c["default"] - low) % step == 0):
             raise ConfigurationError("The default must be a valid score.", "default")
 
-    def normalize(self, raw: Any, ctx: AnswerContext) -> int:
+    def parse_operand(self, raw: Any, ctx: AnswerContext) -> int:
         if isinstance(raw, bool):
             raise AnswerInvalid("type", "Score must be a whole number.")
         try:
@@ -188,7 +195,10 @@ class ScoreType(AnswerTypeDefinition):
             raise AnswerInvalid("type", "Score must be a whole number.") from None
         if number != number.to_integral_value():
             raise AnswerInvalid("type", "Score must be a whole number.")
-        value, low, high, step = int(number), ctx.config["min"], ctx.config["max"], ctx.config["step"]
+        return int(number)
+
+    def normalize(self, raw: Any, ctx: AnswerContext) -> int:
+        value, low, high, step = self.parse_operand(raw, ctx), ctx.config["min"], ctx.config["max"], ctx.config["step"]
         if not low <= value <= high:
             raise AnswerInvalid("out_of_range", f"Score must be between {low} and {high}.")
         if (value - low) % step:
@@ -198,6 +208,8 @@ class ScoreType(AnswerTypeDefinition):
 
 class NumericType(AnswerTypeDefinition):
     code, label, category, icon, preview = "numeric", "Numeric", "value", "hash", "numeric"
+    comparison_family = "ordered"
+    rule_constraints = ("min", "max")
     description = "A number or measurement, with optional range, precision and unit (°C, kg, %, minutes ...)."
     capabilities = Capabilities(supports_numeric_validation=True)
     config_fields = (
@@ -212,7 +224,7 @@ class NumericType(AnswerTypeDefinition):
         if "min" in c and "max" in c and c["min"] > c["max"]:
             raise ConfigurationError("The minimum cannot exceed the maximum.", "min")
 
-    def normalize(self, raw: Any, ctx: AnswerContext) -> Decimal:
+    def parse_operand(self, raw: Any, ctx: AnswerContext) -> Decimal:
         if isinstance(raw, bool):
             raise AnswerInvalid("type", "Enter a number.")
         try:
@@ -227,7 +239,10 @@ class NumericType(AnswerTypeDefinition):
             raise AnswerInvalid(
                 "precision", "Enter a whole number." if decimals == 0 else f"Use at most {decimals} decimal place{'s' if decimals != 1 else ''}."
             )
-        value = number.quantize(Decimal(1).scaleb(-decimals))
+        return number.quantize(Decimal(1).scaleb(-decimals))
+
+    def normalize(self, raw: Any, ctx: AnswerContext) -> Decimal:
+        value = self.parse_operand(raw, ctx)
         unit = f" {ctx.config['unit']}" if ctx.config.get("unit") else ""
         low, high = ctx.config.get("min"), ctx.config.get("max")
         low_d = Decimal(str(low)) if low is not None else None
@@ -244,6 +259,8 @@ class NumericType(AnswerTypeDefinition):
 
 class _TextBase(AnswerTypeDefinition):
     category, icon = "value", "text"
+    comparison_family = "text"
+    rule_constraints = ("min_length", "max_length")
     multiline = False
     hard_max = 1000
     default_max = 255
@@ -260,7 +277,7 @@ class _TextBase(AnswerTypeDefinition):
         if c["min_length"] > c["max_length"]:
             raise ConfigurationError("The minimum length cannot exceed the maximum.", "min_length")
 
-    def normalize(self, raw: Any, ctx: AnswerContext) -> str:
+    def parse_operand(self, raw: Any, ctx: AnswerContext) -> str:
         value = _text(raw, "answer")
         if self.multiline:
             value = value.replace("\r\n", "\n").replace("\r", "\n")
@@ -268,7 +285,10 @@ class _TextBase(AnswerTypeDefinition):
             raise AnswerInvalid("multiline", "This answer must be on a single line.")
         if _CONTROL.search(value):
             raise AnswerInvalid("characters", "The answer contains characters that are not allowed.")
-        value = value.strip()
+        return value.strip()
+
+    def normalize(self, raw: Any, ctx: AnswerContext) -> str:
+        value = self.parse_operand(raw, ctx)
         low, high = ctx.config.get("min_length", 0), ctx.config.get("max_length", self.default_max)
         if len(value) < low:
             raise AnswerInvalid("too_short", f"Enter at least {low} characters.")
@@ -295,6 +315,8 @@ class LongTextType(_TextBase):
 # ---------------------------------------------------------------------------
 class DateType(AnswerTypeDefinition):
     code, label, category, icon, preview = "date", "Date", "datetime", "calendar", "date"
+    comparison_family = "ordered"
+    rule_constraints = ("min_date", "max_date")
     description = "A calendar date."
     capabilities = Capabilities()
     config_fields = (
@@ -307,13 +329,16 @@ class DateType(AnswerTypeDefinition):
         if "min_date" in c and "max_date" in c and c["min_date"] > c["max_date"]:
             raise ConfigurationError("The earliest date cannot be after the latest.", "min_date")
 
-    def normalize(self, raw: Any, ctx: AnswerContext) -> date:
+    def parse_operand(self, raw: Any, ctx: AnswerContext) -> date:
         if isinstance(raw, datetime) or not isinstance(raw, (str, date)):
             raise AnswerInvalid("type", "Enter a date (YYYY-MM-DD).")
         try:
-            value = parse_iso_date(raw, "")
+            return parse_iso_date(raw, "")
         except ConfigurationError:
             raise AnswerInvalid("type", "Enter a valid date (YYYY-MM-DD).") from None
+
+    def normalize(self, raw: Any, ctx: AnswerContext) -> date:
+        value = self.parse_operand(raw, ctx)
         low, high = ctx.config.get("min_date"), ctx.config.get("max_date")
         if low and value < date.fromisoformat(low):
             raise AnswerInvalid("out_of_range", f"The date cannot be before {low}.")
@@ -327,6 +352,8 @@ class DateType(AnswerTypeDefinition):
 
 class DateTimeType(AnswerTypeDefinition):
     code, label, category, icon, preview = "datetime", "Date and time", "datetime", "calendar-clock", "datetime"
+    comparison_family = "ordered"
+    rule_constraints = ("min_datetime", "max_datetime")
     description = "A date and time. A time without an offset is read in the project's time zone; stored in UTC."
     capabilities = Capabilities()
     config_fields = (
@@ -339,13 +366,16 @@ class DateTimeType(AnswerTypeDefinition):
         if "min_datetime" in c and "max_datetime" in c and c["min_datetime"] > c["max_datetime"]:
             raise ConfigurationError("The earliest time cannot be after the latest.", "min_datetime")
 
-    def normalize(self, raw: Any, ctx: AnswerContext) -> datetime:
+    def parse_operand(self, raw: Any, ctx: AnswerContext) -> datetime:
         if not isinstance(raw, (str, datetime)):
             raise AnswerInvalid("type", "Enter a date and time.")
         try:
-            value = parse_iso_datetime(raw, "")
+            return parse_iso_datetime(raw, "")
         except (ConfigurationError, OverflowError):
             raise AnswerInvalid("type", "Enter a valid date and time (ISO 8601).") from None
+
+    def normalize(self, raw: Any, ctx: AnswerContext) -> datetime:
+        value = self.parse_operand(raw, ctx)
         low, high = ctx.config.get("min_datetime"), ctx.config.get("max_datetime")
         if low and value < datetime.fromisoformat(low):
             raise AnswerInvalid("out_of_range", "The time is earlier than allowed.")
@@ -362,6 +392,7 @@ class DateTimeType(AnswerTypeDefinition):
 # ---------------------------------------------------------------------------
 class _FileBase(AnswerTypeDefinition):
     category = "media"
+    rule_constraints = ("max_files",)
     kind = "file"
     default_extensions: tuple[str, ...] = ()
     capabilities = Capabilities(is_media=True, produces_scalar=False, supports_comment=True)

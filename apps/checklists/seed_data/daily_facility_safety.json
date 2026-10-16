@@ -1,0 +1,89 @@
+{
+  "code": "DEMO-DFSC",
+  "name": "Daily Facility Safety Check",
+  "category": "Safety",
+  "minutes": 15,
+  "description": "Demonstrates conditional rules: follow-up questions that appear only when needed, comment and evidence requirements, a temperature warning and a section that is revealed by a Yes/No answer. Every behaviour below is configuration - no question is special-cased in code.",
+  "change_summary": "Initial version with conditional rules",
+  "sections": [
+    {
+      "code": "DAILY",
+      "name": "Daily check",
+      "description": "Answer the questions in order; follow-up questions appear when an answer needs more detail.",
+      "items": [
+        {"code": "FIRE-EXIT", "question": "Is the fire exit accessible?", "answer_type": "yes_no"},
+        {"code": "FRIDGE-OK", "question": "Is the refrigerator temperature within the acceptable range?", "answer_type": "yes_no"},
+        {"code": "FRIDGE-TEMP", "question": "Record the refrigerator temperature.", "answer_type": "numeric",
+         "config": {"min": -20, "max": 40, "decimals": 1, "unit": "°C"}, "required": false},
+        {"code": "FIRE-ISSUE", "question": "Describe the fire exit issue.", "answer_type": "long_text", "required": false},
+        {"code": "FIRE-PHOTO", "question": "Upload a supporting photo.", "answer_type": "photo", "required": false},
+        {"code": "EXTRA-NEEDED", "question": "Does additional equipment inspection apply?", "answer_type": "yes_no"}
+      ]
+    },
+    {
+      "code": "EXTRA",
+      "name": "Additional equipment inspection",
+      "description": "Only shown when additional equipment inspection applies.",
+      "items": [
+        {"code": "GREASE-TRAP", "question": "Has the grease trap been cleaned this week?", "answer_type": "yes_no"},
+        {"code": "EQUIP-NOTES", "question": "Notes on the equipment inspected.", "answer_type": "long_text", "required": false}
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "name": "Blocked fire exit needs detail and a photo",
+      "description": "Follow-up questions are revealed, and the detail and the photo become mandatory.",
+      "condition": {"source_item_code": "FIRE-EXIT", "comparison": "EQUALS", "value": "no"},
+      "actions": [
+        {"type": "SHOW_ITEM", "target": {"type": "item", "code": "FIRE-ISSUE"}},
+        {"type": "SHOW_ITEM", "target": {"type": "item", "code": "FIRE-PHOTO"}},
+        {"type": "REQUIRE_ITEM", "target": {"type": "item", "code": "FIRE-ISSUE"}},
+        {"type": "REQUIRE_ITEM", "target": {"type": "item", "code": "FIRE-PHOTO"}},
+        {"type": "REQUIRE_COMMENT", "target": {"type": "item", "code": "FIRE-EXIT"}, "prompt": "Say what is blocking the exit"}
+      ]
+    },
+    {
+      "name": "Temperature warning",
+      "description": "Warn when the fridge is reported out of range, or the recorded temperature is above 5 or below 0 (an OR with a nested group).",
+      "condition": {
+        "operator": "OR",
+        "conditions": [
+          {"source_item_code": "FRIDGE-OK", "comparison": "EQUALS", "value": "no"},
+          {"operator": "OR", "conditions": [
+            {"source_item_code": "FRIDGE-TEMP", "comparison": "GREATER_THAN", "value": "5"},
+            {"source_item_code": "FRIDGE-TEMP", "comparison": "LESS_THAN", "value": "0"}
+          ]}
+        ]
+      },
+      "actions": [
+        {"type": "DISPLAY_MESSAGE", "target": {"type": "item", "code": "FRIDGE-TEMP"}, "severity": "warning",
+         "message": "The refrigerator is outside the safe 0 to 5 °C range. Move stock and report it to maintenance."},
+        {"type": "REQUIRE_COMMENT", "target": {"type": "item", "code": "FRIDGE-OK"}, "prompt": "What action was taken?"}
+      ]
+    },
+    {
+      "name": "Additional equipment inspection section",
+      "description": "The section is hidden until the Yes/No answer says it applies.",
+      "condition": {"source_item_code": "EXTRA-NEEDED", "comparison": "EQUALS", "value": "yes"},
+      "actions": [
+        {"type": "SHOW_SECTION", "target": {"type": "section", "code": "EXTRA"}}
+      ]
+    },
+    {
+      "name": "Both safety checks failed: escalate",
+      "description": "An AND of two answers.",
+      "condition": {
+        "operator": "AND",
+        "conditions": [
+          {"source_item_code": "FIRE-EXIT", "comparison": "EQUALS", "value": "no"},
+          {"source_item_code": "FRIDGE-OK", "comparison": "EQUALS", "value": "no"}
+        ]
+      },
+      "actions": [
+        {"type": "DISPLAY_MESSAGE", "severity": "error",
+         "message": "Fire exit and refrigeration both failed. Escalate to the area manager now."}
+      ]
+    }
+  ]
+}

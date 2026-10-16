@@ -223,7 +223,7 @@ class TestAdminAndSeed:
 
         call_command("seed_demo_checklists", organization=org_a.slug)
         call_command("seed_demo_checklists", organization=org_a.slug)
-        assert ChecklistTemplate.objects.filter(organization=org_a, code__startswith="DEMO-").count() == 3
+        assert ChecklistTemplate.objects.filter(organization=org_a, code__startswith="DEMO-").count() == 4
         types = set(ChecklistItem.objects.filter(section__version__template__organization=org_a).values_list("answer_type", flat=True))
         assert {"yes_no", "yes_no_na", "score", "numeric", "long_text", "boolean", "single_choice", "multiple_choice", "photo"} <= types
         assert ChecklistTemplate.objects.get(code="DEMO-FSI").status == "active"

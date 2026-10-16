@@ -1,0 +1,72 @@
+{# The evaluator's result for the sample answers.  Everything user-entered (questions, messages) is auto-escaped. #}
+{% load ui %}
+<div class="space-y-4">
+  {% if result.errors %}
+    <div class="alert alert-danger" role="alert">{% icon "octagon-alert" %}<ul class="list-disc pl-4">{% for e in result.errors %}<li>{{ e.message }}</li>{% endfor %}</ul></div>
+  {% endif %}
+
+  <p class="flex flex-wrap items-center gap-2 text-sm">
+    {% if result.completion.complete %}{% tone_badge "Complete" "success" icon="circle-check" %}{% else %}{% tone_badge "Not complete" "warning" icon="circle-dashed" %}{% endif %}
+    <span class="text-muted-foreground">{{ result.completion.applicable_required }} required question{{ result.completion.applicable_required|pluralize }} apply · {{ result.completion.unanswered_required|length }} unanswered{% if result.completion.invalid %} · {{ result.completion.invalid|length }} invalid{% endif %}{% if hidden_count %} · {{ hidden_count }} hidden{% endif %}</span>
+  </p>
+
+  {% if result.messages %}
+    <ul class="space-y-2" aria-label="Messages">
+      {% for m in result.messages %}
+        <li class="alert {% if m.severity == 'error' %}alert-danger{% elif m.severity == 'warning' %}alert-warning{% else %}alert-info{% endif %}" role="status">{% if m.severity == 'error' %}{% icon "octagon-alert" %}{% elif m.severity == 'warning' %}{% icon "triangle-alert" %}{% else %}{% icon "info" %}{% endif %}<p>{{ m.message }} <span class="font-mono text-xs opacity-75">{{ m.rule }}</span></p></li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  {% for block in sections %}
+    <section aria-labelledby="res-{{ block.section.code }}">
+      <h3 id="res-{{ block.section.code }}" class="flex flex-wrap items-center gap-2 text-sm font-semibold">{{ block.section.name }}{% if not block.visible %} {% tone_badge "Hidden by a rule" "neutral" icon="eye-off" %}{% endif %}</h3>
+      {% if block.visible %}
+        <ul class="mt-2 divide-y divide-border rounded-lg border border-border">
+          {% for entry in block.items %}
+            {% with r=entry.result item=entry.item %}
+            <li class="px-3 py-2 text-sm {% if not r.visible %}bg-muted/50 text-muted-foreground{% endif %}">
+              <p class="flex flex-wrap items-center justify-between gap-2">
+                <span class="min-w-0 {% if not r.visible %}line-through{% endif %}">{{ item.question }}</span>
+                <span class="flex flex-wrap items-center gap-1">
+                  {% if not r.visible %}{% tone_badge "Hidden" "neutral" icon="eye-off" %}{% else %}
+                    {% if r.required %}{% tone_badge "Required" "neutral" icon="asterisk" %}{% else %}{% tone_badge "Optional" "neutral" %}{% endif %}
+                    {% if r.comment_required %}{% tone_badge "Comment required" "info" icon="message-square" %}{% endif %}
+                    {% if r.evidence %}{% tone_badge "Evidence" "info" icon="paperclip" %}{% endif %}
+                    {% if r.options %}{% tone_badge "Options limited" "info" icon="list-filter" %}{% endif %}
+                    {% if r.constraints %}{% tone_badge "Limits tightened" "info" icon="ruler" %}{% endif %}
+                    {% if r.answer.status == "invalid" %}{% tone_badge "Invalid" "danger" icon="octagon-alert" %}{% endif %}
+                  {% endif %}
+                </span>
+              </p>
+              {% if r.visible %}
+                {% for m in r.messages %}<p class="mt-1 text-xs {% if m.severity == 'error' %}text-danger-text{% elif m.severity == 'warning' %}text-warning-text{% else %}text-info-text{% endif %}">{{ m.message }}</p>{% endfor %}
+                {% for p in r.comment_prompts %}<p class="mt-1 text-xs text-muted-foreground">Comment: {{ p }}</p>{% endfor %}
+                {% if r.evidence %}<p class="mt-1 text-xs text-muted-foreground">Evidence: {{ r.evidence.min_count }} × {{ r.evidence.kinds|join:", " }}</p>{% endif %}
+                {% if r.options %}<p class="mt-1 text-xs text-muted-foreground">Available: {{ r.options.available|join:", " }}</p>{% endif %}
+                {% if r.constraints %}<p class="mt-1 text-xs text-muted-foreground">Limits: {% for k, v in r.constraints.items %}{{ k }} {{ v }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+                {% for t in r.instructions %}<p class="mt-1 text-xs text-muted-foreground">{{ t }}</p>{% endfor %}
+                {% if r.answer.status == "invalid" %}{% for e in r.answer.errors %}<p class="mt-1 text-xs text-danger-text">{{ e.message }}</p>{% endfor %}{% endif %}
+              {% endif %}
+            </li>
+            {% endwith %}
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </section>
+  {% endfor %}
+
+  <details class="text-sm">
+    <summary class="cursor-pointer font-medium">Which rules applied?</summary>
+    <ul class="mt-2 space-y-1">
+      {% for rule in result.rules %}
+        <li class="flex flex-wrap items-center gap-2"><span class="font-mono text-xs">{{ rule.code }}</span> {{ rule.name }}
+          {% if not rule.enabled %}{% tone_badge "Disabled" "neutral" %}{% elif rule.matched == "true" %}{% tone_badge "Applies" "success" icon="check" %}{% elif rule.matched == "false" %}{% tone_badge "Does not apply" "neutral" %}{% else %}{% tone_badge "Unknown (not enough answers)" "warning" icon="circle-help" %}{% endif %}</li>
+      {% empty %}<li class="text-muted-foreground">This version has no rules.</li>{% endfor %}
+    </ul>
+    {% if result.trace %}
+      <p class="mt-3 font-medium">Why</p>
+      <ul class="mt-1 list-disc space-y-1 pl-5 text-xs text-muted-foreground">{% for t in result.trace %}<li><span class="font-mono">{{ t.target }}</span> {{ t.property }}: {{ t.because|join:", " }}</li>{% endfor %}</ul>
+    {% endif %}
+  </details>
+</div>

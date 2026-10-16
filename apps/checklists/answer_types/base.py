@@ -93,6 +93,12 @@ class AnswerTypeDefinition:
     preview: ClassVar[str] = "text"
     #: Documented example of a normalized value (API metadata and docs).
     example: ClassVar[Any] = None
+    #: How rules may compare answers of this type (Phase 6): ``equality`` (boolean / yes-no), ``choice`` (one
+    #: option), ``multi_choice``, ``ordered`` (numbers, scores, dates), ``text`` or ``presence`` only.  The rule
+    #: operator registry is keyed by family, so a new answer type needs no rule-engine change.
+    comparison_family: ClassVar[str] = "presence"
+    #: Configuration keys a *rule* may tighten (``SET_VALIDATION_CONSTRAINT``); never loosen.
+    rule_constraints: ClassVar[tuple[str, ...]] = ()
 
     # -- configuration ------------------------------------------------------------------------
     def clean_config(self, raw: Any) -> dict[str, Any]:
@@ -128,6 +134,12 @@ class AnswerTypeDefinition:
     def normalize(self, raw: Any, ctx: AnswerContext) -> Any:
         """Return the normalized value or raise :class:`AnswerInvalid`.  Never called with an empty value."""
         raise NotImplementedError
+
+    def parse_operand(self, raw: Any, ctx: AnswerContext) -> Any:
+        """Parse a rule's *comparison value* with this type's own parsing rules (type, precision, format) but
+        **without** the item's range/length constraints - "temperature greater than 25" is a legitimate rule even
+        if the field only accepts up to 20.  Defaults to full normalization."""
+        return self.normalize(raw, ctx)
 
     def serialize(self, value: Any) -> Any:
         """JSON-safe form of a normalized value (what the API returns and sync transmits)."""

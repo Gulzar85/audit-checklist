@@ -1,0 +1,60 @@
+{# One condition: question + comparison + value.  Changing the question or comparison re-renders the editor (HTMX) so the offered choices always match the question's answer type. #}
+{% load ui %}
+<div class="space-y-2 rounded-lg border border-border bg-surface p-3" role="group" aria-label="Condition">
+  <div class="flex items-start gap-2">
+  <div class="min-w-0 flex-1">
+    <label class="sr-only" for="{{ row.prefix }}_src">Question</label>
+    <select id="{{ row.prefix }}_src" name="{{ row.prefix }}_src" class="select" {% if row.error %}aria-invalid="true"{% endif %}
+            hx-post="{{ editor_url }}" hx-trigger="change" hx-vals='{"op":"refresh"}'>
+      <option value="">Choose a question…</option>
+      {% for section_name, choices in source_choices %}
+        <optgroup label="{{ section_name }}">{% for code, label in choices %}<option value="{{ code }}"{% if code == row.src %} selected{% endif %}>{{ label }}</option>{% endfor %}</optgroup>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="button" class="btn btn-ghost btn-icon btn-sm shrink-0" aria-label="Remove this condition" hx-post="{{ editor_url }}" hx-vals='{"op":"remove_condition:{{ row.remove }}"}'>{% icon "x" %}</button>
+  </div>
+  {% if row.item %}
+  <div class="flex flex-wrap items-start gap-2">
+  <div class="min-w-[9rem] flex-[1_1_9rem]">
+    <label class="sr-only" for="{{ row.prefix }}_op">Comparison</label>
+    <select id="{{ row.prefix }}_op" name="{{ row.prefix }}_op" class="select" hx-post="{{ editor_url }}" hx-trigger="change" hx-vals='{"op":"refresh"}'>
+      {% for code, label in row.operators %}<option value="{{ code }}"{% if code == row.op %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="min-w-[9rem] flex-[2_1_10rem]">
+    {% if row.item %}
+      {% if row.operand == "none" %}
+        <p class="py-2 text-sm text-muted-foreground">No value needed.</p>
+      {% elif row.operand == "range" %}
+        <div class="flex items-center gap-2">
+          <label class="sr-only" for="{{ row.prefix }}_val">From</label>
+          <input id="{{ row.prefix }}_val" name="{{ row.prefix }}_val" type="{{ row.widget.kind }}" class="input" value="{{ row.val }}" {% if row.widget.step %}step="{{ row.widget.step }}"{% endif %} maxlength="40">
+          <span class="text-sm text-muted-foreground">and</span>
+          <label class="sr-only" for="{{ row.prefix }}_val2">To</label>
+          <input id="{{ row.prefix }}_val2" name="{{ row.prefix }}_val2" type="{{ row.widget.kind }}" class="input" value="{{ row.val2 }}" {% if row.widget.step %}step="{{ row.widget.step }}"{% endif %} maxlength="40">
+        </div>
+        {% if row.widget.unit %}<p class="help-text">{{ row.widget.unit }}</p>{% endif %}
+      {% elif row.operand == "options" %}
+        <fieldset><legend class="sr-only">Options</legend>
+          <div class="flex flex-wrap gap-x-4 gap-y-1">
+            {% for value, label in row.widget.choices %}<label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" class="checkbox" name="{{ row.prefix }}_vals" value="{{ value }}"{% if value in row.selected %} checked{% endif %}> {{ label }}</label>{% endfor %}
+          </div>
+        </fieldset>
+      {% elif row.widget.kind == "select" %}
+        <label class="sr-only" for="{{ row.prefix }}_val">Value</label>
+        <select id="{{ row.prefix }}_val" name="{{ row.prefix }}_val" class="select">
+          <option value="">Choose…</option>
+          {% for value, label in row.widget.choices %}<option value="{{ value }}"{% if value == row.val %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      {% else %}
+        <label class="sr-only" for="{{ row.prefix }}_val">Value</label>
+        <input id="{{ row.prefix }}_val" name="{{ row.prefix }}_val" type="{{ row.widget.kind }}" class="input" value="{{ row.val }}" {% if row.widget.step %}step="{{ row.widget.step }}"{% endif %} maxlength="200"{% if row.widget.kind == "text" %} placeholder="Text to look for"{% endif %}>
+        {% if row.widget.unit %}<p class="help-text">{{ row.widget.unit }}</p>{% endif %}
+      {% endif %}
+    {% endif %}
+  </div>
+  </div>
+  {% endif %}
+  {% if row.error %}<p class="errorlist w-full" role="alert">{{ row.error }}</p>{% endif %}
+</div>

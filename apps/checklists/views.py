@@ -364,6 +364,7 @@ class BuilderView(TemplateObjectMixin, TemplateView):
             and template.status != c.TemplateStatus.ARCHIVED,
             sections=list(selectors.get_sections_for_version(draft)) if draft else [],
             problems=services.validate_version_complete(draft) if draft else [],
+            rule_count=draft.rules.count() if draft else 0,
             version_form=VersionForm(),
             latest_published=template.versions.filter(status=c.VersionStatus.PUBLISHED).order_by("-version_number").first(),
         )

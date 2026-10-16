@@ -54,28 +54,6 @@ CUSTOM_OPTIONS = frozenset({AnswerType.SINGLE_CHOICE, AnswerType.MULTIPLE_CHOICE
 #: Types that carry options of either kind.
 OPTION_TYPES = CUSTOM_OPTIONS | frozenset(FIXED_OPTIONS)
 
-# Rule vocabulary (Phase 6 evaluates these; Phase 4 only stores well-formed rules).
-class RuleOperator(models.TextChoices):
-    EQUALS = "equals", _("equals")
-    NOT_EQUALS = "not_equals", _("does not equal")
-    IN = "in", _("is one of")
-    GT = "gt", _("is greater than")
-    GTE = "gte", _("is at least")
-    LT = "lt", _("is less than")
-    LTE = "lte", _("is at most")
-    ANSWERED = "answered", _("is answered")
-
-
-class RuleAction(models.TextChoices):
-    REQUIRE_COMMENT = "require_comment", _("Require a comment")
-    REQUIRE_PHOTO = "require_photo", _("Require a photo")
-    SHOW_ITEM = "show_item", _("Show an item")
-    SHOW_SECTION = "show_section", _("Show a section")
-
-
-TARGET_ACTIONS = {RuleAction.SHOW_ITEM: "item", RuleAction.SHOW_SECTION: "section"}
-
-
 def clean_config(answer_type: str, config: Any) -> dict[str, Any]:
     """Validate and normalise ``config`` for ``answer_type`` (the single entry point for web, API and imports).
 

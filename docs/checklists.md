@@ -54,10 +54,13 @@ immutable after creation). `slug` is for navigation only. Items have a stable `c
 `(item, sort_order)` are **deferrable**, so a reorder rewrites the numbers inside one transaction. The builder offers
 Move up / Move down buttons (keyboard accessible); the services also accept a full ordered id list.
 
-## Rules (foundation)
-`ChecklistRule` is data: *if `source_item` `operator` `value` then `action` [target]*. Actions
-(`require_comment`, `require_photo`, `show_item`, `show_section`) are values, not columns. Rules are validated and
-stored (service `create_rule`); Phase 6 evaluates them.
+## Rules (Phase 6)
+`ChecklistRule` is data: a condition tree (AND/OR groups of comparisons) and a list of actions, referencing questions and
+sections by code within one version. Rules are validated as a set (references, operators, values, cycles, conflicts), frozen
+with the published version, and evaluated by one deterministic engine shared by the builder, API and (later) execution.
+See [conditional-rules.md](conditional-rules.md), [rule-operators.md](rule-operators.md), [rule-actions.md](rule-actions.md),
+[rule-validation.md](rule-validation.md), [api/conditional-rules.md](api/conditional-rules.md) and
+[ADR 0047](decisions/0047-conditional-rules-engine.md). A section now has a stable `code` (`S-001`) like a question.
 
 ## Future-proofing
 * **Repeatable sections:** a section is a plain row with its own id, so a later `repeatable`/`min_repeats` column (or
@@ -73,21 +76,24 @@ visible-but-forbidden actions 403. The API, the builder and imports call the sam
 
 ## Interfaces
 * Web: `/checklists/` (list), `create/`, `<id>/` (detail: structure, versions, activity), `<id>/edit/`,
-  `<id>/duplicate/`, `<id>/archive/` (POST archive|restore|activate|delete), `<id>/versions/…`, `<id>/builder/…`.
+  `<id>/duplicate/`, `<id>/archive/` (POST archive|restore|activate|delete), `<id>/versions/…`, `<id>/builder/…`,
+  `<id>/rules/` (rule list), `rules/new/`, `rules/<rule>/edit/`, `rules/simulate/` (the simulator).
 * API: `/api/v1/checklists/` (+ `{id}/`, `archive/`, `restore/`, `activate/`, `duplicate/`, `versions/`, `versions/new/`,
-  `sections/`, `items/`); structure is read-only over the API.
+  `sections/`, `items/`, `rules/` ...); structure is read-only over the API except items and rules in the draft.
 * Import: `apps/checklists/imports.py::import_items` (all-or-nothing, draft versions only, policy-checked per row).
   Admin export is limited to authorized templates.
-* Seed: `python manage.py seed_demo_checklists --organization <slug>` (idempotent).
+* Import: `imports.import_rules` / `export_rules` for rules (same guarantees).
+* Seed: `python manage.py seed_demo_checklists --organization <slug>` (idempotent; includes the conditional-rules demo
+  *Daily Facility Safety Check*), `seed_audit_checklists` for the two audit workbooks.
 
 ## Audit
 `simple_history` on every model; ActivityLog verbs `checklist.created|updated|activated|archived|restored|duplicated|deleted`,
 `checklist_version.created|published`, `checklist_section.added|updated|removed|reordered`,
-`checklist_item.added|updated|removed|reordered`, `checklist_option.*`, `checklist_rule.*`; each carries
+`checklist_item.added|updated|removed|reordered`, `checklist_option.*`, `checklist_rule.created|updated|enabled|disabled|condition_changed|actions_changed|removed|reordered|validation_failed`; each carries
 `metadata.template_id` for the template's activity tab.
 
 ## Deferred to later phases
-Answer storage and validation (5), conditional-logic evaluation (6), the release/approval workflow and version
+Answer *storage* (the engines for answer validation (5) and conditional rules (6) exist), the release/approval workflow and version
 comparison (7), assignment (8), execution (9), offline (10), evidence (11), findings (12), corrective actions (13),
 workflow (14), scoring (15). Not built here: drag-and-drop reordering, template-level import/export UI, category
 management screen (categories are created from the template form).

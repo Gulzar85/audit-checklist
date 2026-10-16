@@ -29,6 +29,8 @@ from .models import (
     ChecklistTemplate,
     ChecklistVersion,
 )
+from .rules import validate_rule_set
+from .rules.snapshot import RuleSpec, snapshot_for_version
 
 
 class TemplateExportResource(FormulaSafeExportMixin, resources.ModelResource):
@@ -211,7 +213,49 @@ class ChecklistOptionAdmin(_FrozenWhenPublished, SimpleHistoryAdmin):
     search_fields = ("label", "value", "item__code")
 
 
+class RuleAdminForm(forms.ModelForm):
+    """The admin saves a rule only if the whole rule set of its version still validates - the same gate as the builder and API.
+
+    References, operators and values, actions, limits, dependency cycles and definite conflicts are all checked, and the
+    stored condition/actions are replaced by their normalized form.  (A "rule" typed as raw JSON can therefore not bypass anything.)
+    """
+
+    class Meta:
+        model = ChecklistRule
+        fields = ("version", "code", "name", "description", "condition", "actions", "is_active", "sort_order")
+
+    def clean(self):  # noqa: ANN201
+        cleaned = super().clean()
+        version = cleaned.get("version") or getattr(self.instance, "version", None)
+        if version is None or any(f in self.errors for f in ("condition", "actions", "code", "name")):
+            return cleaned
+        if version.status != VersionStatus.DRAFT:
+            raise ValidationError("Rules can only be added to or changed in a draft version.")
+        code = cleaned.get("code") or self.instance.code
+        snapshot = snapshot_for_version(version)
+        others = [r for r in snapshot.rules if r.code != self.instance.code]
+        candidate = RuleSpec(code, cleaned.get("name", ""), cleaned.get("condition"), cleaned.get("actions"),
+                             bool(cleaned.get("is_active", True)), cleaned.get("sort_order") or 0, cleaned.get("description", ""))
+        report = validate_rule_set(snapshot.with_rules([*others, candidate]))
+        if report.errors:
+            raise ValidationError([f"{i.path + ': ' if i.path else ''}{i.message}" for i in report.errors[:10]])
+        compiled = next(r for r in report.compiled if r.code == code)
+        cleaned["condition"], cleaned["actions"] = compiled.stored_condition, compiled.stored_actions
+        return cleaned
+
+
 @admin.register(ChecklistRule)
 class ChecklistRuleAdmin(_FrozenWhenPublished, SimpleHistoryAdmin):
-    list_display = ("source_item", "operator", "action", "is_active")
-    list_filter = ("operator", "action", "is_active")
+    form = RuleAdminForm
+    list_display = ("code", "name", "version", "is_active", "sort_order")
+    list_filter = ("is_active", "version__status")
+    search_fields = ("code", "name", "version__template__code")
+    list_select_related = ("version__template",)
+
+    def get_readonly_fields(self, request, obj=None):  # noqa: ANN001, ANN201
+        return ("version", "code") if obj is not None else ()  # identity never changes
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):  # noqa: ANN001, ANN003, ANN201
+        if db_field.name == "version":  # rules are only ever added to a draft
+            kwargs["queryset"] = ChecklistVersion.objects.filter(status=VersionStatus.DRAFT).select_related("template")
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)

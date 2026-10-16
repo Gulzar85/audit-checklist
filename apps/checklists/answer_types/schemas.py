@@ -186,6 +186,11 @@ def _clean_one(spec: ConfigField, value: Any) -> Any:
     return out
 
 
+def clean_setting(spec: ConfigField, value: Any) -> Any:
+    """Validate one value against one setting declaration (used by rule-driven constraints)."""
+    return _clean_one(spec, value)
+
+
 def clean_with_schema(fields: tuple[ConfigField, ...], raw: Any) -> dict[str, Any]:
     """Validate ``raw`` against ``fields``: unknown keys rejected, types checked, defaults filled.
 

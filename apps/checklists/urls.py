@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from django.urls import path
 
+from . import rule_views as rv
 from . import views as v
 
 app_name = "checklists"
@@ -36,4 +37,12 @@ urlpatterns = [
     path("<uuid:pk>/builder/items/<uuid:item_pk>/options/<uuid:option_pk>/edit/", v.OptionUpdateView.as_view(), name="option_edit"),
     path("<uuid:pk>/builder/items/<uuid:item_pk>/options/<uuid:option_pk>/delete/", v.OptionDeleteView.as_view(), name="option_delete"),
     path("<uuid:pk>/builder/items/<uuid:item_pk>/options/<uuid:option_pk>/move/", v.OptionMoveView.as_view(), name="option_move"),
+    # Conditional rules (Phase 6): list, editor, one-click actions and the simulator.
+    path("<uuid:pk>/rules/", rv.RuleListView.as_view(), name="rules"),
+    path("<uuid:pk>/rules/new/", rv.RuleCreateView.as_view(), name="rule_new"),
+    path("<uuid:pk>/rules/simulate/", rv.RuleSimulatorView.as_view(), name="rule_simulate"),
+    path("<uuid:pk>/rules/<uuid:rule_pk>/edit/", rv.RuleUpdateView.as_view(), name="rule_edit"),
+    path("<uuid:pk>/rules/<uuid:rule_pk>/toggle/", rv.RuleToggleView.as_view(), name="rule_toggle"),
+    path("<uuid:pk>/rules/<uuid:rule_pk>/delete/", rv.RuleDeleteView.as_view(), name="rule_delete"),
+    path("<uuid:pk>/rules/<uuid:rule_pk>/move/", rv.RuleMoveView.as_view(), name="rule_move"),
 ]

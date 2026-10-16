@@ -336,15 +336,16 @@ class TestGenericEngine:
 
     def test_rules_are_generic_data(self, draft, section, author):
         source = services.create_item(section, question="Fridge ok?", answer_type="yes_no", actor=author)
-        target = services.create_item(section, question="Photo", answer_type="photo", actor=author)
-        rule = services.create_rule(draft, source_item=source, operator="equals", value="no", action="show_item",
-                                    target_item=target, actor=author)
-        services.create_rule(draft, source_item=source, operator="equals", value="no", action="require_comment", actor=author)
-        assert rule.target_item == target
-        with pytest.raises(ValidationError):
-            services.create_rule(draft, source_item=source, operator="equals", value="no", action="show_item")  # no target
-        with pytest.raises(ValidationError):
-            services.create_rule(draft, source_item=source, operator="equals", action="require_photo")  # no value
+        target = services.create_item(section, question="Photo", answer_type="photo", is_required=False, actor=author)
+        rule = services.create_rule(
+            draft, name="Photo when the fridge fails", actor=author,
+            condition={"source_item_code": source.code, "comparison": "EQUALS", "value": "no"},
+            actions=[{"type": "SHOW_ITEM", "target": {"type": "item", "code": target.code}},
+                     {"type": "REQUIRE_COMMENT", "target": {"type": "item", "code": source.code}}],
+        )
+        assert rule.code == "R-001" and [a["type"] for a in rule.actions] == ["SHOW_ITEM", "REQUIRE_COMMENT"]
+        with pytest.raises(ValidationError):  # references a question that does not exist
+            services.create_rule(draft, name="Bad", actions=[{"type": "SHOW_ITEM", "target": {"type": "item", "code": "NOPE"}}], actor=author)
         field_names = {f.name for f in ChecklistItem._meta.get_fields()}
         assert not {"requires_photo_if_no", "requires_comment_if_no"} & field_names
 

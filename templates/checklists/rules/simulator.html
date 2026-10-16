@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Rule simulator · {{ template.name }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+
+{% block breadcrumbs %}{% url 'checklists:detail' template.pk as c1 %}{% url 'checklists:rules' template.pk as c2 %}{% breadcrumbs "Home" "core:home" "Checklist templates" "checklists:list" template.name c1 "Rules" c2 "Simulator" %}{% endblock %}
+
+{% block page_header %}
+{% page_header title="Rule simulator" subtitle=version_label icon="flask-conical" %}
+  <a href="{{ rules_url }}?version={{ version.version_number }}" class="btn btn-secondary">{% icon "git-branch" %} Rules</a>
+{% endpage_header %}
+{% endblock %}
+
+{% block content %}
+<div class="alert alert-info mb-6" role="note">{% icon "flask-conical" %}<p><strong>Simulation.</strong> Enter sample answers to see how the saved rules of version {{ version.version_number }} change the checklist. Nothing here is saved, and no real answer is created or changed.</p></div>
+
+<div class="grid gap-6 lg:grid-cols-2">
+  <form id="sim-form" class="min-w-0 space-y-6" hx-post="{{ simulate_url }}?version={{ version.version_number }}" hx-trigger="change, input delay:400ms, submit" hx-target="#sim-result" hx-swap="innerHTML">
+    {% csrf_token %}
+    <h2 class="sr-only">Sample answers</h2>
+    {% for block in inputs %}
+      <section class="card" aria-labelledby="sim-{{ block.section.code }}">
+        <div class="card-header"><h3 id="sim-{{ block.section.code }}" class="card-title">{{ block.section.name }}</h3></div>
+        <div class="card-body space-y-4">
+          {% for entry in block.items %}
+            {% with item=entry.item widget=entry.widget %}
+            <div>
+              <label class="label" for="ans_{{ item.code }}">{{ item.question }} <span class="font-mono text-xs font-normal text-muted-foreground">{{ item.code }}</span></label>
+              {% if entry.family == "presence" %}
+                <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" class="checkbox" id="ans_{{ item.code }}" name="ans_{{ item.code }}" value="1"> Provided (sample {{ item.definition.label|lower }})</label>
+              {% elif entry.family == "multi_choice" %}
+                <div class="flex flex-wrap gap-x-4 gap-y-1">{% for value, label in widget.choices %}<label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" class="checkbox" name="ans_{{ item.code }}" value="{{ value }}"> {{ label }}</label>{% endfor %}</div>
+              {% elif widget.kind == "select" %}
+                <select id="ans_{{ item.code }}" name="ans_{{ item.code }}" class="select"><option value="">Not answered</option>{% for value, label in widget.choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
+              {% elif item.answer_type == "long_text" %}
+                <textarea id="ans_{{ item.code }}" name="ans_{{ item.code }}" class="textarea" rows="2"></textarea>
+              {% else %}
+                <input id="ans_{{ item.code }}" name="ans_{{ item.code }}" type="{{ widget.kind }}" {% if widget.step %}step="{{ widget.step }}"{% endif %} class="input max-w-xs">
+                {% if widget.unit %}<p class="help-text">{{ widget.unit }}</p>{% endif %}
+              {% endif %}
+            </div>
+            {% endwith %}
+          {% empty %}<p class="text-sm text-muted-foreground">No questions in this section.</p>{% endfor %}
+        </div>
+      </section>
+    {% empty %}
+      <div class="card"><div class="card-body">{% include "components/states/empty.html" with icon="layout-list" title="No questions yet" message="Add sections and questions in the builder first." %}</div></div>
+    {% endfor %}
+  </form>
+
+  <section class="min-w-0" aria-labelledby="sim-result-title">
+    <div class="card lg:sticky lg:top-20">
+      <div class="card-header"><h2 id="sim-result-title" class="card-title">What the person sees</h2>{% tone_badge "Simulation" "info" icon="flask-conical" %}</div>
+      <div id="sim-result" class="card-body" aria-live="polite">{% include "checklists/rules/_result.html" %}</div>
+    </div>
+  </section>
+</div>
+{% endblock %}

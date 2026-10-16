@@ -22,12 +22,26 @@ from apps.api.permissions import IsActiveUser, PolicyPermission
 from apps.checklists import constants as c
 from apps.checklists import policies, selectors, services
 from apps.checklists.filters import TemplateFilter
-from apps.checklists.models import ChecklistCategory, ChecklistItem
+from apps.checklists.models import ChecklistCategory, ChecklistItem, ChecklistRule
 from apps.checklists.answer_types import registry
 from apps.checklists.answer_types.serializers import AnswerTypeDetailSerializer, AnswerTypeSerializer
+from apps.checklists.rules import (
+    RuleSpec,
+    all_limits,
+    compile_rules,
+    describe_actions,
+    describe_operators,
+    evaluate,
+    snapshot_for_version,
+    validate_rule_set,
+)
 from apps.checklists.serializers import (
     ChecklistItemSerializer,
     ChecklistItemWriteSerializer,
+    ChecklistRuleSerializer,
+    RuleValidateSerializer,
+    RuleWriteSerializer,
+    SimulationSerializer,
     ChecklistSectionSerializer,
     ChecklistTemplateSerializer,
     ChecklistTemplateWriteSerializer,
@@ -40,7 +54,10 @@ from apps.permissions.authorization import visible_organization_ids
 
 
 def _raise(exc: DjangoValidationError) -> None:
-    raise serializers.ValidationError(exc.message_dict if hasattr(exc, "error_dict") else exc.messages) from exc
+    detail = exc.message_dict if hasattr(exc, "error_dict") else exc.messages
+    if hasattr(exc, "issues") and isinstance(detail, dict):  # rule validation: add the structured findings
+        detail = {**detail, "issues": [i.as_dict() for i in exc.issues]}
+    raise serializers.ValidationError(detail) from exc
 
 
 class ChecklistViewSet(
@@ -70,6 +87,8 @@ class ChecklistViewSet(
             return policies.can_duplicate_template(request.user, obj)
         if self.action == "new_version":
             return policies.can_create_version(request.user, obj)
+        if self.action in ("rules_simulate", "rules_compiled"):  # read-only: viewing the checklist is enough
+            return True
         if request.method in ("GET", "HEAD", "OPTIONS"):
             return True
         return policies.can_update_template(request.user, obj)  # update, activate
@@ -274,6 +293,150 @@ class ChecklistViewSet(
             _raise(exc)
         fresh = ChecklistItem.objects.filter(pk=item.pk).prefetch_related("options").get()
         return Response(ChecklistItemSerializer(fresh).data, status=status.HTTP_201_CREATED)
+
+
+    # -- rules (Phase 6) -------------------------------------------------------------------------------------------
+    def _rules_version(self, template, request: Request):  # noqa: ANN001, ANN202
+        """The version a rules request is about: ``?version=N``/body ``version``, else the draft, else the latest published."""
+        number = request.query_params.get("version") or (request.data.get("version") if hasattr(request.data, "get") else None)
+        if number not in (None, ""):
+            if not str(number).isdigit():
+                raise serializers.ValidationError({"version": "Must be a version number."})
+            version = selectors.get_version(template, int(number))
+        else:
+            version = selectors.get_draft_version(template) or (
+                template.versions.filter(status=c.VersionStatus.PUBLISHED).order_by("-version_number").first())
+        if version is None:
+            raise NotFound("Version not found.")
+        return version
+
+    @extend_schema(request=RuleWriteSerializer, responses=ChecklistRuleSerializer(many=True))
+    @action(detail=True, methods=["get", "post"], pagination_class=None)
+    def rules(self, request: Request, pk=None) -> Response:  # noqa: ANN001
+        """GET: the rules of a version (with readable summaries).  POST: add a rule to the draft version."""
+        template = self.get_object()
+        if request.method == "POST":
+            draft = self._draft_for_edit(template, request)
+            payload = RuleWriteSerializer(data=request.data)
+            payload.is_valid(raise_exception=True)
+            data = dict(payload.validated_data)
+            if "name" not in data or "actions" not in data:
+                raise serializers.ValidationError({k: "This field is required." for k in ("name", "actions") if k not in data})
+            try:
+                rule = services.create_rule(draft, actor=request.user, **data)
+            except DjangoValidationError as exc:
+                _raise(exc)
+            snapshot = snapshot_for_version(draft)
+            return Response(ChecklistRuleSerializer(rule, context={"snapshot": snapshot}).data, status=status.HTTP_201_CREATED)
+        version = self._rules_version(template, request)
+        snapshot = snapshot_for_version(version)
+        rows = selectors.rules_for_version(version).select_related("version")
+        return Response(ChecklistRuleSerializer(rows, many=True, context={"snapshot": snapshot}).data)
+
+    @extend_schema(request=RuleWriteSerializer, responses=ChecklistRuleSerializer)
+    @action(detail=True, methods=["get", "patch", "delete"], url_path=r"rules/(?P<rule_pk>[0-9a-f-]{36})")
+    def rule_detail(self, request: Request, pk=None, rule_pk: str = "") -> Response:  # noqa: ANN001
+        template = self.get_object()
+        if request.method == "GET":
+            rule = ChecklistRule.objects.filter(version__template=template, pk=rule_pk).select_related("version").first()
+            if rule is None:
+                raise NotFound("Rule not found.")
+            return Response(ChecklistRuleSerializer(rule, context={"snapshot": snapshot_for_version(rule.version)}).data)
+        draft = self._draft_for_edit(template, request)
+        rule = selectors.get_rule(draft, rule_pk)
+        if rule is None:  # another version, template or tenant: never revealed
+            raise NotFound("Rule not found in the draft version.")
+        try:
+            if request.method == "DELETE":
+                services.delete_rule(rule, actor=request.user)
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            payload = RuleWriteSerializer(data=request.data, partial=True)
+            payload.is_valid(raise_exception=True)
+            data = dict(payload.validated_data)
+            data.pop("code", None)  # permanent
+            enabled = data.pop("is_active", None)
+            if data:
+                rule = services.update_rule(rule, actor=request.user, **data)
+            if enabled is not None:
+                rule = services.set_rule_enabled(rule, enabled, actor=request.user)
+        except DjangoValidationError as exc:
+            _raise(exc)
+        rule = ChecklistRule.objects.select_related("version").get(pk=rule.pk)
+        return Response(ChecklistRuleSerializer(rule, context={"snapshot": snapshot_for_version(draft)}).data)
+
+    @extend_schema(request=RuleValidateSerializer, responses=dict)
+    @action(detail=True, methods=["post"], url_path="rules/validate")
+    def rules_validate(self, request: Request, pk=None) -> Response:  # noqa: ANN001
+        """Validate the version's rules, or a candidate rule list, without saving anything (needs edit rights)."""
+        template = self.get_object()
+        if not policies.can_update_template(request.user, template):
+            raise PermissionDenied
+        payload = RuleValidateSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        version = self._rules_version(template, request)
+        snapshot = snapshot_for_version(version)
+        candidates = payload.validated_data.get("rules")
+        if candidates is not None:
+            snapshot = snapshot.with_rules(
+                [RuleSpec(str(r.get("code", f"CANDIDATE-{n}")), str(r.get("name", "")), r.get("condition"), r.get("actions"),
+                          bool(r.get("is_active", True)), n, str(r.get("description", "")))
+                 for n, r in enumerate(candidates, start=1) if isinstance(r, dict)]
+            )
+        return Response(validate_rule_set(snapshot).as_dict())
+
+    @extend_schema(request=SimulationSerializer, responses=dict)
+    @action(detail=True, methods=["post"], url_path="rules/simulate")
+    def rules_simulate(self, request: Request, pk=None) -> Response:  # noqa: ANN001
+        """Simulate: evaluate the rules for sample answers.  Persists nothing; uses the same evaluator as everything else."""
+        from apps.checklists.rules import limit
+
+        template = self.get_object()
+        if int(request.META.get("CONTENT_LENGTH") or 0) > limit("max_simulation_payload_bytes"):
+            return Response({"detail": "The simulation request is too large."}, status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
+        payload = SimulationSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        data = payload.validated_data
+        version = self._rules_version(template, request)
+        snapshot = snapshot_for_version(version)
+        if data.get("rules") is not None:  # trying unsaved rules is an authoring feature
+            if not policies.can_update_template(request.user, template):
+                raise PermissionDenied
+            snapshot = snapshot.with_rules(
+                [RuleSpec(str(r.get("code", f"CANDIDATE-{n}")), str(r.get("name", "")), r.get("condition"), r.get("actions"),
+                          bool(r.get("is_active", True)), n) for n, r in enumerate(data["rules"], start=1) if isinstance(r, dict)]
+            )
+        result = evaluate(compile_rules(snapshot), data.get("answers", {}), data.get("not_applicable", []))
+        return Response({"simulation": True, "version": version.version_number, **result.as_dict()})
+
+    @extend_schema(responses=dict)
+    @action(detail=True, methods=["get"], url_path="rules/compiled")
+    def rules_compiled(self, request: Request, pk=None) -> Response:  # noqa: ANN001
+        """Everything a client needs to evaluate the rules locally (the documented algorithm): normalized rules plus
+        each question's type, configuration, options and section.  The server stays the source of truth."""
+        template = self.get_object()
+        version = self._rules_version(template, request)
+        snapshot = snapshot_for_version(version)
+        compiled = compile_rules(snapshot)
+        return Response({
+            "version": version.version_number, "status": version.status,
+            "rules": [{"code": r.code, "name": r.name, "enabled": r.is_active, "order": r.sort_order,
+                       "condition": r.stored_condition, "actions": r.stored_actions} for r in compiled.rules],
+            "valid": not any(i.level == "error" for i in compiled.issues),
+            "items": {i.code: {"section": i.section_code, "answer_type": i.answer_type, "config": i.config, "required": i.required,
+                               "active": i.active, "options": [{"value": o.value, "label": o.label, "active": o.is_active} for o in i.options]}
+                      for i in snapshot.items.values()},
+            "sections": {s.code: {"name": s.name} for s in snapshot.sections.values()},
+        })
+
+
+class RuleMetadataView(APIView):
+    """``GET /api/v1/checklists/rules/metadata/`` - operators (and which answer types allow them), actions and limits."""
+
+    permission_classes = (IsAuthenticated, IsActiveUser)
+
+    @extend_schema(responses=dict)
+    def get(self, request: Request) -> Response:
+        return Response({**describe_operators(), "actions": describe_actions(), "limits": all_limits()})
 
 
 class AnswerTypeListView(APIView):

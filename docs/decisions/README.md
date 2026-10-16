@@ -51,3 +51,4 @@ consequences. New records are appended; existing ones are superseded, not edited
 | [0044](0044-rbac-permission-cache.md) | RBAC grant cache | Accepted |
 | [0045](0045-generic-checklist-definition-model.md) | A generic, versioned checklist definition model | Accepted |
 | [0046](0046-answer-type-engine.md) | The answer-type engine: a code registry with schema-validated configuration | Accepted |
+| [0047](0047-conditional-rules-engine.md) | Conditional rules: declarative, versioned, validated as a set, evaluated by one pure function | Accepted |

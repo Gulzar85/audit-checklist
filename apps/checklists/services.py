@@ -32,6 +32,7 @@ from apps.locations.models import normalize_code, validate_code
 
 from . import constants as c
 from .metadata import clean_metadata
+from .rules import Issue, RuleSpec, snapshot_for_version, validate_rule_set
 from .models import (
     ChecklistCategory,
     ChecklistItem,
@@ -67,8 +68,15 @@ VERBS = {
     "option_updated": "checklist_option.updated",
     "option_removed": "checklist_option.removed",
     "options_reordered": "checklist_option.reordered",
-    "rule_added": "checklist_rule.added",
+    "rule_created": "checklist_rule.created",
+    "rule_updated": "checklist_rule.updated",
+    "rule_enabled": "checklist_rule.enabled",
+    "rule_disabled": "checklist_rule.disabled",
+    "rule_condition_changed": "checklist_rule.condition_changed",
+    "rule_actions_changed": "checklist_rule.actions_changed",
     "rule_removed": "checklist_rule.removed",
+    "rules_reordered": "checklist_rule.reordered",
+    "rule_validation_failed": "checklist_rule.validation_failed",
     "category_created": "checklist_category.created",
 }
 
@@ -122,6 +130,46 @@ def _editable(version: ChecklistVersion) -> tuple[ChecklistTemplate, ChecklistVe
     if template.status == c.TemplateStatus.ARCHIVED:
         raise ValidationError(_("An archived checklist cannot be changed. Restore it first."), code="template_archived")
     return template, fresh
+
+
+def _next_code(prefix: str, existing: Iterable[str]) -> str:
+    """``S-004``-style code after the highest existing ``<prefix>-NNN``."""
+    numbers = [int(m.group(1)) for code in existing if (m := re.fullmatch(rf"{prefix}-(\d+)", code or ""))]
+    return f"{prefix}-{(max(numbers) if numbers else 0) + 1:03d}"
+
+
+class RuleValidationError(ValidationError):
+    """A rule (or the rule set) failed validation; ``issues`` carries every finding with its rule code and path."""
+
+    def __init__(self, issues: list[Issue], prefix: str = "", show_rule: bool = False) -> None:
+        self.issues = issues
+        grouped: dict[str, list[str]] = {}
+        for issue in issues:
+            key = "condition" if issue.path.startswith("condition") else "actions" if issue.path.startswith("actions") else "__all__"
+            where = f"Rule {issue.rule}: " if issue.rule and (show_rule or key == "__all__") else ""
+            grouped.setdefault(key, []).append(f"{prefix}{where}{issue.message}")
+        super().__init__(grouped)
+
+
+def _log_rule_failure(template: ChecklistTemplate, version: ChecklistVersion, actor: Any, issues: list[Issue], context: str) -> None:
+    """Record that a rule change/publish was refused (no user-entered text is stored, only codes and paths)."""
+    _log(
+        template=template, verb=VERBS["rule_validation_failed"], organization=template.organization, actor=actor, target=version,
+        description=f"Rule validation failed while {context} on {template.code} v{version.version_number}",
+        metadata={"count": len(issues), "issues": [{"rule": i.rule, "code": i.code, "path": i.path} for i in issues[:20]]},
+    )
+
+
+def _assert_rules_valid(version: ChecklistVersion, what: str) -> None:
+    """Refuse a structure change (inside its transaction) that would leave the version's rules invalid."""
+    if not ChecklistRule.objects.filter(version=version).exists():
+        return
+    report = validate_rule_set(snapshot_for_version(version))
+    if report.errors:
+        raise ValidationError(
+            [_("%(what)s would break the rules of this version. Update or remove the rule first. ") % {"what": what} + e.message
+             for e in report.errors[:3]]
+        )
 
 
 def _touch(template: ChecklistTemplate, actor: Any) -> None:
@@ -306,27 +354,28 @@ def _clone_structure(source: ChecklistVersion, target: ChecklistVersion, actor: 
     section_map: dict[Any, ChecklistSection] = {}
     for section in source.sections.prefetch_related("items__options").order_by("sort_order"):
         new_section = ChecklistSection.objects.create(
-            version=target, name=section.name, description=section.description, instructions=section.instructions,
-            sort_order=section.sort_order, is_required=section.is_required,
+            version=target, code=section.code, name=section.name, description=section.description,
+            instructions=section.instructions, sort_order=section.sort_order, is_required=section.is_required,
         )
         section_map[section.pk] = new_section
         for item in section.items.all():
             new_item = ChecklistItem.objects.create(
                 section=new_section, code=item.code, question=item.question, description=item.description,
                 help_text=item.help_text, instructions=item.instructions, answer_type=item.answer_type,
-                config=item.config, is_required=item.is_required, is_active=item.is_active, sort_order=item.sort_order,
+                config=item.config, metadata=item.metadata, is_required=item.is_required, is_active=item.is_active,
+                sort_order=item.sort_order,
             )
             item_map[item.pk] = new_item
             ChecklistOption.objects.bulk_create(
                 [ChecklistOption(item=new_item, value=o.value, label=o.label, sort_order=o.sort_order, is_active=o.is_active)
                  for o in item.options.all()]
             )
-    for rule in source.rules.all():
-        ChecklistRule.objects.create(
-            version=target, source_item=item_map[rule.source_item_id], operator=rule.operator, value=rule.value,
-            action=rule.action, sort_order=rule.sort_order, is_active=rule.is_active,
-            target_item=item_map.get(rule.target_item_id), target_section=section_map.get(rule.target_section_id),
-        )
+    # Rules reference questions and sections by *code*, and codes are copied unchanged, so the JSON copies verbatim.
+    ChecklistRule.objects.bulk_create(
+        [ChecklistRule(version=target, code=r.code, name=r.name, description=r.description, condition=r.condition,
+                       actions=r.actions, sort_order=r.sort_order, is_active=r.is_active)
+         for r in source.rules.order_by("sort_order")]
+    )
 
 
 @transaction.atomic
@@ -376,8 +425,8 @@ def create_checklist_version(template: ChecklistTemplate, *, actor: Any = None, 
     return version
 
 
-def validate_version_complete(version: ChecklistVersion) -> list[str]:
-    """Problems that stop a version being published (empty list = publishable)."""
+def _version_problems(version: ChecklistVersion) -> tuple[list[str], list[Issue]]:
+    """``(problems, rule_errors)``: everything that stops a version being published."""
     problems: list[str] = []
     sections = list(version.sections.prefetch_related("items__options"))
     if not sections:
@@ -389,14 +438,34 @@ def validate_version_complete(version: ChecklistVersion) -> list[str]:
         for item in active:
             if item.answer_type in c.CUSTOM_OPTIONS and sum(1 for o in item.options.all() if o.is_active) < 2:
                 problems.append(str(_("Item %(code)s needs at least two options.") % {"code": item.code}))
-    return problems
+    rule_errors: list[Issue] = []
+    if version.rules.exists():  # a version may only be published with a valid rule set (references, cycles, conflicts)
+        rule_errors = validate_rule_set(snapshot_for_version(version)).errors
+        problems.extend(f"Rule {i.rule}: {i.message}" if i.rule else i.message for i in rule_errors)
+    return problems, rule_errors
+
+
+def validate_version_complete(version: ChecklistVersion) -> list[str]:
+    """Problems that stop a version being published (empty list = publishable)."""
+    return _version_problems(version)[0]
+
+
+def publish_checklist_version(version: ChecklistVersion, *, actor: Any = None, change_summary: str | None = None) -> ChecklistVersion:
+    """Freeze a draft.  From here the version is immutable (Phase 7 adds the full release workflow)."""
+    try:
+        return _publish(version, actor=actor, change_summary=change_summary)
+    except RuleValidationError as exc:  # outside the transaction, so the audit entry survives the refusal
+        template = ChecklistTemplate.objects.select_related("organization").get(pk=version.template_id)
+        _log_rule_failure(template, version, actor, exc.issues, "publishing")
+        raise
 
 
 @transaction.atomic
-def publish_checklist_version(version: ChecklistVersion, *, actor: Any = None, change_summary: str | None = None) -> ChecklistVersion:
-    """Freeze a draft.  From here the version is immutable (Phase 7 adds the full release workflow)."""
+def _publish(version: ChecklistVersion, *, actor: Any = None, change_summary: str | None = None) -> ChecklistVersion:
     template, version = _editable(version)
-    problems = validate_version_complete(version)
+    problems, rule_errors = _version_problems(version)
+    if rule_errors:
+        raise RuleValidationError(rule_errors, show_rule=True)
     if problems:
         raise ValidationError(problems)
     if change_summary is not None:
@@ -416,12 +485,17 @@ def publish_checklist_version(version: ChecklistVersion, *, actor: Any = None, c
 # ---------------------------------------------------------------------------
 @transaction.atomic
 def create_section(version: ChecklistVersion, *, name: str, actor: Any = None, description: str = "",
-                   instructions: str = "", is_required: bool = True) -> ChecklistSection:
+                   instructions: str = "", is_required: bool = True, code: str = "") -> ChecklistSection:
     template, version = _editable(version)
     name = (name or "").strip()
     if not name:
         raise ValidationError({"name": _("A section needs a name.")})
-    section = ChecklistSection(version=version, name=name, description=description, instructions=instructions,
+    existing = list(version.sections.values_list("code", flat=True))
+    code = normalize_code(code) or _next_code("S", existing)
+    validate_code(code)
+    if code in existing:
+        raise ValidationError({"code": _("This section code is already used in this checklist version.")})
+    section = ChecklistSection(version=version, code=code, name=name, description=description, instructions=instructions,
                                is_required=is_required, sort_order=_next_order(version.sections))
     stamp_history(section, actor, VERBS["section_added"])
     section.save()
@@ -456,6 +530,7 @@ def delete_section(section: ChecklistSection, *, actor: Any = None) -> None:
     stamp_history(section, actor, VERBS["section_removed"])
     section.delete()
     _renumber(version.sections.order_by("sort_order"))
+    _assert_rules_valid(version, f"Removing the section “{name}”")
     _touch(template, actor)
     _log(template=template, verb=VERBS["section_removed"], organization=template.organization, actor=actor,
                  description=f"Removed section “{name}” from {template.code}")
@@ -611,6 +686,8 @@ def update_item(item: ChecklistItem, *, actor: Any = None, **data: Any) -> Check
             raise _db_error(exc) from exc
         if changed_type:
             _sync_fixed_options(item)
+        if {"code", "answer_type", "config", "is_active"} & set(changes):  # rules may depend on these
+            _assert_rules_valid(version, f"Changing {item.code}")
         _touch(template, actor)
         _log(verb=VERBS["item_updated"], organization=template.organization, actor=actor, target=item,
                      description=f"Updated item {item.code}", metadata={"changes": changes})
@@ -632,6 +709,7 @@ def delete_item(item: ChecklistItem, *, actor: Any = None) -> None:
     stamp_history(item, actor, VERBS["item_removed"])
     item.delete()
     _renumber(section.items.order_by("sort_order"))
+    _assert_rules_valid(version, f"Removing {code}")
     _touch(template, actor)
     _log(template=template, verb=VERBS["item_removed"], organization=template.organization, actor=actor,
                  description=f"Removed item {code} from {template.code}")
@@ -694,6 +772,8 @@ def update_option(option: ChecklistOption, *, actor: Any = None, **data: Any) ->
     if changes:
         stamp_history(option, actor, VERBS["option_updated"])
         option.save()
+        if "is_active" in changes:
+            _assert_rules_valid(_version, f"Changing an option of {option.item.code}")
         _touch(template, actor)
         _log(verb=VERBS["option_updated"], organization=template.organization, actor=actor, target=option,
                      description=f"Updated option on {option.item.code}", metadata={"changes": changes})
@@ -709,6 +789,7 @@ def delete_option(option: ChecklistOption, *, actor: Any = None) -> None:
     stamp_history(option, actor, VERBS["option_removed"])
     option.delete()
     _renumber(item.options.order_by("sort_order"))
+    _assert_rules_valid(_version, f"Removing the option “{label}”")
     _touch(template, actor)
     _log(template=template, verb=VERBS["option_removed"], organization=template.organization, actor=actor,
                  description=f"Removed option “{label}” from {item.code}")
@@ -788,6 +869,8 @@ def set_options(item: ChecklistItem, options: Iterable[Any], *, actor: Any = Non
             stamp_history(option, actor, VERBS["option_updated"])
             option.save()
         result.append(option)
+    if removed:
+        _assert_rules_valid(_version, f"Changing the options of {item.code}")
     if added or removed:
         _touch(template, actor)
         _log(verb=VERBS["options_synced"], organization=template.organization, actor=actor, target=item,
@@ -801,46 +884,156 @@ def move_option(option: ChecklistOption, direction: str, *, actor: Any = None) -
 
 
 # ---------------------------------------------------------------------------
-# Rules (definition only; evaluated in Phase 6)
+# Rules (Phase 6): declarative conditions and actions, validated as a whole set
 # ---------------------------------------------------------------------------
-@transaction.atomic
+def _rule_text(name: str, description: str) -> tuple[str, str]:
+    name, description = (name or "").strip(), (description or "").strip()
+    if not name:
+        raise ValidationError({"name": _("A rule needs a name.")})
+    if len(name) > 120:
+        raise ValidationError({"name": _("A rule name may be at most 120 characters.")})
+    if len(description) > 300:
+        raise ValidationError({"description": _("A description may be at most 300 characters.")})
+    return name, description
+
+
+def _validated(version: ChecklistVersion, candidate: RuleSpec, replacing: str | None = None):  # noqa: ANN202
+    """Validate the version's rule set with ``candidate`` added (or replacing ``replacing``); return its compiled form."""
+    snapshot = snapshot_for_version(version)
+    others = [r for r in snapshot.rules if r.code != replacing]
+    report = validate_rule_set(snapshot.with_rules([*others, candidate]))
+    if report.errors:
+        raise RuleValidationError(report.errors)
+    return next(r for r in report.compiled if r.code == candidate.code)
+
+
 def create_rule(
-    version: ChecklistVersion, *, source_item: ChecklistItem, operator: str, action: str, actor: Any = None,
-    value: Any = None, target_item: ChecklistItem | None = None, target_section: ChecklistSection | None = None,
+    version: ChecklistVersion, *, name: str, actions: Any, condition: Any = None, description: str = "", code: str = "",
+    is_active: bool = True, actor: Any = None,
 ) -> ChecklistRule:
+    """Add a rule to a draft version.  The whole rule set is re-validated (references, operators, values, cycles, conflicts)."""
+    try:
+        return _create_rule(version, name=name, actions=actions, condition=condition, description=description, code=code,
+                            is_active=is_active, actor=actor)
+    except RuleValidationError as exc:
+        template = ChecklistTemplate.objects.select_related("organization").get(pk=version.template_id)
+        _log_rule_failure(template, version, actor, exc.issues, "creating a rule")
+        raise
+
+
+@transaction.atomic
+def _create_rule(version, *, name, actions, condition, description, code, is_active, actor) -> ChecklistRule:  # noqa: ANN001
     template, version = _editable(version)
-    if operator not in c.RuleOperator.values or action not in c.RuleAction.values:
-        raise ValidationError(_("Unknown rule operator or action."))
-    if source_item.section.version_id != version.pk:
-        raise ValidationError({"source_item": _("The source item belongs to another version.")})
-    needs = c.TARGET_ACTIONS.get(action)
-    if needs == "item" and (target_item is None or target_item.section.version_id != version.pk):
-        raise ValidationError({"target_item": _("Choose a target item in this version.")})
-    if needs == "section" and (target_section is None or target_section.version_id != version.pk):
-        raise ValidationError({"target_section": _("Choose a target section in this version.")})
-    if needs is None and (target_item or target_section):
-        raise ValidationError(_("This action takes no target."))
-    if operator != c.RuleOperator.ANSWERED and value is None:
-        raise ValidationError({"value": _("This condition needs a value.")})
+    name, description = _rule_text(name, description)
+    existing = list(version.rules.values_list("code", flat=True))
+    code = normalize_code(code) or _next_code("R", existing)
+    validate_code(code)
+    if code in existing:
+        raise ValidationError({"code": _("This rule code is already used in this checklist version.")})
+    order = _next_order(version.rules)
+    compiled = _validated(version, RuleSpec(code, name, condition, actions, is_active, order, description))
     rule = ChecklistRule(
-        version=version, source_item=source_item, operator=operator, action=action, value=value,
-        target_item=target_item if needs == "item" else None,
-        target_section=target_section if needs == "section" else None,
-        sort_order=_next_order(version.rules),
+        version=version, code=code, name=name, description=description, condition=compiled.stored_condition,
+        actions=compiled.stored_actions, sort_order=order, is_active=is_active,
     )
-    stamp_history(rule, actor, VERBS["rule_added"])
+    stamp_history(rule, actor, VERBS["rule_created"])
     rule.save()
     _touch(template, actor)
-    _log(verb=VERBS["rule_added"], organization=template.organization, actor=actor, target=rule,
-                 description=f"Added a rule on {source_item.code}")
+    _log(verb=VERBS["rule_created"], organization=template.organization, actor=actor, target=rule,
+         description=f"Created rule {code} “{name}” on {template.code}",
+         metadata={"code": code, "enabled": is_active, "actions": [a["type"] for a in compiled.stored_actions]})
+    return rule
+
+
+def update_rule(rule: ChecklistRule, *, actor: Any = None, **data: Any) -> ChecklistRule:
+    """Change ``name``, ``description``, ``condition`` and/or ``actions`` (the code is permanent)."""
+    try:
+        return _update_rule(rule, actor=actor, **data)
+    except RuleValidationError as exc:
+        version = ChecklistVersion.objects.select_related("template__organization").get(pk=rule.version_id)
+        _log_rule_failure(version.template, version, actor, exc.issues, f"updating rule {rule.code}")
+        raise
+
+
+@transaction.atomic
+def _update_rule(rule: ChecklistRule, *, actor: Any = None, **data: Any) -> ChecklistRule:
+    template, version = _editable(rule.version)
+    rule = ChecklistRule.objects.get(pk=rule.pk)
+    allowed = {k: v for k, v in data.items() if k in ("name", "description", "condition", "actions")}
+    name, description = _rule_text(allowed.get("name", rule.name), allowed.get("description", rule.description))
+    candidate = RuleSpec(rule.code, name, allowed.get("condition", rule.condition), allowed.get("actions", rule.actions),
+                         rule.is_active, rule.sort_order, description)
+    compiled = _validated(version, candidate, replacing=rule.code)
+    changes = apply_changes(rule, {"name": name, "description": description, "condition": compiled.stored_condition,
+                                   "actions": compiled.stored_actions})
+    if changes:
+        stamp_history(rule, actor, VERBS["rule_updated"])
+        rule.save()
+        _touch(template, actor)
+        _log(verb=VERBS["rule_updated"], organization=template.organization, actor=actor, target=rule,
+             description=f"Updated rule {rule.code}", metadata={"changes": sorted(changes)})
+        if "condition" in changes:
+            _log(verb=VERBS["rule_condition_changed"], organization=template.organization, actor=actor, target=rule,
+                 description=f"Condition of rule {rule.code} changed", metadata=changes["condition"])
+        if "actions" in changes:
+            _log(verb=VERBS["rule_actions_changed"], organization=template.organization, actor=actor, target=rule,
+                 description=f"Actions of rule {rule.code} changed", metadata=changes["actions"])
+    return rule
+
+
+def set_rule_enabled(rule: ChecklistRule, enabled: bool, *, actor: Any = None) -> ChecklistRule:
+    """Enable or disable a rule.  Enabling re-validates the set (a disabled rule may hide a cycle)."""
+    try:
+        return _set_rule_enabled(rule, enabled, actor=actor)
+    except RuleValidationError as exc:
+        version = ChecklistVersion.objects.select_related("template__organization").get(pk=rule.version_id)
+        _log_rule_failure(version.template, version, actor, exc.issues, f"enabling rule {rule.code}")
+        raise
+
+
+@transaction.atomic
+def _set_rule_enabled(rule: ChecklistRule, enabled: bool, *, actor: Any = None) -> ChecklistRule:
+    template, version = _editable(rule.version)
+    rule = ChecklistRule.objects.get(pk=rule.pk)
+    if rule.is_active == enabled:
+        return rule
+    if enabled:
+        _validated(version, RuleSpec(rule.code, rule.name, rule.condition, rule.actions, True, rule.sort_order, rule.description),
+                   replacing=rule.code)
+    rule.is_active = enabled
+    verb = VERBS["rule_enabled" if enabled else "rule_disabled"]
+    stamp_history(rule, actor, verb)
+    rule.save()
+    _touch(template, actor)
+    _log(verb=verb, organization=template.organization, actor=actor, target=rule,
+         description=f"{'Enabled' if enabled else 'Disabled'} rule {rule.code}")
     return rule
 
 
 @transaction.atomic
 def delete_rule(rule: ChecklistRule, *, actor: Any = None) -> None:
-    template, _version = _editable(rule.version)
+    template, version = _editable(rule.version)
+    rule = ChecklistRule.objects.get(pk=rule.pk)
+    code = rule.code
     stamp_history(rule, actor, VERBS["rule_removed"])
     rule.delete()
+    _renumber(version.rules.order_by("sort_order"))
     _touch(template, actor)
     _log(template=template, verb=VERBS["rule_removed"], organization=template.organization, actor=actor,
-                 description="Removed a rule")
+         description=f"Deleted rule {code}", metadata={"code": code})
+
+
+@transaction.atomic
+def reorder_rules(version: ChecklistVersion, ordered_ids: Iterable[Any], *, actor: Any = None) -> None:
+    """Set the evaluation/display order (it only decides message order and trace order, never the outcome)."""
+    template, version = _editable(version)
+    ordered = _apply_order(version.rules.select_for_update(), ordered_ids, "rule")
+    _renumber(ordered)
+    _touch(template, actor)
+    _log(verb=VERBS["rules_reordered"], organization=template.organization, actor=actor, target=version,
+         description=f"Reordered the rules of {template.code}")
+
+
+def move_rule(rule: ChecklistRule, direction: str, *, actor: Any = None) -> None:
+    ids = list(rule.version.rules.order_by("sort_order").values_list("pk", flat=True))
+    reorder_rules(rule.version, _moved(ids, rule.pk, direction), actor=actor)
