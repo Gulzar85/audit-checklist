@@ -1,0 +1,3371 @@
+{
+ "code": "FS-RFSA",
+ "name": "Restaurant Food Safety Audit (RFSA)",
+ "category": "Food Safety",
+ "minutes": null,
+ "description": "Second-party restaurant food-safety audit (MEA food-safety team form, updated April 2016): sixteen sections from calibration to integrated pest management.",
+ "instructions": "Items tagged with country codes in their metadata apply only to those countries; items without a tag apply everywhere.\nGrading: 95.0-100 = A, 90.0-94.9 = B, 80.0-89.9 = C, below 80 = F. An item marked critical (a failure shown as “/F” in the source form) makes the whole audit an automatic F.\nAction plan timelines by risk: Low (does not directly affect hygiene or food safety) - by the next audit; Medium (could affect hygiene or food safety) - within 1 month; High (increased food-safety risk) - within 1 week; Critical (unacceptable, affects food safety) - immediately.",
+ "sections": [
+  {
+   "name": "Visit details",
+   "description": "Who, where and when. Complete before starting the checks.",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-VD-01",
+     "question": "Restaurant name",
+     "answer_type": "text",
+     "config": {
+      "max_length": 120
+     },
+     "required": true
+    },
+    {
+     "code": "RFSA-VD-02",
+     "question": "Restaurant number",
+     "answer_type": "text",
+     "config": {
+      "max_length": 30
+     },
+     "required": true
+    },
+    {
+     "code": "RFSA-VD-03",
+     "question": "Date of the visit",
+     "answer_type": "date",
+     "config": {},
+     "required": true
+    },
+    {
+     "code": "RFSA-VD-04",
+     "question": "Responsible restaurant manager on duty at the time of the audit",
+     "answer_type": "text",
+     "config": {
+      "max_length": 120
+     },
+     "required": true
+    },
+    {
+     "code": "RFSA-VD-05",
+     "question": "Name of the auditor",
+     "answer_type": "text",
+     "config": {
+      "max_length": 120
+     },
+     "required": true
+    },
+    {
+     "code": "RFSA-VD-06",
+     "question": "Position of the auditor",
+     "answer_type": "text",
+     "config": {
+      "max_length": 120
+     },
+     "required": true
+    },
+    {
+     "code": "RFSA-VD-07",
+     "question": "Date of the previous audit",
+     "answer_type": "date",
+     "config": {},
+     "required": false
+    },
+    {
+     "code": "RFSA-VD-08",
+     "question": "Score of the previous audit (%)",
+     "answer_type": "numeric",
+     "config": {
+      "min": 0,
+      "max": 100,
+      "decimals": 1,
+      "unit": "%"
+     },
+     "required": false
+    },
+    {
+     "code": "RFSA-VD-09",
+     "question": "Name and position of the auditor of the previous audit",
+     "answer_type": "text",
+     "config": {
+      "max_length": 200
+     },
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "Calibration Kit",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-01-001",
+     "question": "Pyrometer is accurate to within 0.5°C (+/- 1°C digit acceptable)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-01-002",
+     "question": "All probes in use working correctly",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "RFSA-01-003",
+     "question": "Pyrometer sanitized if being used on product to be served and All probes are available",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60
+     }
+    }
+   ]
+  },
+  {
+   "name": "Deliveries and Vehicles",
+   "description": "",
+   "instructions": "* If any critical product is found to be out of date (Shake mix, Processed produce, certain cheeses, RTM), or not meeting the correct temperature (Pasteurized shake mix, Processed produce, RTM and all deep frozen) the audit is an F.",
+   "items": [
+    {
+     "code": "RFSA-02-001",
+     "question": "Product temperature accepted in range* (Chilled food should be received at temp. below 5°C / 42 F, frozen at temp. below -18°C / 0 F )",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": false,
+     "metadata": {
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-02-002",
+     "question": "Any foodstuff that reveals obvious severe damages caused by any contamination source should be rejected (such as being swollen, uneven or unusual)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": false,
+     "metadata": {
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-02-003",
+     "question": "Received foodstuff must be labeled with production/expiry dates, written in a clear and legible way.",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": false,
+     "metadata": {
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-02-004",
+     "question": "The vehicle is well-equipped and appropriate for food transportation",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": false,
+     "metadata": {
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-02-005",
+     "question": "The hygienic standards are available in the vehicle; refrigerated and frozen",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": false,
+     "metadata": {
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-02-006",
+     "question": "The chilled food is transported at temperature not exceeding 4°C/ 40F and the frozen food at temperature not exceeding -18°C/ 0 F",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": false,
+     "metadata": {
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-02-007",
+     "question": "An electronic device is installed to measure and record the temperatures (data logger)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": false,
+     "metadata": {
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "Freezers and Refrigerators - Main Freezer",
+   "description": "",
+   "instructions": "* If any critical product is found to be out of date (Sundae mix, Processed produce, certain cheeses, RTM), or not meeting the correct temperature (Pasteurized Sundae mix, Processed produce,RTM and all deep frozen) the audit is an F.",
+   "items": [
+    {
+     "code": "RFSA-03-001",
+     "question": "If dial is used, reading is within -18C / 0 F of air temperature and (Temperature display working good condition )",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "KSA",
+       "EGP",
+       "LEB"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-03-002",
+     "question": "Product temperature is -18°C / 0 F or colder",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "RFSA-03-003",
+     "question": "Evaporator, floor, ceiling, door, door frame, & plastic curtain free from excessive ice build-up / Condenser free from water leak",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60
+     }
+    },
+    {
+     "code": "RFSA-03-004",
+     "question": "Door seal (and sweep) form an air-tight seal",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60
+     }
+    },
+    {
+     "code": "RFSA-03-005",
+     "question": "All Meat patties free from severe and surface thermal abuse",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "RFSA-03-006",
+     "question": "Apple pies and all Meat is positioned as far away from the door as possible & not under evaporator",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60
+     }
+    },
+    {
+     "code": "RFSA-03-007",
+     "question": "Cases stacked 5 cm from walls and 2.5 cm from each other",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA",
+       "LEB",
+       "CYP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-03-008",
+     "question": "Cases stacked 15 cm from ceiling and 30 cm from bottom of evaporator",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-03-009",
+     "question": "Products are kept in clean contaners and closed/covered at all times",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-03-010",
+     "question": "Boxes are kept off the floor and clean floor skid",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-03-011",
+     "question": "Maximum stack heights are adhered to, inorder that the lower boxes are not crushed.",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "EGP",
+       "LEB"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-03-012",
+     "question": "FEFO and Use-by dates are adhered to*",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "Freezers and Refrigerators - Secondary, Back-up and Reach-in Freezers",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-03-013",
+     "question": "Air temperature is -18°C/ 0 F or colder and (Temperature display working good condition )",
+     "answer_type": "matrix",
+     "config": {
+      "rows": [
+       "Secondary",
+       "Back-up",
+       "Reach-in"
+      ],
+      "columns": [
+       "Compliant",
+       "Non-compliant",
+       "N/A"
+      ],
+      "mode": "single",
+      "require_all_rows": false
+     },
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "KSA",
+       "LEB",
+       "CYP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-03-014",
+     "question": "Product temperature is -15°C/ 5 F or colder if taken back to main storage (at close)",
+     "answer_type": "matrix",
+     "config": {
+      "rows": [
+       "Secondary",
+       "Back-up",
+       "Reach-in"
+      ],
+      "columns": [
+       "Compliant",
+       "Non-compliant",
+       "N/A"
+      ],
+      "mode": "single",
+      "require_all_rows": false
+     },
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "RFSA-03-015",
+     "question": "Door seals are in good condition",
+     "answer_type": "matrix",
+     "config": {
+      "rows": [
+       "Secondary",
+       "Back-up",
+       "Reach-in"
+      ],
+      "columns": [
+       "Compliant",
+       "Non-compliant",
+       "N/A"
+      ],
+      "mode": "single",
+      "require_all_rows": false
+     },
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "RFSA-03-016",
+     "question": "Meat is free from severe and surface thermal abuse",
+     "answer_type": "matrix",
+     "config": {
+      "rows": [
+       "Secondary",
+       "Back-up",
+       "Reach-in"
+      ],
+      "columns": [
+       "Compliant",
+       "Non-compliant",
+       "N/A"
+      ],
+      "mode": "single",
+      "require_all_rows": false
+     },
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "RFSA-03-017",
+     "question": "Boxes are properly stored Followed 24/2 in box (with flaps still on) or in Cambro with a lid or in poly bags and covered (when appropriate)",
+     "answer_type": "matrix",
+     "config": {
+      "rows": [
+       "Secondary",
+       "Back-up",
+       "Reach-in"
+      ],
+      "columns": [
+       "Compliant",
+       "Non-compliant",
+       "N/A"
+      ],
+      "mode": "single",
+      "require_all_rows": false
+     },
+     "required": true,
+     "metadata": {
+      "points": 20
+     }
+    }
+   ]
+  },
+  {
+   "name": "Freezers and Refrigerators - Grill Side Freezers",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-03-018",
+     "question": "Air temperature is -18°C / 0 F or colder and (Temperatur display working good condition )",
+     "answer_type": "matrix",
+     "config": {
+      "rows": [
+       "10:1",
+       "4:1",
+       "9:1"
+      ],
+      "columns": [
+       "Compliant",
+       "Non-compliant",
+       "N/A"
+      ],
+      "mode": "single",
+      "require_all_rows": false
+     },
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA",
+       "LEB",
+       "CYP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-03-019",
+     "question": "Product temperature is -15°C/ 5F or colder if taken back to storage (at close)",
+     "answer_type": "matrix",
+     "config": {
+      "rows": [
+       "10:1",
+       "4:1",
+       "9:1"
+      ],
+      "columns": [
+       "Compliant",
+       "Non-compliant",
+       "N/A"
+      ],
+      "mode": "single",
+      "require_all_rows": false
+     },
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "RFSA-03-020",
+     "question": "Meat is free from severe and surface thermal abuse",
+     "answer_type": "matrix",
+     "config": {
+      "rows": [
+       "10:1",
+       "4:1",
+       "9:1"
+      ],
+      "columns": [
+       "Compliant",
+       "Non-compliant",
+       "N/A"
+      ],
+      "mode": "single",
+      "require_all_rows": false
+     },
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "RFSA-03-021",
+     "question": "Seals are in good condition (If applicable)",
+     "answer_type": "matrix",
+     "config": {
+      "rows": [
+       "10:1",
+       "4:1",
+       "9:1"
+      ],
+      "columns": [
+       "Compliant",
+       "Non-compliant",
+       "N/A"
+      ],
+      "mode": "single",
+      "require_all_rows": false
+     },
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "LEB"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-03-022",
+     "question": "Meat is properly stored Followed 24/2 in box (with flaps still on) or in Cambro with a lid or in poly bags and covered (when appropriate)",
+     "answer_type": "matrix",
+     "config": {
+      "rows": [
+       "10:1",
+       "4:1",
+       "9:1"
+      ],
+      "columns": [
+       "Compliant",
+       "Non-compliant",
+       "N/A"
+      ],
+      "mode": "single",
+      "require_all_rows": false
+     },
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA",
+       "EGP",
+       "CYP"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "Freezers and Refrigerators - Walk in cooler (Main Chiller)",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-03-023",
+     "question": "If dial is used, reading is within1- 4°C / 34 - 40 F of air temperature and (Temperatur display working good condition )",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60
+     }
+    },
+    {
+     "code": "RFSA-03-024",
+     "question": "Critical product temperature is between 1°C & 4°C / 34 - 40 F (upper limit is food safety)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "RFSA-03-025",
+     "question": "Products are kept closed / covered at all times",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20
+     }
+    },
+    {
+     "code": "RFSA-03-026",
+     "question": "All food and boxes are kept off the floor / door condition",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 30
+     }
+    },
+    {
+     "code": "RFSA-03-027",
+     "question": "Containers are clean and covered / sealed and products labeled",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-03-028",
+     "question": "FEFO and Use-by dates are followed*",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "RFSA-03-029",
+     "question": "Products defrosting in chiller are labeled and within secondary shelf life*",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "Freezers and Refrigerators - Reach-in Chiller & Display Cabinet",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-03-030",
+     "question": "Product temperature of chilled display cabinets are between 1°C & 7°C / 34 - 44.6 F (upper limit set by critical product)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "RFSA-03-031",
+     "question": "Door seals and temperatures displays are in good condition (Reach-in and Salad marchantiser )",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 30,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-03-032",
+     "question": "Product temperature of reach-in chillers are between 1°C & 7°C / 34 - 44.6 F (upper limit set by critical product)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "Stockroom, General Storage and Shelf-lives",
+   "description": "",
+   "instructions": "* If any critical product is found to be out of date (Sundae mix, Processed produce, certain cheeses, RTM), or not meeting the correct temperature (Pasteurized Sundae mix, Processed produce, RTM and all deep frozen) the audit is an F.",
+   "items": [
+    {
+     "code": "RFSA-04-001",
+     "question": "No foodstuff is stored in the hallways",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-04-002",
+     "question": "The lower rack is at a height of 30 cm above the floor, to prevent presence of pests (insects, mice, animals) and / or damage and contamination of food and to facilitate the cleaning process",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-04-003",
+     "question": "Products are kept closed / covered at all times",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-04-004",
+     "question": "No refreezing for defrosted products",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-04-005",
+     "question": "Defrosting is done away from or under the ready-to-eat food",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-04-006",
+     "question": "Chiller and freezer doors are firmly closed, door closer is functioning properly",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-04-007",
+     "question": "No overstock with more than the unit capacity to avoid temperature rise resulting from lack of cold air passage between the packages.",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-04-008",
+     "question": "All boxes are kept off the floor",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-04-009",
+     "question": "Containers are clean and covered / sealed and products labeled",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-04-010",
+     "question": "Use-by dates are followed, including defrosting (time/dates)*",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "RFSA-04-011",
+     "question": "All products with appropriate secondary shelf-life labels*",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "RFSA-04-012",
+     "question": "All products are rotated and FEFO is adhered to",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 30
+     }
+    },
+    {
+     "code": "RFSA-04-013",
+     "question": "All non-essential equipment, stationery and other items are removed from food preparation areas",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20
+     }
+    },
+    {
+     "code": "RFSA-04-014",
+     "question": "Chemicals are stored securely and away from food",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-04-015",
+     "question": "Water filters are dated with an installation and an expiry date and do not require changing (no bi-pass allowed)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60
+     }
+    }
+   ]
+  },
+  {
+   "name": "Fryers",
+   "description": "",
+   "instructions": "Marks will not be awarded for this section, but if any undercooking is found, the audit is an automatic F grade",
+   "items": [
+    {
+     "code": "RFSA-05-001",
+     "question": "Shortening levels are correct",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-05-002",
+     "question": "Shortening skimmer in good condition",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "EGP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-05-003",
+     "question": "Cooking times are correct",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-05-004",
+     "question": "Cooking temperatures are correct",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-05-005",
+     "question": "Designated tongs / scoop used for raw and cooked",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60
+     }
+    },
+    {
+     "code": "RFSA-05-006",
+     "question": "Quality of Oil for all vats followed at acceptable TPM (country regulation) and daily tracking sheet available and updated",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-05-007",
+     "question": "Promotional critical product integrity is adhered to (probing minimum first run or as appropriate) and Promotional critical product integrity information communicated",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "RFSA-05-008",
+     "question": "Promotional critical product Food Safety integrity is adhered to (probing minimum first run or as appropriate)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "RFSA-05-009",
+     "question": "All timers are activated & DO NOT USE stickers cover redundant timers",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA",
+       "EGP",
+       "CYP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-05-010",
+     "question": "Fried product baskets are being checked and are free from damage including Loading and Unloading baskets",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    }
+   ]
+  },
+  {
+   "name": "Fryers - Internal Temperatures Only for non-HT",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-05-011",
+     "question": "Internal temperature of products is above 74°C",
+     "answer_type": "matrix",
+     "config": {
+      "rows": [
+       "Vat 1",
+       "Vat 2",
+       "Vat 3",
+       "Vat 4",
+       "Vat 5"
+      ],
+      "columns": [
+       "Compliant",
+       "Non-compliant",
+       "N/A"
+      ],
+      "mode": "single",
+      "require_all_rows": false
+     },
+     "required": false,
+     "metadata": {
+      "applies_to": [
+       "EGP",
+       "LEB"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "Grills - Grill Set-up",
+   "description": "",
+   "instructions": "Internal temperature of products is above 69°C for Beef, 71°C for eggs\nFor '3:1 & 4:1 product allow the temperature to equalize (covered) before checking the temperature - Beef Integrity\nIf any undercooking is found, the audit is an automatic F",
+   "items": [
+    {
+     "code": "RFSA-06-001",
+     "question": "All product selection knobs are locked into place and heating lights are working (check certificate)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-06-002",
+     "question": "Actual top platen temps are minimum at 215°C / 425 F (with Teflon on Welbuilt and without Teflon on Taylor) If its breakfast at 215°C/ 425F",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "RFSA-06-003",
+     "question": "Actual bottom platen temperatures are minimum at 174°C / 350 F If its breakfast at 225°C/ 437 F",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "RFSA-06-004",
+     "question": "All grill heat lights are working",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "EGP"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "Grills - Grill Procedures",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-06-005",
+     "question": "Teflon sheet are clean and clips are secure (1 long or 2 short) and free from damaged",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA",
+       "EGP",
+       "LEB"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-06-006",
+     "question": "Teflon sheet rotation posted and followed",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "EGP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-06-007",
+     "question": "Teflon sheet in a good condition",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "EGP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-06-008",
+     "question": "Top platens are free from carbon build-up",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-06-009",
+     "question": "Bottom platens are free from carbon build-up",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-06-010",
+     "question": "Spatulas and scrapers are clean / sharp, and the blades were replaced on time",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-06-011",
+     "question": "Sharpening tool is clean and dry, used and stored away from food (where appropriate)/ The blade is in good condition and replaced when necessary",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "EGP",
+       "CYP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-06-012",
+     "question": "All the products are update and program in each Grill platens",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-06-013",
+     "question": "Maximum patty placement is followed",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "RFSA-06-014",
+     "question": "Gloves are always used to handle frozen raw meat and change as appropriate",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "RFSA-06-015",
+     "question": "Small Tools is cleaned and sanitized after 4 hours",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "EGP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-06-016",
+     "question": "Tongs are always used when removing cooked meat",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA",
+       "LEB",
+       "CYP"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "Hot Holding",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-07-001",
+     "question": "Is the internal temperature of product above 60°C /140F after being held for full length of holding time",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20
+     }
+    },
+    {
+     "code": "RFSA-07-002",
+     "question": "are they following UHC holding time current updated",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-07-003",
+     "question": "Is the timer on the holding cabniet is \"ON\" while the product is kept on hold",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "critical": true,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "Raw Shell Egg",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-08-001",
+     "question": "Spatulas/ Hustlers are used correctly (Yellow/White)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "applies_to": [
+       "CYP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-08-002",
+     "question": "Ensure egg yolk is gelled",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true,
+      "applies_to": [
+       "CYP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-08-003",
+     "question": "Equipment is cleaned and sanitized after 4 hours.",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "CYP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-08-004",
+     "question": "Eggs are pre-staged in order to check for shells",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "CYP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-08-005",
+     "question": "Internal temperture to raw egg after being for full length of holding time 140 F/above",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true,
+      "applies_to": [
+       "EGP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-08-006",
+     "question": "Gloves are always used to handle raw shell egg and change as appropriate",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true,
+      "applies_to": [
+       "EGP",
+       "CYP"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "Shake & Sundae Machines",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-09-001",
+     "question": "Product temperature is between 1°C & 4°C",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "RFSA-09-002",
+     "question": "Shake machine reservoir / hopper kept covered / cleaned",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60
+     }
+    },
+    {
+     "code": "RFSA-09-003",
+     "question": "Combo brushes kit is available, clean and maintained",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60
+     }
+    },
+    {
+     "code": "RFSA-09-004",
+     "question": "Detailed brush cleaning for combo machine is implemented every 14 days (through actual condition of hopper is acceptable )",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "applies_to": [
+       "EGP"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "DPSC",
+   "description": "",
+   "instructions": "Check the DPSC for 3 one week data from 2 different months. If 3 mistakes in the same CCP are found the audit is an F",
+   "items": [
+    {
+     "code": "RFSA-10-001",
+     "question": "Pyrometer has been checked and calibrated as appropriate",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-10-002",
+     "question": "Handwashing facilities in order",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-10-003",
+     "question": "Tracability completed ( Name, Production/expiry dates are filled in Food safety checklist)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA",
+       "CYP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-10-004",
+     "question": "Delivery checks completed",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "EGP",
+       "LEB"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-10-005",
+     "question": "French fries dispenser temperature check completed",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-10-006",
+     "question": "Freezers and Chiller checks completed all available in the restaurant",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-10-007",
+     "question": "Shelf-life checks completed",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-10-008",
+     "question": "Fryer checks completed",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-10-009",
+     "question": "Grill checks completed",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-10-010",
+     "question": "Expiry date tracking available followed",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-10-011",
+     "question": "Shake/Sundae checks completed",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-10-012",
+     "question": "Action plans being used, with any discrepancies noted",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA",
+       "LEB",
+       "CYP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-10-013",
+     "question": "All records to internal temperture of cookied patties should maintain minimum requirment from safety( beef 155f/above & Chicken 165f/above )",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true,
+      "applies_to": [
+       "EGP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-10-014",
+     "question": "Weekly calibrations completed for last 2 weeks",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    }
+   ]
+  },
+  {
+   "name": "Management Controls",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-11-001",
+     "question": "Food Safety and Hygiene Training FULLY implemented",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "RFSA-11-002",
+     "question": "Evidence that action plans from previous audit have been completed within specified time",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60
+     }
+    },
+    {
+     "code": "RFSA-11-003",
+     "question": "All food in restaurant are from McDonald's approved supplier",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "RFSA-11-004",
+     "question": "No obsolete equipment are stored in the restaurant",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-11-005",
+     "question": "All equipment/procedures used to prohibit cross transfer of allergens are adhered to",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "Cleaning and Chemical Controls",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-12-001",
+     "question": "All cleaning chemicals used in kitchen area in restaurant are from McDonald's approved supplier",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "RFSA-12-002",
+     "question": "Hot water is available &water temperature reach proper temp 110 F Min",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA",
+       "EGP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-003",
+     "question": "Water temperature in sinks in proper temperature (washing sink &sanitizing sink)( Wash from 135 - 145 F ) / Sanitize ( 70 - 90 F ) .",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "applies_to": [
+       "EGP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-004",
+     "question": "Sink Pack Sanitizer in correct concentration in sink (50 - 100 ppm)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-005",
+     "question": "APSC is available and used in proper way and (Wash Rinse Sanitize Stickers are available on the 3 compartment sink)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "applies_to": [
+       "KSA",
+       "EGP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-006",
+     "question": "Chemicals tower is available and containers with proper labels,rotations",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "applies_to": [
+       "EGP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-007",
+     "question": "McD Sanitizer in correct concentration in Waste Not Dispenser/Clean Towel Bucket/Spray Bottles (50 - 100 ppm)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "applies_to": [
+       "KSA",
+       "EGP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-008",
+     "question": "Waste Not Dispensers (chemicals tower) are all operational with right stickers on each Waste Not Dispenser (Degreaser/Glass Cleaner/Sanitizer where appropriate)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-009",
+     "question": "All spray bottles are available and all chemicals are used in proper labeled spray bottles (APSC - navy / Glass Cleaner - blue / Sanitizer - red / Degreaser - purple)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-010",
+     "question": "All training aids (wall charts) are available and in good condition (Cleaning and Sanitation guide / Grill Cleaner wall chart / AMH wall chart / First Aid wall chart)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-011",
+     "question": "Crew trained on chemicals & cleaning",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "KSA",
+       "EGP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-012",
+     "question": "The inside of the ice-machine is free from limescale and mould",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20
+     }
+    },
+    {
+     "code": "RFSA-12-013",
+     "question": "Safety Data Sheet of cleaning chemicals are available & easy access by crew",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "KSA",
+       "EGP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-014",
+     "question": "Daily Usage chemicals Organized Properly , in neat & clean way / Label",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "KSA",
+       "EGP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-015",
+     "question": "Food containers or cups are not used to store chemicals or equipment",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60
+     }
+    },
+    {
+     "code": "RFSA-12-016",
+     "question": "Sanitized towel buckets contain a sufficient number of towels/ all sanitizer solutions are at the correct concentration checked with the appropriate test strip.",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "CYP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-017",
+     "question": "Touch tower & drain system of it & orange juice nozzels clean ( Black & white )",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "applies_to": [
+       "EGP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-018",
+     "question": "Sanitizer dispensers are located properly and refilled for customer and crew use",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "applies_to": [
+       "EGP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-019",
+     "question": "Clean as you go practice is followed",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-020",
+     "question": "Food contact surfaces are clean, free from debris and grease build ups",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-021",
+     "question": "Mop sink and all cleaning tools are clean and in good condition",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-022",
+     "question": "All sink and corral area clean including dumpster (no fly breeding area)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-12-023",
+     "question": "All trash bins are with lids, operated by foot-pedal and in good condition",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-024",
+     "question": "Washing machine available & work efficiency",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA",
+       "EGP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-025",
+     "question": "Crew room clean & free from bad odors, Crew room CR with Hot water and AMH soap, paper towels (recommended) or hot air dryers available with hands free sink unit",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-026",
+     "question": "Grease Trap sealed & no bad odors",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA",
+       "EGP"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-027",
+     "question": "Vegi-wash is used for all raw un-washed vegetables before cutting and slicing",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "applies_to": [
+       "EGP",
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-12-028",
+     "question": "Crew toilet clean & free from bad odors",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA",
+       "EGP"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "Facility Hygiene",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-13-001",
+     "question": "Walls are smooth and crack-free to prevent accumulation of rubbish.",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-13-002",
+     "question": "Floorings are smooth and crack-free",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-13-003",
+     "question": "Aeration : The normal room temperature in the food preparation areas does not exceed 25°Celcius",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-13-004",
+     "question": "Water Resource : The ground reservoir is clean and free of dust, dirt and algae",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-13-005",
+     "question": "Water Resource : Locks are fixed on each of the ground and elevated reservoirs as safety precaution",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-13-006",
+     "question": "No weep-holes do exist within the storage areas, cold rooms and dining area",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-13-007",
+     "question": "Lighting : The lamps inside the food preparation area are covered or shatter-resistant",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "Personal Health and Hygiene",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-14-001",
+     "question": "All employees have valid Health Cards",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-14-002",
+     "question": "Hot water and AMH soap, paper towels (recommended) or hot air dryers available with hands free sink unit",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "RFSA-14-003",
+     "question": "Hourly hand washing system implemented. Monitoring procedure in place",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "RFSA-14-004",
+     "question": "Hats/Hairnets and Mask (as applicable) worn correctly by all food handlers",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60
+     }
+    },
+    {
+     "code": "RFSA-14-005",
+     "question": "Clean aprons worn by all food handlers and dirty aprons stored seperately to clean",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60
+     }
+    },
+    {
+     "code": "RFSA-14-006",
+     "question": "Appropriate glove procedure used for salad preparation",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "RFSA-14-007",
+     "question": "Any cuts and wounds are properly covered and complete medicine available in the First aid kit (blue plasters recommended)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40
+     }
+    },
+    {
+     "code": "RFSA-14-008",
+     "question": "Employee nails are short, clean and properly trimmed",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-14-009",
+     "question": "No watches or jewelry worn by food preparation staff",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60
+     }
+    },
+    {
+     "code": "RFSA-14-010",
+     "question": "No eating, drinking and smoking in food preparation and storing areas",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-14-011",
+     "question": "Employees are medically fit with no symptoms of illness or infection (such as flu, rash and external wounds), employees having such symptoms should be stopped from working",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-14-012",
+     "question": "Employees are prohibited from tasting the food with their fingers or stirrer, also it is prohibited to touch the face or hair, sneeze or cough in the food",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-14-013",
+     "question": "Posting signages on the hand-washing sinks showing hand- washing procedures;and when to wash hands.",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "Foreign Material Control",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-15-001",
+     "question": "No wooden-handled knife in use",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-15-002",
+     "question": "Glass policy implemented",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60
+     }
+    },
+    {
+     "code": "RFSA-15-003",
+     "question": "All utensils are rust proof and in good condition",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "IPM - Doors and D.T. Windows / Air Balanced",
+   "description": "",
+   "instructions": "IPM",
+   "items": [
+    {
+     "code": "RFSA-16-001",
+     "question": "All doors should be perfectly seamless ( single /family/back door /DT FF/ Fire exit / pump room / outside stock room )",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-002",
+     "question": "Door sweeper or brushes installed and in good condition",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-003",
+     "question": "Door does not get stack while closing",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-004",
+     "question": "Automatic door closer installed for self closing",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-005",
+     "question": "Door close automatically within 3-5 seconds",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-006",
+     "question": "All DT windows should be self- closing",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-007",
+     "question": "DT windows should not be kept open by force",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-008",
+     "question": "Balanced air/+ve air pressure in the store.",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "IPM - Outside Electrical Room",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-16-009",
+     "question": "Main Cable entry points are well sealed around cable / incase outside electrical room is general for all outlet (e.g. Plaza ) store management should identify the specific power cable and it should be labeled for easy identification. (it can be sealed by foam spray solution but only for temporarily as it can be shrined and easily bitten by rats, permanent solution is wire mesh with concrete )",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "IPM - Inside Electrical Panel",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-16-010",
+     "question": "Main Cable entry points are well sealed around cables ( it can be sealed by form but only for temporarily as it can be shrieked by the time and easily bitten by rats , permanent solution is wire mesh with concrete )",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-011",
+     "question": "Around the electrical panel is well sealed (between wall and the panel)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "IPM - Boiler Room / Pump Room",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-16-012",
+     "question": "well sealed water pipes / no leaks",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-013",
+     "question": "water pipe entry points to the buildings are well sealed without any crevices",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-014",
+     "question": "No crevices or gaps on the ceiling or the concrete slab",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-015",
+     "question": "Door is perfectly seamless",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "IPM - Roof Top",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-16-016",
+     "question": "Well sealed cable tray ( from the base and from the junctions )",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-017",
+     "question": "No crevices or access from the exhaust ducting",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-018",
+     "question": "No crevices or access from the A/C ducting",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-019",
+     "question": "Entrance door to the roof well sealed",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-020",
+     "question": "No Excessive grease leak from the Exhaust system ( which attracts pests )",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-021",
+     "question": "Roof top is clear and free of debris ( risk of pest hiding and breeding )",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "IPM - Wall Cladding or Wall Panel Hiding Areas",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-16-022",
+     "question": "Single section",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-023",
+     "question": "family section",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-024",
+     "question": "cubicles",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-025",
+     "question": "toilets",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-026",
+     "question": "base of Lobby trash bin",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-027",
+     "question": "base board",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-028",
+     "question": "exterior access",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "IPM - Corral / Dumpster / Garbage Storage Bin",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-16-029",
+     "question": "Positioned away from the doors windows",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-030",
+     "question": "position on a hard and cleanable surfaces such as concrete",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-031",
+     "question": "dumpsters are free from spills / leak/ grease build up",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-032",
+     "question": "closable dumpster with a lid",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-033",
+     "question": "dumpster area ,free of trash or garbage on the floor",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "IPM - Building Exterior Wall Access",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-16-034",
+     "question": "No cracks or crevices around the building",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-035",
+     "question": "No gap on claddings or on exterior canopy",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "IPM - Building Interior Wall Access",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-16-036",
+     "question": "store is isolated specially above the ceilings",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-037",
+     "question": "no cracks or crevices on wall",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-038",
+     "question": "water sources free from leak and well sealed between walls",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "IPM - Cable Junction Access (Electric and IT)",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-16-039",
+     "question": "all cables properly organized and cable junction are well sealed / check specially on the false- ceiling beverage python entry points and IT cable entry points",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-040",
+     "question": "All floor and wall cable entry points are well sealed and organized ( specially in front counter and where there are cash registers and monitors, office )",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "IPM - Landscaping and Perimeter",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-16-041",
+     "question": "Plants are at least 12 inches away from the building / grasses are trimmed",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-042",
+     "question": "water sources ( sprinkle's and faucet ) free of drips or leak and not causing standing water",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-043",
+     "question": "Perimeter is block with wall / steel fence or similar barrier from the bottom to top",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-044",
+     "question": "water drains away from the building",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "IPM - Mechanical Pest Control Devices and Operation",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-16-045",
+     "question": "All air curtains are available for all doors and windows / in good working condition with adequate air blow / kept in stand by mode not in off mode",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-046",
+     "question": "all fly catches are in good condition (Fly sticky board is not full of flies / UV bulbs are not blinking / diming / at least replaced bulbs once a year (Labled) / power supply given from a separate breaker not from the ceiling lights in the lobby. ( UV bulbs should be lit while store is closed )",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 60,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-047",
+     "question": "All fly catchers are in proper locations (away from sunlight, 1.8-2.2 m from the floor)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 20,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-048",
+     "question": "RBS ( rodents bait station ) not damaged",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "IPM - Drainages",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-16-049",
+     "question": "All drainages should be maintained closed as appropriated",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-050",
+     "question": "drainages underneath the touch tower / ice machine /multiplex must be sealed with the drained spout using a sealing mechanism",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "IPM - Practices (sanitation / storage)",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-16-051",
+     "question": "Drink tower is free of sugary substances ( inside and outside )",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-052",
+     "question": "under Neath the drink tower is free from sugary substances ( remove the ice bin and check )",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-053",
+     "question": "No unnecessary materials such as office supplies / old equipment's / dead files ) stored in the stock room and no any materials stored under the shelving's",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-054",
+     "question": "Designated IPM coordinator within the store management team",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "IPM - Pest Sighting or Evident",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-16-055",
+     "question": "Pest evident noted ( droppings / Hair/ foot prints or scratches / eggs cage of roaches / Odor / Shell of dead roaches / etc. ) area to be inspected dusty ceilings , electrical panel ,corners of the lobby and the kitchen etc.",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-056",
+     "question": "Pest itself sighting",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-057",
+     "question": "Pest damaged / eaten products",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "IPM - Records",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-16-058",
+     "question": "Store have had 1 pest control visit (as appropriate).",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-059",
+     "question": "Preventive action visit from pest control service",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-060",
+     "question": "All Material Safety Data Sheet (MSDS) for pesticide are available",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-061",
+     "question": "Pest Control reports are signed/actioned by a manager",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-062",
+     "question": "Last sanitation checklist conducted by OC at least within a month",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-063",
+     "question": "Daily pull out scheduled available",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-064",
+     "question": "IPM calendar updated and task performed",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    },
+    {
+     "code": "RFSA-16-065",
+     "question": "Pest sighting record book available and maintained",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 40,
+      "applies_to": [
+       "KSA"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "Sign-off",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "RFSA-SO-01",
+     "question": "Overall comments",
+     "answer_type": "long_text",
+     "config": {},
+     "required": false
+    },
+    {
+     "code": "RFSA-SO-02",
+     "question": "Signature of the auditor",
+     "answer_type": "signature",
+     "config": {
+      "signer_label": "Auditor"
+     },
+     "required": true
+    },
+    {
+     "code": "RFSA-SO-03",
+     "question": "Signature of the auditee",
+     "answer_type": "signature",
+     "config": {
+      "signer_label": "Restaurant manager (auditee)"
+     },
+     "required": true
+    }
+   ]
+  }
+ ]
+}

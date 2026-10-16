@@ -13,7 +13,9 @@ policies and services as the builder, so an import cannot do anything a user cou
 
 Columns: ``template``, ``section``, ``question`` (required); ``code``, ``answer_type`` (default
 ``yes_no``), ``is_required`` (default true), ``config`` (JSON), ``options`` (``value:label|value:label``
-or just labels), ``help_text``, ``description``, ``instructions`` (optional).
+or just labels), ``help_text``, ``description``, ``instructions``, and the descriptive metadata columns ``points``,
+``critical`` and ``applies_to`` (comma-separated tags) - all optional.  Answer type, configuration, options and
+metadata are validated by the same answer-type engine as the builder, with row-level error messages.
 """
 
 from __future__ import annotations
@@ -51,6 +53,20 @@ def _options(value: Any) -> list[tuple[str, str]]:
         key, sep, label = part.partition(":")
         out.append((key.strip(), label.strip()) if sep else ("", part))
     return out
+
+
+def _metadata(row: dict[str, Any]) -> dict[str, Any]:
+    meta: dict[str, Any] = {}
+    if str(row.get("points") or "").strip():
+        try:
+            meta["points"] = int(str(row["points"]).strip())
+        except ValueError as exc:
+            raise ValidationError("Points must be a whole number.") from exc
+    if str(row.get("critical") or "").strip():
+        meta["critical"] = _bool(row["critical"], default=False)
+    if str(row.get("applies_to") or "").strip():
+        meta["applies_to"] = [t.strip() for t in str(row["applies_to"]).split(",") if t.strip()]
+    return meta
 
 
 def _config(value: Any) -> Any:
@@ -101,6 +117,7 @@ def import_items(*, user: Any, organization: Any, rows: Iterable[dict[str, Any]]
                 config=_config(row.get("config")), is_required=_bool(row.get("is_required")),
                 help_text=str(row.get("help_text") or ""), description=str(row.get("description") or ""),
                 instructions=str(row.get("instructions") or ""), options=_options(row.get("options")),
+                metadata=_metadata(row),
             )
             created += 1
         except ValidationError as exc:

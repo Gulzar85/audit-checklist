@@ -79,6 +79,7 @@
             </div>
             <div class="flex flex-wrap items-center gap-1">
               {% tone_badge item.get_answer_type_display "info" %}
+              {% if item.metadata.critical %}{% tone_badge "Critical" "danger" icon="triangle-alert" %}{% endif %}
               {% if item.is_required %}{% tone_badge "Required" "neutral" icon="asterisk" %}{% endif %}
               {% if not item.is_active %}{% status_badge "inactive" %}{% endif %}
               <span class="flex items-center">

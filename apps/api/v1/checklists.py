@@ -13,16 +13,21 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.api.permissions import IsActiveUser, PolicyPermission
 from apps.checklists import constants as c
 from apps.checklists import policies, selectors, services
 from apps.checklists.filters import TemplateFilter
 from apps.checklists.models import ChecklistCategory, ChecklistItem
+from apps.checklists.answer_types import registry
+from apps.checklists.answer_types.serializers import AnswerTypeDetailSerializer, AnswerTypeSerializer
 from apps.checklists.serializers import (
     ChecklistItemSerializer,
+    ChecklistItemWriteSerializer,
     ChecklistSectionSerializer,
     ChecklistTemplateSerializer,
     ChecklistTemplateWriteSerializer,
@@ -196,12 +201,103 @@ class ChecklistViewSet(
         version = self._structure_version(self.get_object(), request)
         return Response(ChecklistSectionSerializer(selectors.get_sections_for_version(version), many=True).data)
 
-    @extend_schema(responses=ChecklistItemSerializer(many=True))
-    @action(detail=True, methods=["get"], pagination_class=None)
+    @extend_schema(request=ChecklistItemWriteSerializer, responses=ChecklistItemSerializer(many=True))
+    @action(detail=True, methods=["get", "post"], pagination_class=None)
     def items(self, request: Request, pk=None) -> Response:  # noqa: ANN001
-        version = self._structure_version(self.get_object(), request)
+        """GET: the items of ``?version=N``.  POST: add an item to a section of the draft version."""
+        template = self.get_object()
+        if request.method == "POST":
+            return self._create_item(template, request)
+        version = self._structure_version(template, request)
         rows = (
             ChecklistItem.objects.filter(section__version=version)
             .order_by("section__sort_order", "sort_order").prefetch_related("options")
         )
         return Response(ChecklistItemSerializer(rows, many=True).data)
+
+    @extend_schema(request=ChecklistItemWriteSerializer, responses=ChecklistItemSerializer)
+    @action(detail=True, methods=["get", "patch", "delete"], url_path=r"items/(?P<item_pk>[0-9a-f-]{36})")
+    def item_detail(self, request: Request, pk=None, item_pk: str = "") -> Response:  # noqa: ANN001
+        template = self.get_object()
+        if request.method == "GET":
+            item = (ChecklistItem.objects.filter(section__version__template=template, pk=item_pk)
+                    .select_related("section").prefetch_related("options").first())
+            if item is None:
+                raise NotFound("Item not found.")
+            return Response(ChecklistItemSerializer(item).data)
+        draft = self._draft_for_edit(template, request)
+        item = selectors.get_item(draft, item_pk)
+        if item is None:  # not in the editable draft (another version, template or tenant)
+            raise NotFound("Item not found in the draft version.")
+        try:
+            if request.method == "DELETE":
+                services.delete_item(item, actor=request.user)
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            payload = ChecklistItemWriteSerializer(data=request.data, partial=True)
+            payload.is_valid(raise_exception=True)
+            data = dict(payload.validated_data)
+            data.pop("section", None)  # items are not moved between sections here
+            options = data.pop("options", None)
+            if data:
+                services.update_item(item, actor=request.user, **data)
+            if options is not None:
+                item.refresh_from_db()
+                services.set_options(item, options, actor=request.user)
+        except DjangoValidationError as exc:
+            _raise(exc)
+        fresh = ChecklistItem.objects.filter(pk=item.pk).prefetch_related("options").get()
+        return Response(ChecklistItemSerializer(fresh).data)
+
+    def _draft_for_edit(self, template, request: Request):  # noqa: ANN001, ANN202
+        draft = selectors.get_draft_version(template)
+        if draft is None:
+            raise serializers.ValidationError({"version": "This checklist has no draft version. Create one first."})
+        if not policies.can_edit_version(request.user, draft):
+            raise PermissionDenied
+        return draft
+
+    def _create_item(self, template, request: Request) -> Response:  # noqa: ANN001
+        draft = self._draft_for_edit(template, request)
+        payload = ChecklistItemWriteSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        data = dict(payload.validated_data)
+        missing = {k: "This field is required." for k in ("section", "question") if k not in data}
+        if missing:
+            raise serializers.ValidationError(missing)
+        section = selectors.get_section(draft, data.pop("section"))
+        if section is None:
+            raise serializers.ValidationError({"section": "Unknown section in the draft version."})
+        options = data.pop("options", ())
+        try:
+            item = services.create_item(section, actor=request.user, options=options, **data)
+        except DjangoValidationError as exc:
+            _raise(exc)
+        fresh = ChecklistItem.objects.filter(pk=item.pk).prefetch_related("options").get()
+        return Response(ChecklistItemSerializer(fresh).data, status=status.HTTP_201_CREATED)
+
+
+class AnswerTypeListView(APIView):
+    """``GET /api/v1/checklists/answer-types/`` - the answer types and their capabilities.
+
+    Platform-level metadata (no tenant data), so any authenticated user may read it; the PWA caches it to
+    validate locally.
+    """
+
+    permission_classes = (IsAuthenticated, IsActiveUser)
+
+    @extend_schema(responses=AnswerTypeSerializer(many=True))
+    def get(self, request: Request) -> Response:
+        return Response(registry.describe())
+
+
+class AnswerTypeDetailView(APIView):
+    """``GET /api/v1/checklists/answer-types/{code}/`` - one type with its configuration schema and defaults."""
+
+    permission_classes = (IsAuthenticated, IsActiveUser)
+
+    @extend_schema(responses=AnswerTypeDetailSerializer)
+    def get(self, request: Request, code: str) -> Response:
+        code = code.lower()
+        if code not in registry:
+            raise NotFound("Unknown answer type.")
+        return Response(registry.describe(code, detail=True))

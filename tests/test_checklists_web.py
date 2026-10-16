@@ -200,19 +200,19 @@ class TestBuilder:
         section = services.create_section(t.versions.get(), name="S", actor=world["author"])
         assert client.get(url("item_new", t.pk, section.pk)).status_code == 200
         client.post(url("item_new", t.pk, section.pk), {"question": "Is the exit accessible?", "answer_type": "boolean", "is_required": "on", "is_active": "on"})
-        client.post(url("item_new", t.pk, section.pk), {"question": "Rate cleanliness", "answer_type": "score", "score_min": "1", "score_max": "10", "is_active": "on"})
-        client.post(url("item_new", t.pk, section.pk), {"question": "Fridge temperature", "answer_type": "numeric", "numeric_min": "-5", "numeric_max": "8", "numeric_unit": "°C", "is_active": "on"})
+        client.post(url("item_new", t.pk, section.pk), {"question": "Rate cleanliness", "answer_type": "score", "cfg-min": "1", "cfg-max": "10", "is_active": "on"})
+        client.post(url("item_new", t.pk, section.pk), {"question": "Fridge temperature", "answer_type": "numeric", "cfg-min": "-5", "cfg-max": "8", "cfg-unit": "°C", "is_active": "on"})
         items = {i.answer_type: i for i in ChecklistItem.objects.filter(section=section)}
         assert set(items) == {"boolean", "score", "numeric"}
-        assert items["score"].config == {"min": 1, "max": 10}
-        assert items["numeric"].config == {"min": -5.0, "max": 8.0, "unit": "°C"}
+        assert items["score"].config == {"min": 1, "max": 10, "step": 1, "display": "numeric"}
+        assert items["numeric"].config == {"min": -5, "max": 8, "unit": "°C", "decimals": 2}
         assert items["boolean"].is_required and not items["score"].is_required
 
     def test_invalid_config_shows_error_and_saves_nothing(self, client, world):
         client.force_login(world["author"])
         t = world["template"]
         section = services.create_section(t.versions.get(), name="S", actor=world["author"])
-        response = client.post(url("item_new", t.pk, section.pk), {"question": "Rate", "answer_type": "score", "score_min": "9", "score_max": "3"})
+        response = client.post(url("item_new", t.pk, section.pk), {"question": "Rate", "answer_type": "score", "cfg-min": "9", "cfg-max": "3"})
         assert response.status_code == 200 and not ChecklistItem.objects.filter(section=section).exists()
 
     def test_choice_item_options_flow(self, client, world):

@@ -168,6 +168,10 @@ class ChecklistItem(BaseModel):
     is_required = models.BooleanField(default=True)
     is_active = models.BooleanField(default=True)
     sort_order = models.PositiveIntegerField()
+    #: Descriptive facts about the item that the *answer engine ignores* (reference points, critical flag,
+    #: applicability tags, source reference).  Validated by ``apps.checklists.metadata``; read by the later
+    #: scoring / rules phases, so source workbooks can be imported without losing them.
+    metadata = models.JSONField(default=dict, blank=True)
 
     history = HistoricalRecords()
 

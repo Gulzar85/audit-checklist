@@ -115,7 +115,7 @@ class TestChecklistAPI:
         assert [i["answer_type"] for i in sections[0]["items"]] == ["numeric", "single_choice"]
         assert [o["label"] for o in sections[0]["items"][1]["options"]] == ["Good", "Poor"]
         items = data(client.get(f"/api/v1/checklists/{pk}/items/"))
-        assert [i["code"] for i in items] == ["Q-001", "Q-002"] and items[0]["config"] == {"min": 0, "max": 8}
+        assert [i["code"] for i in items] == ["Q-001", "Q-002"] and items[0]["config"] == {"min": 0, "max": 8, "decimals": 2}
         assert client.get(f"/api/v1/checklists/{pk}/items/", {"version": "x"}).status_code == 400
         assert client.get(f"/api/v1/checklists/{pk}/items/", {"version": "9"}).status_code == 404
         versions = data(client.get(f"/api/v1/checklists/{pk}/versions/"))
@@ -223,7 +223,10 @@ class TestAdminAndSeed:
 
         call_command("seed_demo_checklists", organization=org_a.slug)
         call_command("seed_demo_checklists", organization=org_a.slug)
-        assert ChecklistTemplate.objects.filter(organization=org_a, code__startswith="DEMO-").count() == 2
+        assert ChecklistTemplate.objects.filter(organization=org_a, code__startswith="DEMO-").count() == 3
         types = set(ChecklistItem.objects.filter(section__version__template__organization=org_a).values_list("answer_type", flat=True))
         assert {"yes_no", "yes_no_na", "score", "numeric", "long_text", "boolean", "single_choice", "multiple_choice", "photo"} <= types
         assert ChecklistTemplate.objects.get(code="DEMO-FSI").status == "active"
+        from apps.locations.models import Location
+
+        assert Location.objects.filter(organization=org_a, name="McDonald's Demo Restaurant", location_type__code="RESTAURANT").count() == 1

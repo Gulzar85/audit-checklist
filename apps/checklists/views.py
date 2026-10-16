@@ -29,7 +29,9 @@ from apps.permissions.registry import P
 from . import constants as c
 from . import policies, selectors, services
 from .filters import TemplateFilter
-from .forms import DuplicateForm, ItemForm, OptionForm, SectionForm, TemplateForm, VersionForm
+from .answer_types import ConfigurationError, registry
+from .answer_types.preview import preview_context
+from .forms import DuplicateForm, ItemForm, OptionForm, SectionForm, TemplateForm, VersionForm, build_config_form
 from .models import ChecklistOption
 from .tables import TemplateTable
 
@@ -471,8 +473,11 @@ class SectionMoveView(BuilderPostView):
 
 
 class ItemFormView(TemplateObjectMixin, FormView):
+    """The item editor: the general form plus a type-specific configuration form (and a live preview)."""
+
     form_class = ItemForm
     template_name = "checklists/item_form.html"
+    item = None
 
     def authorize(self) -> None:
         self._draft_version = self.require_draft()
@@ -483,17 +488,39 @@ class ItemFormView(TemplateObjectMixin, FormView):
 
     def get_form_kwargs(self):  # noqa: ANN201
         kwargs = super().get_form_kwargs()
-        kwargs["item"] = getattr(self, "item", None)
+        kwargs["item"] = self.item
         return kwargs
 
+    def selected_answer_type(self) -> str:
+        if self.request.method == "POST":
+            return self.request.POST.get("answer_type", "")
+        return self.item.answer_type if self.item else c.AnswerType.YES_NO
+
+    @property
+    def config_form(self):  # noqa: ANN201
+        if not hasattr(self, "_config_form"):
+            answer_type = self.selected_answer_type()
+            stored = self.item.config if self.item and answer_type == self.item.answer_type else None
+            data = self.request.POST if self.request.method == "POST" else None
+            self._config_form = build_config_form(answer_type, data=data, config=stored)
+        return self._config_form
+
+    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        form = self.get_form()
+        # Both forms are validated so every problem is shown at once.
+        valid = form.is_valid() & self.config_form.is_valid()
+        return self.form_valid(form) if valid else self.form_invalid(form)
+
     def get_context_data(self, **kwargs):  # noqa: ANN003, ANN201
-        item = getattr(self, "item", None)
+        item = self.item
+        answer_type = self.selected_answer_type()
+        definition = registry.get(answer_type) if answer_type in registry else registry.get(c.AnswerType.YES_NO)
         return super().get_context_data(
             template=self.template, section=self.section, item=item, option_form=OptionForm(),
             options=list(item.options.order_by("sort_order")) if item else [],
             custom_options=bool(item) and item.answer_type in c.CUSTOM_OPTIONS,
             fixed_options=bool(item) and item.answer_type in c.FIXED_OPTIONS,
-            answer_types=c.AnswerType.choices, **kwargs,
+            config_form=self.config_form, definition=definition, **kwargs,
         )
 
 
@@ -506,7 +533,7 @@ class ItemCreateView(ItemFormView):
         try:
             item = services.create_item(
                 self.section, question=data["question"], code=data["code"], answer_type=data["answer_type"],
-                config=data["config"], description=data["description"], help_text=data["help_text"],
+                config=self.config_form.to_config(), description=data["description"], help_text=data["help_text"],
                 instructions=data["instructions"], is_required=data["is_required"], is_active=data["is_active"],
                 actor=self.request.user,
             )
@@ -530,7 +557,7 @@ class ItemUpdateView(ItemFormView):
         try:
             services.update_item(
                 self.item, actor=self.request.user, question=data["question"], code=data["code"] or self.item.code,
-                answer_type=data["answer_type"], config=data["config"], description=data["description"],
+                answer_type=data["answer_type"], config=self.config_form.to_config(), description=data["description"],
                 help_text=data["help_text"], instructions=data["instructions"], is_required=data["is_required"],
                 is_active=data["is_active"],
             )
@@ -539,6 +566,59 @@ class ItemUpdateView(ItemFormView):
             return self.form_invalid(form)
         messages.success(self.request, "Item saved.")
         return HttpResponseRedirect(reverse("checklists:item_edit", args=[self.template.pk, self.item.pk]))
+
+
+class _AnswerTypePartialView(TemplateObjectMixin, TemplateView):
+    """Base of the two HTMX partials of the item editor (both GET, both need edit rights on the draft)."""
+
+    def authorize(self) -> None:
+        self._draft_version = self.require_draft()
+
+    def requested_type(self) -> str:
+        code = self.request.GET.get("answer_type", "")
+        return code if code in registry else c.AnswerType.YES_NO
+
+    def requested_item(self):  # noqa: ANN201
+        """The item being edited (only from this draft - a foreign id is simply ignored)."""
+        raw = self.request.GET.get("item")
+        return selectors.get_item(self._draft_version, raw) if raw else None
+
+
+class AnswerTypeFieldsView(_AnswerTypePartialView):
+    """HTMX: the configuration fields for the selected answer type."""
+
+    template_name = "checklists/_answer_config.html"
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        answer_type, item = self.requested_type(), self.requested_item()
+        stored = item.config if item and item.answer_type == answer_type else None
+        return super().get_context_data(
+            definition=registry.get(answer_type), config_form=build_config_form(answer_type, config=stored),
+            item=item, **kwargs,
+        )
+
+
+class AnswerTypePreviewView(_AnswerTypePartialView):
+    """HTMX: a disabled preview of the item as currently configured (design-time only)."""
+
+    template_name = "checklists/_answer_preview.html"
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        answer_type = self.requested_type()
+        definition, item = registry.get(answer_type), self.requested_item()
+        form = build_config_form(answer_type, data=self.request.GET)
+        context: dict[str, Any] = {"question": self.request.GET.get("question", "").strip()[:500], "definition": definition}
+        if not form.is_valid():
+            return super().get_context_data(error="Fix the highlighted settings to see the preview.", **context, **kwargs)
+        try:
+            config = definition.clean_config(form.to_config())
+        except ConfigurationError as exc:
+            return super().get_context_data(error=exc.message, **context, **kwargs)
+        labels = [o.label for o in item.options.filter(is_active=True).order_by("sort_order")] if item else []
+        if definition.code in ("yes_no", "yes_no_na"):
+            labels = [label for _v, label in c.FIXED_OPTIONS[definition.code]]
+        context.update(preview_context(definition, config, question=context["question"], options=labels))
+        return super().get_context_data(**context, **kwargs)
 
 
 class ItemDeleteView(BuilderPostView):

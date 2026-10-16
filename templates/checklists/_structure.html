@@ -15,10 +15,13 @@
           <div class="min-w-0">
             <p class="font-medium">{{ forloop.parentloop.counter }}.{{ forloop.counter }} {{ item.question }}</p>
             <p class="text-xs text-muted-foreground"><span class="font-mono">{{ item.code }}</span>{% if item.help_text %} · {{ item.help_text }}{% endif %}</p>
+            {% if item.answer_type == "matrix" %}<p class="mt-1 text-xs text-muted-foreground">Rows: {% for row in item.config.rows %}{{ row.label }}{% if not forloop.last %} · {% endif %}{% endfor %} — Columns: {% for col in item.config.columns %}{{ col.label }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% endif %}
             {% if item.options.all %}<p class="mt-1 text-xs text-muted-foreground">{% for option in item.options.all %}{{ option.label }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% endif %}
           </div>
           <div class="flex flex-wrap items-center gap-1">
             {% tone_badge item.get_answer_type_display "info" %}
+            {% if item.metadata.critical %}{% tone_badge "Critical" "danger" icon="triangle-alert" %}{% endif %}
+            {% if item.metadata.points %}{% tone_badge item.metadata.points|stringformat:"s"|add:" pts" "neutral" %}{% endif %}
             {% if item.is_required %}{% tone_badge "Required" "neutral" icon="asterisk" %}{% endif %}
             {% if not item.is_active %}{% status_badge "inactive" %}{% endif %}
           </div>

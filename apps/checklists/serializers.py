@@ -21,7 +21,7 @@ class ChecklistItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChecklistItem
         fields = ("id", "section", "code", "question", "description", "help_text", "instructions", "answer_type",
-                  "config", "is_required", "is_active", "sort_order", "options")
+                  "config", "metadata", "is_required", "is_active", "sort_order", "options")
         read_only_fields = fields
 
 
@@ -84,3 +84,21 @@ class DuplicateSerializer(serializers.Serializer):
 
 class NewVersionSerializer(serializers.Serializer):
     change_summary = serializers.CharField(max_length=300, required=False, allow_blank=True, default="")
+
+
+class ChecklistItemWriteSerializer(serializers.Serializer):
+    """Input for creating / updating an item.  It only checks *shape*; the answer-type engine (through the
+    service) validates ``answer_type``, ``config`` and ``options`` exactly as the builder does."""
+
+    section = serializers.UUIDField(required=False)
+    question = serializers.CharField(max_length=500, required=False)
+    code = serializers.CharField(max_length=40, required=False, allow_blank=True)
+    answer_type = serializers.CharField(max_length=20, required=False)
+    config = serializers.JSONField(required=False, allow_null=True)
+    metadata = serializers.JSONField(required=False, allow_null=True)
+    is_required = serializers.BooleanField(required=False)
+    is_active = serializers.BooleanField(required=False)
+    description = serializers.CharField(required=False, allow_blank=True)
+    help_text = serializers.CharField(max_length=500, required=False, allow_blank=True)
+    instructions = serializers.CharField(required=False, allow_blank=True)
+    options = serializers.ListField(child=serializers.JSONField(), required=False, max_length=100)

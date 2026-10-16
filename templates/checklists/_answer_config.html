@@ -1,0 +1,26 @@
+{# The answer-type panel: what the type is, and its settings.  Swapped by HTMX when the type changes. #}
+{% load crispy_forms_tags ui %}
+<div id="answer-type-help" class="flex items-start gap-3 rounded-lg bg-muted p-3">
+  <span class="mt-0.5 shrink-0 text-link">{% icon definition.icon "md" %}</span>
+  <div class="min-w-0">
+    <p class="font-medium">{{ definition.label }}</p>
+    <p class="text-sm text-muted-foreground">{{ definition.description }}</p>
+    {% if definition.capabilities.requires_options %}<p class="mt-1 text-sm text-muted-foreground">Add the choices after saving the item.</p>{% endif %}
+    {% if definition.capabilities.has_fixed_options %}<p class="mt-1 text-sm text-muted-foreground">The options are fixed by the platform.</p>{% endif %}
+    {% if definition.capabilities.is_media %}<p class="mt-1 text-sm text-muted-foreground">Files are attached when the checklist is executed; this sets what will be accepted.</p>{% endif %}
+  </div>
+</div>
+
+{% if config_form.fields %}
+  <fieldset class="mt-4 rounded-lg border border-border p-4">
+    <legend class="px-1 text-sm font-semibold">{{ definition.label }} settings</legend>
+    {% for error in config_form.non_field_errors %}<p class="errorlist">{{ error }}</p>{% endfor %}
+    <div class="grid gap-x-6 sm:grid-cols-2">
+      {% for field in config_form %}
+        <div>{{ field|as_crispy_field }}</div>
+      {% endfor %}
+    </div>
+  </fieldset>
+{% else %}
+  <p class="mt-3 text-sm text-muted-foreground">This answer type has no settings.</p>
+{% endif %}

@@ -7,14 +7,19 @@ cannot be bypassed by a form).  Exports are limited to organizations the staff m
 
 from __future__ import annotations
 
+from django import forms
 from django.contrib import admin
+from django.core.exceptions import ValidationError
 from import_export import fields, resources
 from import_export.admin import ExportMixin
 from simple_history.admin import SimpleHistoryAdmin
 
 from apps.core.resources import FormulaSafeExportMixin
 
+from . import constants as c
+from .answer_types import registry
 from .constants import VersionStatus
+from .metadata import clean_metadata
 from .models import (
     ChecklistCategory,
     ChecklistItem,
@@ -134,6 +139,28 @@ class ChecklistVersionAdmin(SimpleHistoryAdmin):
         return False
 
 
+class ItemAdminForm(forms.ModelForm):
+    """The admin edits an item through the same answer-type rules as the builder (no way around them)."""
+
+    class Meta:
+        model = ChecklistItem
+        fields = "__all__"
+
+    def clean(self):  # noqa: ANN201
+        cleaned = super().clean()
+        answer_type = cleaned.get("answer_type")
+        if answer_type:
+            try:
+                cleaned["config"] = c.clean_config(answer_type, cleaned.get("config"))
+            except ValidationError as exc:
+                self.add_error("config", exc.messages)
+        try:
+            cleaned["metadata"] = clean_metadata(cleaned.get("metadata"))
+        except ValidationError as exc:
+            self.add_error("metadata", exc.messages)
+        return cleaned
+
+
 class ItemInline(admin.TabularInline):
     model = ChecklistItem
     extra = 0
@@ -157,11 +184,25 @@ class OptionInline(admin.TabularInline):
 
 @admin.register(ChecklistItem)
 class ChecklistItemAdmin(_FrozenWhenPublished, SimpleHistoryAdmin):
-    list_display = ("code", "question", "answer_type", "section", "is_required", "is_active")
+    form = ItemAdminForm
+    list_display = ("code", "question", "answer_type_label", "section", "is_required", "is_active")
     list_filter = ("answer_type", "is_required", "is_active")
     search_fields = ("code", "question", "section__version__template__code")
     list_select_related = ("section__version__template",)
     inlines = [OptionInline]
+    readonly_fields = ("answer_type_summary",)
+
+    @admin.display(description="Answer type", ordering="answer_type")
+    def answer_type_label(self, obj) -> str:  # noqa: ANN001
+        return registry.get(obj.answer_type).label if obj.answer_type in registry else obj.answer_type
+
+    @admin.display(description="Answer type definition")
+    def answer_type_summary(self, obj) -> str:  # noqa: ANN001
+        if obj.answer_type not in registry:
+            return "Unknown answer type"
+        definition = registry.get(obj.answer_type)
+        caps = ", ".join(k.replace("_", " ") for k, v in definition.capabilities.as_dict().items() if v)
+        return f"{definition.label} - {definition.description} Capabilities: {caps or 'none'}."
 
 
 @admin.register(ChecklistOption)

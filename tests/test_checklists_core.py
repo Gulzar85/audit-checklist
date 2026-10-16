@@ -260,12 +260,12 @@ class TestSectionsItemsOptions:
 
     def test_answer_type_change_validates_config(self, section, author):
         item = services.create_item(section, question="Rate", answer_type="score", actor=author)
-        assert item.config == {"min": 1, "max": 5}
+        assert item.config == {"min": 1, "max": 5, "step": 1, "display": "numeric"}
         with pytest.raises(ValidationError):
             services.update_item(item, answer_type="boolean", config={"min": 1}, actor=author)
         services.update_item(item, answer_type="numeric", actor=author)
         item.refresh_from_db()
-        assert item.answer_type == "numeric" and item.config == {}
+        assert item.answer_type == "numeric" and item.config == {"decimals": 2}
 
     def test_unknown_answer_type(self, section):
         with pytest.raises(ValidationError):
@@ -281,12 +281,14 @@ class TestSectionsItemsOptions:
 class TestAnswerConfig:
     @pytest.mark.parametrize("answer_type,config,expected", [
         ("boolean", {}, {}),
-        ("score", None, {"min": 1, "max": 5}),
-        ("score", {"min": 0, "max": 10}, {"min": 0, "max": 10}),
+        ("score", None, {"min": 1, "max": 5, "step": 1, "display": "numeric"}),
+        ("score", {"min": 0, "max": 10}, {"min": 0, "max": 10, "step": 1, "display": "numeric"}),
         ("numeric", {"min": 0, "max": 8.5, "unit": "°C", "decimals": 1}, {"min": 0, "max": 8.5, "unit": "°C", "decimals": 1}),
-        ("long_text", {"max_length": 500}, {"max_length": 500}),
-        ("matrix", {"rows": ["A"], "columns": ["X", "Y"]}, {"rows": ["A"], "columns": ["X", "Y"]}),
-        ("photo", {}, {}),
+        ("long_text", {"max_length": 500}, {"min_length": 0, "max_length": 500}),
+        ("matrix", {"rows": ["A"], "columns": ["X", "Y"]}, {
+            "rows": [{"key": "a", "label": "A"}], "columns": [{"key": "x", "label": "X"}, {"key": "y", "label": "Y"}],
+            "mode": "single", "require_all_rows": False}),
+        ("photo", {}, {"max_files": 1, "max_size_mb": 10, "allowed_extensions": ["jpg", "jpeg", "png", "webp", "heic"], "source": "any"}),
     ])
     def test_valid(self, answer_type, config, expected):
         assert c.clean_config(answer_type, config) == expected

@@ -28,6 +28,24 @@ DEMOS = (
         ),
     },
     {
+        "code": "DEMO-RDSC", "name": "Restaurant Daily Safety Check", "category": "Safety", "minutes": 20,
+        "description": "A daily restaurant check using seven different answer types. Any organization can build the same "
+                       "with its own location types - a restaurant is just a location.",
+        "sections": (
+            ("Daily check", (
+                ("Is the fire exit accessible?", "yes_no", None, ()),
+                ("Is the handwashing station operational?", "yes_no_na", None, ()),
+                ("Rate dining area cleanliness.", "score", {"min": 1, "max": 5, "step": 1, "display": "stars"}, ()),
+                ("Record refrigerator temperature.", "numeric", {"min": -10, "max": 20, "decimals": 1, "unit": "°C"}, ()),
+                ("Which issues were observed?", "multiple_choice", None, (
+                    ("cleaning", "Cleaning"), ("maintenance", "Maintenance"), ("safety", "Safety"),
+                    ("documentation", "Documentation"), ("training", "Training"))),
+                ("Manager comments.", "long_text", None, ()),
+                ("Inspection date.", "date", None, ()),
+            )),
+        ),
+    },
+    {
         "code": "DEMO-SAFE", "name": "Safety Walk", "category": "Safety", "minutes": 15,
         "description": "Boolean and choice items - no scoring anywhere.",
         "sections": (
@@ -57,6 +75,7 @@ class Command(BaseCommand):
             raise CommandError("Name exactly one organization with --organization <slug>.")
         organization = organizations.get()
         created = 0
+        self.ensure_demo_location(organization)
         for demo in DEMOS:
             if ChecklistTemplate.objects.filter(organization=organization, code=demo["code"]).exists():
                 continue
@@ -74,3 +93,15 @@ class Command(BaseCommand):
             services.activate_checklist_template(template)
             created += 1
         self.stdout.write(self.style.SUCCESS(f"Demo checklists: {created} created, {len(DEMOS) - created} already present."))
+    def ensure_demo_location(self, organization) -> None:  # noqa: ANN001
+        """A ``Restaurant`` location type and a demo restaurant: nothing restaurant-specific is built into the schema."""
+        from apps.locations import services as location_services
+        from apps.locations.models import Location, LocationType
+
+        location_type = LocationType.objects.filter(organization=organization, code="RESTAURANT").first() or (
+            location_services.create_location_type(organization=organization, name="Restaurant", code="RESTAURANT")
+        )
+        if not Location.objects.filter(organization=organization, code="MCD-DEMO").exists():
+            location_services.create_location(
+                organization=organization, name="McDonald's Demo Restaurant", code="MCD-DEMO", location_type=location_type
+            )

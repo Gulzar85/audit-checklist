@@ -1,0 +1,52 @@
+{# Design-time preview of an answer type.  Not the execution UI: every control is inert. #}
+{% load ui %}
+{% if error %}
+  <p class="text-sm text-muted-foreground" role="status">{% icon "info" %} {{ error }}</p>
+{% else %}
+  <p class="sr-only">Preview of a {{ definition.label }} question. The controls below are not interactive.</p>
+  <div inert aria-hidden="true" class="space-y-2">
+    <p class="font-medium">{{ question|default:"Your question appears here" }}</p>
+    {% if kind == "boolean" %}
+      <div class="flex gap-4"><label class="inline-flex items-center gap-2"><input type="radio" class="radio" disabled> True</label><label class="inline-flex items-center gap-2"><input type="radio" class="radio" disabled> False</label></div>
+    {% elif kind == "yes_no" or kind == "yes_no_na" or kind == "single" and config.display != "dropdown" %}
+      <div class="flex flex-wrap gap-x-5 gap-y-1">{% for label in options %}<label class="inline-flex items-center gap-2"><input type="radio" class="radio" disabled> {{ label }}</label>{% endfor %}</div>
+    {% elif kind == "single" %}
+      <select class="select" disabled><option>Select…</option>{% for label in options %}<option>{{ label }}</option>{% endfor %}</select>
+    {% elif kind == "multiple" %}
+      <div class="space-y-1">{% for label in options %}<label class="flex items-center gap-2"><input type="checkbox" class="checkbox" disabled> {{ label }}</label>{% endfor %}</div>
+      {% if config.min_select or config.max_select %}<p class="text-xs text-muted-foreground">{% if config.min_select %}Select at least {{ config.min_select }}. {% endif %}{% if config.max_select %}Select at most {{ config.max_select }}.{% endif %}</p>{% endif %}
+    {% elif kind == "score" %}
+      {% if config.display == "stars" %}
+        <div class="flex gap-1 text-warning-text">{% for n in stars %}{% icon "star" "lg" %}{% endfor %}</div>
+      {% elif config.display == "slider" or score_too_many %}
+        <input type="range" class="w-full" min="{{ config.min }}" max="{{ config.max }}" step="{{ config.step }}" disabled>
+        <div class="flex justify-between text-xs text-muted-foreground"><span>{{ config.min }}</span><span>{{ config.max }}</span></div>
+      {% else %}
+        <div class="flex flex-wrap gap-1">{% for n in score_values %}<span class="btn btn-secondary btn-sm">{{ n }}</span>{% endfor %}</div>
+      {% endif %}
+      <p class="text-xs text-muted-foreground">{{ config.min }} to {{ config.max }}{% if config.step != 1 %}, in steps of {{ config.step }}{% endif %}</p>
+    {% elif kind == "numeric" %}
+      <div class="flex items-center gap-2"><input type="text" class="input max-w-[10rem]" placeholder="{% if config.decimals %}0.{{ "000000"|slice:config.decimals }}{% else %}0{% endif %}" disabled>{% if config.unit %}<span class="text-sm text-muted-foreground">{{ config.unit }}</span>{% endif %}</div>
+      <p class="text-xs text-muted-foreground">{% if config.min != None or config.max != None %}Range {{ config.min|default_if_none:"…" }} to {{ config.max|default_if_none:"…" }}. {% endif %}{% if config.decimals == 0 %}Whole numbers only.{% else %}Up to {{ config.decimals }} decimal place{{ config.decimals|pluralize }}.{% endif %}</p>
+    {% elif kind == "text" %}
+      <input type="text" class="input" maxlength="{{ config.max_length }}" placeholder="Short answer" disabled>
+      <p class="text-xs text-muted-foreground">Up to {{ config.max_length }} characters.</p>
+    {% elif kind == "long_text" %}
+      <textarea class="textarea" rows="3" placeholder="Longer answer" disabled></textarea>
+      <p class="text-xs text-muted-foreground">Up to {{ config.max_length }} characters.</p>
+    {% elif kind == "date" %}
+      <input type="date" class="input max-w-[12rem]" disabled>
+    {% elif kind == "datetime" %}
+      <input type="datetime-local" class="input max-w-[16rem]" disabled>
+    {% elif kind == "photo" or kind == "file" %}
+      <div class="flex items-center gap-3 rounded-lg border border-dashed border-border p-4 text-muted-foreground">{% icon definition.icon "lg" %}<div class="text-sm"><p>{% if kind == "photo" %}{% if config.source == "camera" %}Take a photo{% else %}Take or choose a photo{% endif %}{% else %}Attach a file{% endif %}</p><p class="text-xs">Up to {{ config.max_files }} file{{ config.max_files|pluralize }}, {{ config.max_size_mb }} MB each · {{ extensions }}</p></div></div>
+    {% elif kind == "signature" %}
+      <div class="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">{% icon "pen-line" %} {{ config.signer_label }} signs here</div>
+      {% if config.require_name %}<input type="text" class="input" placeholder="Printed name" disabled>{% endif %}
+    {% elif kind == "matrix" %}
+      <div class="overflow-x-auto"><table class="matrix"><thead><tr><th></th>{% for col in config.columns %}<th>{{ col.label }}</th>{% endfor %}</tr></thead>
+        <tbody>{% for row in config.rows %}<tr><th scope="row">{{ row.label }}</th>{% for col in config.columns %}<td><input type="{% if config.mode == 'multiple' %}checkbox{% else %}radio{% endif %}" class="{% if config.mode == 'multiple' %}checkbox{% else %}radio{% endif %}" disabled></td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+    {% endif %}
+    {% if sample_options and definition.capabilities.requires_options %}<p class="text-xs text-muted-foreground">Sample options shown; your options appear here once added.</p>{% endif %}
+  </div>
+{% endif %}

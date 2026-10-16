@@ -28,8 +28,8 @@ no score either; scoring (Phase 15) will be an independent capability that reads
 | `date`, `datetime`, `photo`, `file`, `signature` | - | - |
 | `matrix` | `rows`, `columns` (reserved shape) | - |
 
-`apps/checklists/constants.py::clean_config` validates configuration; unknown keys are rejected. Phase 5 builds the
-answer engine on these definitions; adding a type means one enum value and one `clean_config` branch.
+Configuration and answer validation are handled by the Phase 5 answer-type engine: see [answer-types.md](answer-types.md),
+[answer-validation.md](answer-validation.md) and [checklist-item-configuration.md](checklist-item-configuration.md).
 
 ## Versions and immutability
 * A template always has a version history; `create_checklist_template` starts draft v1.

@@ -2,8 +2,8 @@
 
 Phase 4 defines what a checklist asks; it stores no answers.  The answer type of an item is data
 (``ChecklistItem.answer_type`` + ``config``), never a separate table, so Boolean, score, numeric, text,
-file and matrix items live in one schema.  Phase 5 interprets these definitions to build the answer
-engine; here we only validate that the configuration is well formed.
+file and matrix items live in one schema.  The behaviour of each type - metadata, configuration schema,
+validation and the normalized value contract - lives in ``apps.checklists.answer_types`` (Phase 5).
 """
 
 from __future__ import annotations
@@ -76,79 +76,18 @@ class RuleAction(models.TextChoices):
 TARGET_ACTIONS = {RuleAction.SHOW_ITEM: "item", RuleAction.SHOW_SECTION: "section"}
 
 
-def _number(value: Any, name: str) -> float:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise ValidationError({"config": _("“%(name)s” must be a number.") % {"name": name}})
-    return value
-
-
 def clean_config(answer_type: str, config: Any) -> dict[str, Any]:
-    """Validate and normalise ``config`` for ``answer_type``; unknown keys are rejected.
+    """Validate and normalise ``config`` for ``answer_type`` (the single entry point for web, API and imports).
 
-    * ``score``  - ``min`` and ``max`` integers, ``0 <= min < max <= 100`` (default 1-5).
-    * ``numeric`` - optional ``min``, ``max`` (min <= max), ``unit`` (<= 20 chars), ``decimals`` (0-6).
-    * ``text`` / ``long_text`` - optional ``max_length`` (1-10000).
-    * ``matrix`` - ``rows`` and ``columns``: lists of 1-50 non-empty labels (a reserved shape).
-    * every other type takes no configuration.
+    The rules live in the answer-type registry (``apps.checklists.answer_types``): each type declares its settings
+    as a schema, unknown keys are rejected, defaults are filled in.  This wrapper only translates the engine's
+    :class:`ConfigurationError` into Django's ``ValidationError`` for the service layer.
     """
-    if config in (None, ""):
-        config = {}
-    if not isinstance(config, dict):
-        raise ValidationError({"config": _("Configuration must be an object.")})
-    config = dict(config)
-    allowed: dict[str, set[str]] = {
-        AnswerType.SCORE: {"min", "max"},
-        AnswerType.NUMERIC: {"min", "max", "unit", "decimals"},
-        AnswerType.TEXT: {"max_length"},
-        AnswerType.LONG_TEXT: {"max_length"},
-        AnswerType.MATRIX: {"rows", "columns"},
-    }
-    unknown = set(config) - allowed.get(answer_type, set())
-    if unknown:
-        raise ValidationError(
-            {"config": _("This answer type does not accept: %(keys)s.") % {"keys": ", ".join(sorted(unknown))}}
-        )
-    if answer_type == AnswerType.SCORE:
-        low, high = config.get("min", 1), config.get("max", 5)
-        if not all(isinstance(v, int) and not isinstance(v, bool) for v in (low, high)):
-            raise ValidationError({"config": _("Score minimum and maximum must be whole numbers.")})
-        if not 0 <= low < high <= 100:
-            raise ValidationError({"config": _("Score range must satisfy 0 ≤ minimum < maximum ≤ 100.")})
-        return {"min": low, "max": high}
-    if answer_type == AnswerType.NUMERIC:
-        clean: dict[str, Any] = {}
-        for key in ("min", "max"):
-            if config.get(key) is not None:
-                clean[key] = _number(config[key], key)
-        if "min" in clean and "max" in clean and clean["min"] > clean["max"]:
-            raise ValidationError({"config": _("The minimum cannot exceed the maximum.")})
-        if config.get("unit"):
-            if not isinstance(config["unit"], str) or len(config["unit"]) > 20:
-                raise ValidationError({"config": _("Unit must be text of at most 20 characters.")})
-            clean["unit"] = config["unit"].strip()
-        if config.get("decimals") is not None:
-            decimals = config["decimals"]
-            if not isinstance(decimals, int) or isinstance(decimals, bool) or not 0 <= decimals <= 6:
-                raise ValidationError({"config": _("Decimals must be a whole number from 0 to 6.")})
-            clean["decimals"] = decimals
-        return clean
-    if answer_type in (AnswerType.TEXT, AnswerType.LONG_TEXT):
-        if config.get("max_length") is None:
-            return {}
-        length = config["max_length"]
-        if not isinstance(length, int) or isinstance(length, bool) or not 1 <= length <= 10000:
-            raise ValidationError({"config": _("Maximum length must be a whole number from 1 to 10000.")})
-        return {"max_length": length}
-    if answer_type == AnswerType.MATRIX:
-        clean = {}
-        for key in ("rows", "columns"):
-            labels = config.get(key, [])
-            if (
-                not isinstance(labels, list)
-                or not 1 <= len(labels) <= 50
-                or not all(isinstance(x, str) and x.strip() and len(x) <= 120 for x in labels)
-            ):
-                raise ValidationError({"config": _("Matrix “%(key)s” must be 1-50 non-empty labels.") % {"key": key}})
-            clean[key] = [x.strip() for x in labels]
-        return clean
-    return {}
+    from .answer_types import ConfigurationError, registry
+
+    if answer_type not in registry:
+        raise ValidationError({"answer_type": _("Unknown answer type.")})
+    try:
+        return registry.clean_config(answer_type, config)
+    except ConfigurationError as exc:
+        raise ValidationError({"config": exc.message}) from exc

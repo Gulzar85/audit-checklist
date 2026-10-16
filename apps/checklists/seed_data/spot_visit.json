@@ -1,0 +1,629 @@
+{
+ "code": "FS-SPOT",
+ "name": "Restaurant Food Safety Spot Visit",
+ "category": "Food Safety",
+ "minutes": null,
+ "description": "Short food-safety spot visit: stock areas, food safety checks, cleaning and hygiene, crew hygiene, pest management and documentation.",
+ "instructions": "Total possible points may change with the number of equipment items in use on the day of the audit; use the possible total at the end of each section.\nGrading: 95.0-100 = A, 90.0-94.9 = B, 80.0-89.9 = C, below 80 = F. An item marked critical (a failure shown as “/F” in the source form) makes the whole audit an automatic F.\nAction plan timelines by risk: Low (does not directly affect hygiene or food safety) - by the next audit; Medium (could affect hygiene or food safety) - within 1 month; High (increased food-safety risk) - within 1 week; Critical (unacceptable, affects food safety) - immediately.",
+ "sections": [
+  {
+   "name": "Visit details",
+   "description": "Who, where and when. Complete before starting the checks.",
+   "instructions": "",
+   "items": [
+    {
+     "code": "SPOT-VD-01",
+     "question": "Restaurant name",
+     "answer_type": "text",
+     "config": {
+      "max_length": 120
+     },
+     "required": true
+    },
+    {
+     "code": "SPOT-VD-02",
+     "question": "Restaurant number",
+     "answer_type": "text",
+     "config": {
+      "max_length": 30
+     },
+     "required": true
+    },
+    {
+     "code": "SPOT-VD-03",
+     "question": "Date of the visit",
+     "answer_type": "date",
+     "config": {},
+     "required": true
+    },
+    {
+     "code": "SPOT-VD-04",
+     "question": "Responsible restaurant manager on duty at the time of the audit",
+     "answer_type": "text",
+     "config": {
+      "max_length": 120
+     },
+     "required": true
+    },
+    {
+     "code": "SPOT-VD-05",
+     "question": "Name of the auditor",
+     "answer_type": "text",
+     "config": {
+      "max_length": 120
+     },
+     "required": true
+    },
+    {
+     "code": "SPOT-VD-06",
+     "question": "Position of the auditor",
+     "answer_type": "text",
+     "config": {
+      "max_length": 120
+     },
+     "required": true
+    },
+    {
+     "code": "SPOT-VD-07",
+     "question": "Date of the previous audit",
+     "answer_type": "date",
+     "config": {},
+     "required": false
+    },
+    {
+     "code": "SPOT-VD-08",
+     "question": "Score of the previous audit (%)",
+     "answer_type": "numeric",
+     "config": {
+      "min": 0,
+      "max": 100,
+      "decimals": 1,
+      "unit": "%"
+     },
+     "required": false
+    },
+    {
+     "code": "SPOT-VD-09",
+     "question": "Name and position of the auditor of the previous audit",
+     "answer_type": "text",
+     "config": {
+      "max_length": 200
+     },
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "Stock Areas Check",
+   "description": "Main Freezer/Main Chiller and Dry store",
+   "instructions": "",
+   "items": [
+    {
+     "code": "SPOT-01-001",
+     "question": "Temperatures (Walk in Chiller & Reach in chiller 34-40 F and Walk in Freezer & Wall mounted 0-10 F)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "SPOT-01-002",
+     "question": "Secondary Shelf Life/Primary Shelf Life",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-01-003",
+     "question": "FIFO/ labelling for different batch product",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 50
+     }
+    },
+    {
+     "code": "SPOT-01-004",
+     "question": "Cleaning /Hygiene/organizing",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-01-005",
+     "question": "Any foreign object/ Cross contamination",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "SPOT-01-006",
+     "question": "Organizing cases 2 inches away from wall and 6 inches above floor",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 50
+     }
+    },
+    {
+     "code": "SPOT-01-007",
+     "question": "Product properly covered/uncovered",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-01-008",
+     "question": "Allergen Management",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 50
+     }
+    }
+   ]
+  },
+  {
+   "name": "Food Safety Checks",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "SPOT-02-001",
+     "question": "Beef / Chicken Food Safety Checks at grills/Vats ( Time/temperature/condition/TPM)",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "SPOT-02-002",
+     "question": "Main freezer Product temperature 0 F to -10 F. Wall mounted/grill side product temperature +5 F. Main Chiller & reach in chiller Product Temperature 34 F- 40 F",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "SPOT-02-003",
+     "question": "CBC Area / Mc Cafe Product Temperatures",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "SPOT-02-004",
+     "question": "Secondary Shelf life tags on every product used in Production/CBC /Mc Café",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "SPOT-02-005",
+     "question": "UHC Danger zone/ Time & Temperature checks",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-02-006",
+     "question": "Cross contamination/ Allergen Management/ Double gloves procedure",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-02-007",
+     "question": "Any Expire Product in Store",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "SPOT-02-008",
+     "question": "Thaw/tempering procedures checks",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-02-009",
+     "question": "Check equipments caliberation /Temperatures /Back up equipment",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    }
+   ]
+  },
+  {
+   "name": "Cleaning and Hygiene",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "SPOT-03-001",
+     "question": "Over all Store Cleaning checks. Production/CBC/Lobby/Coral outside /RO room/Crew Cabinet",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-03-002",
+     "question": "All equipments and Utensils cleaning followed as per standard",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-03-003",
+     "question": "No utensil /box scooper spatula etc cracked or broken",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-03-004",
+     "question": "No outside food any foreign meterial in store. Check crew cabinet",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-03-005",
+     "question": "Check Sanitizer in Bottles/ Tank/ Towel /Buckets",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    }
+   ]
+  },
+  {
+   "name": "Crew Hygiene and Cleaning",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "SPOT-04-001",
+     "question": "Crew Nails /Uniform",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-04-002",
+     "question": "No Jewellery Item worn during work in production",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-04-003",
+     "question": "No eating of outside food in production Chew gums/Sipari e.t.c",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 50
+     }
+    },
+    {
+     "code": "SPOT-04-004",
+     "question": "Any illness signs",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-04-005",
+     "question": "Hourly Hand wash call and sanitize as needed",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    }
+   ]
+  },
+  {
+   "name": "Store Pest Management Controls",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "SPOT-05-001",
+     "question": "Pest sighting",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-05-002",
+     "question": "Droppings",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-05-003",
+     "question": "Product Damage",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100,
+      "critical": true
+     }
+    },
+    {
+     "code": "SPOT-05-004",
+     "question": "Preventive measures in place Air Curtains /ILT/EFK/ Traps",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-05-005",
+     "question": "Pest controll devices/ tools are well maintained",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 50
+     }
+    },
+    {
+     "code": "SPOT-05-006",
+     "question": "Flies Controll Management and Envirtec product usage methodology check",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 50
+     }
+    }
+   ]
+  },
+  {
+   "name": "Documentation Control",
+   "description": "",
+   "instructions": "",
+   "items": [
+    {
+     "code": "SPOT-06-001",
+     "question": "IPM file",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-06-002",
+     "question": "Food Safety Books/DFS",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 200
+     }
+    },
+    {
+     "code": "SPOT-06-003",
+     "question": "Halal/COA file",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-06-004",
+     "question": "Water Testing Reports",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 50
+     }
+    },
+    {
+     "code": "SPOT-06-005",
+     "question": "Liscence/ Medicals updated within Expiry",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-06-006",
+     "question": "Managers Training Certificates",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 50
+     }
+    },
+    {
+     "code": "SPOT-06-007",
+     "question": "Last Audit/Spot visit reports/Regulatory Authority Visits and Corrective action",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-06-008",
+     "question": "OIL TPM record",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-06-009",
+     "question": "Waste oil tracking slips",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-06-010",
+     "question": "Envirtec Log Sheets checks",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 100
+     }
+    },
+    {
+     "code": "SPOT-06-011",
+     "question": "Caliberation Certificates",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 50
+     }
+    },
+    {
+     "code": "SPOT-06-012",
+     "question": "Chemical MSDS file",
+     "answer_type": "yes_no_na",
+     "config": {},
+     "required": true,
+     "metadata": {
+      "points": 50
+     }
+    }
+   ]
+  },
+  {
+   "name": "Sign-off",
+   "description": "This section must be completed and signed before leaving the store.",
+   "instructions": "",
+   "items": [
+    {
+     "code": "SPOT-SO-01",
+     "question": "Overall comments",
+     "answer_type": "long_text",
+     "config": {},
+     "required": false
+    },
+    {
+     "code": "SPOT-SO-02",
+     "question": "Signature of the auditor",
+     "answer_type": "signature",
+     "config": {
+      "signer_label": "Auditor"
+     },
+     "required": true
+    },
+    {
+     "code": "SPOT-SO-03",
+     "question": "Signature of the auditee",
+     "answer_type": "signature",
+     "config": {
+      "signer_label": "Restaurant manager (auditee)"
+     },
+     "required": true
+    }
+   ]
+  }
+ ]
+}

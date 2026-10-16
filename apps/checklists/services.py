@@ -31,6 +31,7 @@ from apps.core.services import apply_changes, log_activity, stamp_history
 from apps.locations.models import normalize_code, validate_code
 
 from . import constants as c
+from .metadata import clean_metadata
 from .models import (
     ChecklistCategory,
     ChecklistItem,
@@ -59,6 +60,9 @@ VERBS = {
     "item_updated": "checklist_item.updated",
     "item_removed": "checklist_item.removed",
     "items_reordered": "checklist_item.reordered",
+    "item_type_changed": "checklist_item.answer_type_changed",
+    "item_config_changed": "checklist_item.config_changed",
+    "options_synced": "checklist_option.synced",
     "option_added": "checklist_option.added",
     "option_updated": "checklist_option.updated",
     "option_removed": "checklist_option.removed",
@@ -537,6 +541,7 @@ def create_item(
     section: ChecklistSection, *, question: str, actor: Any = None, answer_type: str = c.AnswerType.YES_NO,
     code: str = "", config: Any = None, description: str = "", help_text: str = "", instructions: str = "",
     is_required: bool = True, is_active: bool = True, options: Iterable[tuple[str, str]] = (),
+    metadata: Any = None,
 ) -> ChecklistItem:
     """Add an item to a section.  ``options`` (``(value, label)``) apply to choice types only."""
     template, version = _editable(section.version)
@@ -554,6 +559,7 @@ def create_item(
         section=section, code=code, question=question, description=description, help_text=help_text,
         instructions=instructions, answer_type=answer_type, config=c.clean_config(answer_type, config),
         is_required=is_required, is_active=is_active, sort_order=_next_order(section.items),
+        metadata=clean_metadata(metadata),
     )
     stamp_history(item, actor, VERBS["item_added"])
     try:
@@ -563,7 +569,7 @@ def create_item(
         raise _db_error(exc) from exc
     _sync_fixed_options(item)
     if answer_type in c.CUSTOM_OPTIONS:
-        for value, label in options:
+        for value, label in parse_option_entries(options):
             create_option(item, value=value, label=label, actor=actor, log=False)
     _touch(template, actor)
     _log(verb=VERBS["item_added"], organization=template.organization, actor=actor, target=item,
@@ -577,7 +583,10 @@ def update_item(item: ChecklistItem, *, actor: Any = None, **data: Any) -> Check
     template, version = _editable(item.section.version)
     item = ChecklistItem.objects.select_related("section").get(pk=item.pk)
     allowed = {k: v for k, v in data.items() if k in (
-        "question", "code", "answer_type", "config", "description", "help_text", "instructions", "is_required", "is_active")}
+        "question", "code", "answer_type", "config", "description", "help_text", "instructions", "is_required", "is_active",
+        "metadata")}
+    if "metadata" in allowed:
+        allowed["metadata"] = clean_metadata(allowed["metadata"])
     if "question" in allowed and not (allowed["question"] or "").strip():
         raise ValidationError({"question": _("A question is required.")})
     if "code" in allowed:
@@ -605,6 +614,13 @@ def update_item(item: ChecklistItem, *, actor: Any = None, **data: Any) -> Check
         _touch(template, actor)
         _log(verb=VERBS["item_updated"], organization=template.organization, actor=actor, target=item,
                      description=f"Updated item {item.code}", metadata={"changes": changes})
+        # Configuration changes get their own, searchable events (a range or type change alters meaning).
+        if "answer_type" in changes:
+            _log(verb=VERBS["item_type_changed"], organization=template.organization, actor=actor, target=item,
+                 description=f"Answer type of {item.code} changed to {item.answer_type}", metadata=changes["answer_type"])
+        if "config" in changes:
+            _log(verb=VERBS["item_config_changed"], organization=template.organization, actor=actor, target=item,
+                 description=f"Answer configuration of {item.code} changed", metadata=changes["config"])
     return item
 
 
@@ -707,6 +723,76 @@ def reorder_options(item: ChecklistItem, ordered_ids: Iterable[Any], *, actor: A
     _touch(template, actor)
     _log(verb=VERBS["options_reordered"], organization=template.organization, actor=actor, target=item,
                  description=f"Reordered options of {item.code}")
+
+
+def parse_option_entries(options: Iterable[Any]) -> list[tuple[str, str]]:
+    """Normalise option input (labels, ``(value, label)`` pairs or ``{"value", "label"}``) to ``(value, label)``."""
+    wanted: list[tuple[str, str]] = []
+    for entry in options or ():
+        if isinstance(entry, dict):
+            unknown = set(entry) - {"value", "label"}
+            if unknown:
+                raise ValidationError({"options": _("Unexpected option fields: %(f)s.") % {"f": ", ".join(sorted(unknown))}})
+            value, label = entry.get("value", ""), entry.get("label", "")
+        elif isinstance(entry, (tuple, list)) and len(entry) == 2:
+            value, label = entry
+        elif isinstance(entry, str):
+            value, label = "", entry
+        else:
+            raise ValidationError({"options": _("Options must be labels or {value, label} objects.")})
+        if not isinstance(label, str) or not isinstance(value or "", str):
+            raise ValidationError({"options": _("Option values and labels must be text.")})
+        label = label.strip()
+        if not label or len(label) > 200:
+            raise ValidationError({"options": _("Every option needs a label of at most 200 characters.")})
+        value = (value or slugify(label).replace("-", "_")).strip().lower()[:64]
+        if not _VALUE_RE.match(value):
+            raise ValidationError({"options": _("Option values may use lowercase letters, digits, “_”, “-” and “.”.")})
+        wanted.append((value, label))
+    if len(wanted) > 100:
+        raise ValidationError({"options": _("An item may have at most 100 options.")})
+    return wanted
+
+
+@transaction.atomic
+def set_options(item: ChecklistItem, options: Iterable[Any], *, actor: Any = None) -> list[ChecklistOption]:
+    """Replace the author-defined options of a choice item with ``options`` (the order given is the display order).
+
+    Each entry is a label, a ``(value, label)`` pair or ``{"value", "label"}``.  Existing options are matched by
+    ``value`` (their label is updated, their identity kept), new ones are created, missing ones removed.  One audited
+    ``checklist_option.synced`` event records what changed.  The shared path for the API and imports.
+    """
+    template, _version = _editable(item.section.version)
+    item = ChecklistItem.objects.get(pk=item.pk)
+    _require_custom_options(item)
+    wanted = parse_option_entries(options)
+    values = [v for v, _l in wanted]
+    if len(set(values)) != len(values):
+        raise ValidationError({"options": _("Option values must be unique.")})
+    existing = {o.value: o for o in item.options.all()}
+    added = [v for v in values if v not in existing]
+    removed = [v for v in existing if v not in values]
+    for value in removed:
+        stamp_history(existing[value], actor, VERBS["option_removed"])
+        existing[value].delete()
+    # Park survivors above the new range so the deferred unique ordering never collides mid-rewrite.
+    result: list[ChecklistOption] = []
+    for position, (value, label) in enumerate(wanted, start=1):
+        option = existing.get(value)
+        if option is None:
+            option = ChecklistOption(item=item, value=value, label=label, sort_order=position)
+            stamp_history(option, actor, VERBS["option_added"])
+            option.save()
+        elif option.label != label or option.sort_order != position:
+            option.label, option.sort_order = label, position
+            stamp_history(option, actor, VERBS["option_updated"])
+            option.save()
+        result.append(option)
+    if added or removed:
+        _touch(template, actor)
+        _log(verb=VERBS["options_synced"], organization=template.organization, actor=actor, target=item,
+             description=f"Updated the options of {item.code}", metadata={"added": added, "removed": removed})
+    return result
 
 
 def move_option(option: ChecklistOption, direction: str, *, actor: Any = None) -> None:
