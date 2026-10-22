@@ -1,0 +1,56 @@
+﻿{% comment %}One question. All state (visibility, requiredness, options, constraints, errors) is decided by the server; this only renders it.{% endcomment %}
+{% load ui %}
+<div id="item-{{ iv.id }}" class="border-b border-border py-5 last:border-b-0">
+  <input type="hidden" name="p__{{ iv.id }}" value="1">
+  <input type="hidden" name="r__{{ iv.id }}" value="{{ iv.revision }}">
+  {% if iv.widget == "radio" or iv.widget == "checkbox" or iv.widget == "score" or iv.widget == "boolean" or iv.widget == "matrix" %}
+  <fieldset aria-describedby="help-{{ iv.id }}"><legend class="label">{{ iv.item.question }}{% if iv.required %} <span class="text-xs font-normal text-danger-text">(required)</span>{% endif %}</legend>
+  {% else %}
+  <label class="label" for="f-{{ iv.id }}">{{ iv.item.question }}{% if iv.required %} <span class="text-xs font-normal text-danger-text">(required)</span>{% endif %}</label>
+  {% endif %}
+  <p id="help-{{ iv.id }}" class="mb-2 text-sm text-muted-foreground">{{ iv.item.help_text }}{% if iv.item.help_text and iv.item.instructions %} · {% endif %}{{ iv.item.instructions }}</p>
+  {% for text in iv.result.instructions %}<p class="mb-2 text-sm">{% icon "info" %} {{ text }}</p>{% endfor %}
+  {% for m in iv.result.messages %}<p class="mb-2 text-sm {% if m.severity == 'warning' or m.severity == 'error' %}text-warning-text{% endif %}">{% icon "info" %} {{ m.message }}</p>{% endfor %}
+
+  {% if iv.widget == "radio" %}
+    <div class="flex flex-wrap gap-4">{% for o in iv.options %}<label class="flex items-center gap-2 text-sm"><input type="radio" class="radio" name="v__{{ iv.id }}" value="{{ o.value }}"{% if o.checked and not iv.not_applicable %} checked{% endif %}> {{ o.label }}</label>{% endfor %}</div>
+  {% elif iv.widget == "select" %}
+    <select id="f-{{ iv.id }}" class="select" name="v__{{ iv.id }}"><option value="">Choose…</option>{% for o in iv.options %}<option value="{{ o.value }}"{% if o.checked %} selected{% endif %}>{{ o.label }}</option>{% endfor %}</select>
+  {% elif iv.widget == "checkbox" %}
+    <div class="flex flex-wrap gap-4">{% for o in iv.options %}<label class="flex items-center gap-2 text-sm"><input type="checkbox" class="checkbox" name="v__{{ iv.id }}" value="{{ o.value }}"{% if o.checked %} checked{% endif %}> {{ o.label }}</label>{% endfor %}</div>
+  {% elif iv.widget == "boolean" %}
+    <div class="flex gap-4"><label class="flex items-center gap-2 text-sm"><input type="radio" class="radio" name="v__{{ iv.id }}" value="true"{% if iv.value == "true" %} checked{% endif %}> Yes</label><label class="flex items-center gap-2 text-sm"><input type="radio" class="radio" name="v__{{ iv.id }}" value="false"{% if iv.value == "false" %} checked{% endif %}> No</label></div>
+  {% elif iv.widget == "score" %}
+    <div class="flex flex-wrap gap-3">{% for o in iv.options %}<label class="flex items-center gap-1 text-sm"><input type="radio" class="radio" name="v__{{ iv.id }}" value="{{ o.value }}"{% if o.checked %} checked{% endif %}> {{ o.label }}</label>{% endfor %}</div>
+  {% elif iv.widget == "number" %}
+    <div class="flex items-center gap-2"><input id="f-{{ iv.id }}" class="input max-w-xs" type="number" inputmode="decimal" name="v__{{ iv.id }}" value="{{ iv.value }}" step="{{ iv.attrs.step }}"{% if iv.attrs.min is not None %} min="{{ iv.attrs.min }}"{% endif %}{% if iv.attrs.max is not None %} max="{{ iv.attrs.max }}"{% endif %} aria-describedby="help-{{ iv.id }}">{% if iv.attrs.unit %}<span class="text-sm text-muted-foreground">{{ iv.attrs.unit }}</span>{% endif %}</div>
+  {% elif iv.widget == "text" %}
+    <input id="f-{{ iv.id }}" class="input" type="text" name="v__{{ iv.id }}" value="{{ iv.value }}" maxlength="{{ iv.attrs.maxlength }}">
+  {% elif iv.widget == "textarea" %}
+    <textarea id="f-{{ iv.id }}" class="textarea" rows="3" name="v__{{ iv.id }}" maxlength="{{ iv.attrs.maxlength }}">{{ iv.value }}</textarea>
+  {% elif iv.widget == "date" %}
+    <input id="f-{{ iv.id }}" class="input max-w-xs" type="date" name="v__{{ iv.id }}" value="{{ iv.value }}">
+  {% elif iv.widget == "datetime" %}
+    <input id="f-{{ iv.id }}" class="input max-w-xs" type="datetime-local" name="v__{{ iv.id }}" value="{{ iv.value }}">
+  {% elif iv.widget == "matrix" %}
+    <div class="overflow-x-auto"><table class="table"><thead><tr><th scope="col"><span class="sr-only">Row</span></th>{% for c in iv.rows.0.cells %}<th scope="col">{{ c.label }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for r in iv.rows %}<tr><th scope="row">{{ r.label }}</th>{% for c in r.cells %}<td>{% if iv.multiple %}<input type="checkbox" class="checkbox" name="m__{{ iv.id }}__{{ r.key }}" value="{{ c.key }}"{% if c.checked %} checked{% endif %} aria-label="{{ r.label }}: {{ c.label }}">{% else %}<input type="radio" class="radio" name="m__{{ iv.id }}__{{ r.key }}" value="{{ c.key }}"{% if c.checked %} checked{% endif %} aria-label="{{ r.label }}: {{ c.label }}">{% endif %}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+  {% elif iv.widget == "media" %}
+    <p class="alert alert-warning" role="status">{% icon "triangle-alert" %}<span>Photos, files and signatures cannot be captured yet - secure evidence storage arrives in a later release.{% if iv.required %} This question is required, so the checklist cannot be submitted until then.{% endif %}</span></p>
+  {% else %}
+    <p class="alert alert-warning" role="status">{% icon "triangle-alert" %}<span>This question uses an answer type that cannot be shown here.</span></p>
+  {% endif %}
+  {% if iv.widget == "radio" or iv.widget == "checkbox" or iv.widget == "score" or iv.widget == "boolean" or iv.widget == "matrix" %}</fieldset>{% endif %}
+
+  {% if iv.can_na %}<label class="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" class="checkbox" name="na__{{ iv.id }}" value="1"{% if iv.not_applicable %} checked{% endif %}> Not applicable</label>{% endif %}
+  {% if iv.widget != "media" %}
+  <details class="mt-2"{% if iv.comment or iv.result.comment_required %} open{% endif %}>
+    <summary class="cursor-pointer text-sm text-muted-foreground">{% if iv.result.comment_required %}Comment (required){% else %}Add a comment{% endif %}</summary>
+    {% for p in iv.result.comment_prompts %}<p class="mt-1 text-sm">{{ p }}</p>{% endfor %}
+    <label class="sr-only" for="c-{{ iv.id }}">Comment for: {{ iv.item.question }}</label>
+    <textarea id="c-{{ iv.id }}" class="textarea mt-1" rows="2" name="c__{{ iv.id }}" maxlength="2000">{{ iv.comment }}</textarea>
+  </details>
+  {% endif %}
+  {% if iv.conflict %}<p class="mt-2 text-sm text-warning-text" role="alert">{% icon "triangle-alert" %} This answer was changed elsewhere; the saved version is shown.</p>{% endif %}
+  {% for e in iv.errors %}<p class="mt-2 text-sm text-danger-text" role="alert">{% icon "circle-alert" %} {{ e }}</p>{% endfor %}
+</div>

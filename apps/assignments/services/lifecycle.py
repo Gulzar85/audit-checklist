@@ -1,8 +1,8 @@
-"""The assignment lifecycle: the *only* place status changes (ADR 0051).
+﻿"""The assignment lifecycle: the *only* place status changes (ADR 0051).
 
 Persisted transitions (``constants.TRANSITIONS``)::
 
-    draft ──issue──▶ assigned          draft/assigned/in_progress ──cancel──▶ cancelled          cancelled ──reopen──▶ draft
+    draft â”€â”€issueâ”€â”€â–¶ assigned          draft/assigned/in_progress â”€â”€cancelâ”€â”€â–¶ cancelled          cancelled â”€â”€reopenâ”€â”€â–¶ draft
 
 ``in_progress`` and ``completed`` are reserved for Phase 9 (real executions): nothing here, in a form, a serializer, an import
 or the admin can set them.  ``overdue`` is derived from ``due_at`` and the clock, never stored.
@@ -25,7 +25,8 @@ from django.utils.translation import gettext_lazy as _
 from apps.core.services import stamp_history
 
 from .. import events, policies
-from ..constants import TRANSITIONS, AssignmentStatus
+from .. import hooks
+from ..constants import SYSTEM_TRANSITIONS, TRANSITIONS, AssignmentStatus
 from ..models import ChecklistAssignment
 from . import validation as v
 from .assignment import VERBS, integrity_error, log
@@ -110,6 +111,8 @@ def cancel(assignment: ChecklistAssignment, *, actor: Any, reason: str) -> Check
             if len(reason) > 300:
                 raise AssignmentError(_("The reason may be at most 300 characters."), "reason_required")
             previous = locked.status
+            for hook in hooks.before_cancel:  # e.g. the execution engine cancels an in-progress execution (responses kept)
+                hook(locked, actor, reason)
             locked.status = AssignmentStatus.CANCELLED
             locked.cancelled_at = timezone.now()
             locked.cancelled_by = actor if getattr(actor, "is_authenticated", False) else None
@@ -140,3 +143,34 @@ def reopen(assignment: ChecklistAssignment, *, actor: Any) -> ChecklistAssignmen
             return locked
 
     return _run(assignment, actor, "reopen", operation)
+
+
+def _system_transition(assignment: ChecklistAssignment, actor: Any, new: str, verb: str, description: str) -> ChecklistAssignment:
+    """Move a *locked* assignment along a system-only transition; the caller (the execution service) holds the transaction."""
+    if new not in SYSTEM_TRANSITIONS.get(assignment.status, frozenset()):
+        raise AssignmentError(_("A %(old)s assignment cannot become %(new)s.") % {"old": assignment.status, "new": new}, "invalid_transition")
+    previous = assignment.status
+    assignment.status = new
+    stamp_history(assignment, actor, verb)
+    assignment.save()
+    log(verb, assignment, actor, description, previous_status=previous)
+    return assignment
+
+
+def mark_in_progress(assignment: ChecklistAssignment, *, actor: Any) -> ChecklistAssignment:
+    """First execution started: assigned -> in_progress.  Called only by the execution service (row locked by the caller)."""
+    if assignment.status == AssignmentStatus.IN_PROGRESS:
+        return assignment  # a resumed execution: nothing to do
+    return _system_transition(assignment, actor, AssignmentStatus.IN_PROGRESS, VERBS["started"], f"Work started on {assignment.reference}")
+
+
+def mark_completed(assignment: ChecklistAssignment, *, actor: Any) -> ChecklistAssignment:
+    """A real execution was submitted: in_progress -> completed.  Never called by a form, serializer, import or the admin."""
+    return _system_transition(assignment, actor, AssignmentStatus.COMPLETED, VERBS["completed"], f"Completed {assignment.reference}")
+
+
+
+def mark_released(assignment: ChecklistAssignment, *, actor: Any) -> ChecklistAssignment:
+    """The only live execution was cancelled: in_progress -> assigned (the work is open again)."""
+    return _system_transition(assignment, actor, AssignmentStatus.ASSIGNED, VERBS["released"], f"{assignment.reference} is open again")
+

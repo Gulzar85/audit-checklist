@@ -1,4 +1,4 @@
-"""Configuration-driven application navigation (sidebar, mobile drawer, command palette).
+﻿"""Configuration-driven application navigation (sidebar, mobile drawer, command palette).
 
 The navigation is *data*: a list of :class:`NavItem` grouped into sections.  Adding a module
 to the menu is one entry here - never template edits.  Rules:
@@ -100,7 +100,8 @@ NAVIGATION: tuple[NavItem, ...] = (
             visible=can_see("checklist.view"), active=("checklists:*",)),
     NavItem("assignments", "Assignments", "user-check", "checklists", url_name="assignments:list",
             visible=can_see("assignment.view"), active=("assignments:*",)),
-    NavItem("executions", "Executions", "play", "checklists"),
+    NavItem("executions", "My work", "play", "checklists", url_name="executions:list",
+              visible=can_see("execution.create"), active=("executions:*",)),
     # --- Quality (planned) ------------------------------------------------------------------
     NavItem("findings", "Findings", "triangle-alert", "quality"),
     NavItem("corrective_actions", "Corrective Actions", "wrench", "quality"),

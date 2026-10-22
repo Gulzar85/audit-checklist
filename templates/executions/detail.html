@@ -1,0 +1,63 @@
+﻿{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ execution.reference }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Execution history" "executions:history" execution.reference %}{% endblock %}
+
+{% block page_header %}
+{% page_header title=execution.reference subtitle=subtitle icon="clipboard-check" status=execution.status %}
+  {% if can_continue %}<a class="btn btn-primary" href="{% url 'executions:workspace' execution.pk %}">{% icon "play" %} Continue</a>{% endif %}
+  {% if can_preview %}<a class="btn btn-secondary" href="{% url 'checklists:version_preview' execution.version.template_id execution.version.version_number %}">{% icon "eye" %} Checklist definition</a>{% endif %}
+{% endpage_header %}
+{% endblock %}
+
+{% block content %}
+{% if execution.status == "submitted" %}<div class="alert alert-success mb-6" role="status">{% icon "circle-check" %}<p>Submitted {{ execution.submitted_at|date:"M d, Y H:i" }}{% if execution.submitted_by %} by {{ execution.submitted_by.get_short_name }}{% endif %}. These answers are read-only.</p></div>{% endif %}
+{% if execution.status == "cancelled" %}<div class="alert alert-warning mb-6" role="status">{% icon "circle-x" %}<p>Cancelled {{ execution.cancelled_at|date:"M d, Y H:i" }}: {{ execution.cancel_reason }}. The saved answers are kept for the record.</p></div>{% endif %}
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="min-w-0 space-y-6 lg:col-span-2">
+    <section class="card" aria-labelledby="d-info">
+      <div class="card-header"><h2 id="d-info" class="card-title">Execution</h2></div>
+      <dl class="card-body grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+        <div><dt class="text-muted-foreground">Execution status</dt><dd>{% status_badge execution.status %}</dd></div>
+        <div><dt class="text-muted-foreground">Assignment</dt><dd><a href="{{ assignment.get_absolute_url }}">{{ assignment.reference }}</a> {% status_badge assignment.effective_status %}</dd></div>
+        <div><dt class="text-muted-foreground">Checklist version</dt><dd>{{ execution.version.template.name }} · version {{ execution.version.version_number }}</dd></div>
+        <div><dt class="text-muted-foreground">Location</dt><dd>{{ path }}</dd></div>
+        <div><dt class="text-muted-foreground">Started</dt><dd>{{ execution.started_at|date:"M d, Y H:i" }}{% if execution.started_by %} by {{ execution.started_by.get_short_name }}{% endif %}</dd></div>
+        <div><dt class="text-muted-foreground">Progress</dt><dd>{{ progress.percent }}%</dd></div>
+      </dl>
+    </section>
+    {% for block in blocks %}
+      <section class="card" aria-labelledby="sec-{{ block.section.pk }}">
+        <div class="card-header"><h2 id="sec-{{ block.section.pk }}" class="card-title">{{ block.section.name }}</h2></div>
+        <dl class="divide-y divide-border">
+          {% for row in block.rows %}
+            <div class="px-5 py-3 text-sm">
+              <dt class="font-medium">{{ row.item.question }}</dt>
+              <dd class="mt-1">
+                {% if row.answer.kind == "empty" %}<span class="text-muted-foreground">Not answered</span>
+                {% elif row.answer.kind == "na" %}<span class="text-muted-foreground">Not applicable</span>
+                {% elif row.answer.kind == "list" %}{{ row.answer.items|join:", " }}
+                {% elif row.answer.kind == "matrix" %}<ul class="list-disc pl-5">{% for label, cell in row.answer.rows %}<li>{{ label }}: {{ cell }}</li>{% endfor %}</ul>
+                {% else %}<span class="whitespace-pre-line">{{ row.answer.text }}</span>{% endif %}
+                {% if row.comment %}<p class="mt-1 text-muted-foreground">{% icon "message-square" %} {{ row.comment }}</p>{% endif %}
+              </dd>
+            </div>
+          {% endfor %}
+        </dl>
+      </section>
+    {% endfor %}
+  </div>
+  <aside class="min-w-0">
+    <section class="card" aria-labelledby="d-history">
+      <div class="card-header"><h2 id="d-history" class="card-title">History</h2></div>
+      <ol class="divide-y divide-border">
+        {% for event in timeline %}
+          <li class="px-5 py-3 text-sm"><p>{{ event.description }}</p><p class="text-xs text-muted-foreground">{{ event.created_at|date:"M d, Y H:i" }}{% if event.actor %} · {{ event.actor.get_short_name }}{% endif %}{% if event.metadata.reason %} · “{{ event.metadata.reason }}”{% endif %}</p></li>
+        {% empty %}<li class="px-5 py-3 text-sm text-muted-foreground">No activity yet.</li>{% endfor %}
+      </ol>
+    </section>
+  </aside>
+</div>
+{% endblock %}
+

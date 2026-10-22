@@ -1,11 +1,11 @@
-# Checklist Platform
+﻿# Checklist Platform
 
 A generic, multi-organization **checklist & inspection platform** for enterprise use:
 QA audits, operations inspections, restaurant and safety checks, and compliance
 programmes all run on one configurable engine with scoring, findings, corrective
 actions, workflow, and offline execution.
 
-> **Phase 2 — Identity, Profile & Organization Membership.** On top of the Phase 1 backbone, the
+> **Phase 2 â€” Identity, Profile & Organization Membership.** On top of the Phase 1 backbone, the
 > platform now has its identity boundary: **Microsoft Entra ID sign-in** (MSAL), a single
 > authoritative user lifecycle (`pending` / `active` / `suspended` / `inactive`), account and
 > preference pages, organization switching, an identity API, and sign-in throttling. No
@@ -90,6 +90,7 @@ recursive queries and row locks are part of what is under test). Point
 .\venv\Scripts\python manage.py seed_demo_checklists --organization <slug>   # checklist demos (incl. conditional rules)
 .\venv\Scripts\python manage.py seed_demo_versioning --organization <slug>   # versioning walkthrough (v1 -> v2, comparison)
 .\venv\Scripts\python manage.py seed_demo_assignments --organization <slug>  # assignments: hierarchy, v1 checklist, draft/issued/cancelled
+.\venv\Scripts\python manage.py seed_demo_executions --organization <slug>   # executions: v1 checklist, in-progress and submitted runs
 .\venv\Scripts\python manage.py seal_checklist_versions   # record integrity hashes of versions published before Phase 7
 .\venv\Scripts\python manage.py verify_checklist_integrity   # non-zero exit if a published definition was altered
 .\venv\Scripts\python manage.py spectacular --validate --fail-on-warn   # OpenAPI schema
@@ -125,9 +126,9 @@ tests/             pytest suite
 docs/              architecture notes (docs/architecture/) and ADRs (docs/decisions/)
 ```
 
-Each domain app follows the same layering - **models** (persistence + invariants) →
-**selectors** (scoped reads) → **policies** (may this user?) → **services** (writes: validated,
-locked, logged) → thin **views / API viewsets / admin / imports** that only adapt.
+Each domain app follows the same layering - **models** (persistence + invariants) â†’
+**selectors** (scoped reads) â†’ **policies** (may this user?) â†’ **services** (writes: validated,
+locked, logged) â†’ thin **views / API viewsets / admin / imports** that only adapt.
 
 ---
 
@@ -149,8 +150,8 @@ locked, logged) → thin **views / API viewsets / admin / imports** that only ad
 Two very different hierarchies run on the same schema:
 
 ```
-Org A:  Country → Region → Area → Branch → Location
-Org B:  Business Unit → Division → Facility → Department
+Org A:  Country â†’ Region â†’ Area â†’ Branch â†’ Location
+Org B:  Business Unit â†’ Division â†’ Facility â†’ Department
 ```
 
 ## What Phase 2 provides
@@ -230,3 +231,4 @@ Each is captured as an ADR under [`docs/decisions/`](docs/decisions/).
 ## UI design system
 
 See [docs/ui-design-system.md](docs/ui-design-system.md): layouts, components, tokens, accessibility, and how to build a new page. Platform staff can browse every component at `/ui/`.
+

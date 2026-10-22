@@ -58,3 +58,6 @@ consequences. New records are appended; existing ones are superseded, not edited
 | [0051](0051-checklist-assignment-model-and-lifecycle.md) | Checklist assignments: exact version, explicit lifecycle, derived overdue | Accepted |
 | [0052](0052-duplicate-policy-and-bulk-all-or-nothing.md) | One open assignment per version and location; bulk assignment is all-or-nothing | Accepted |
 | [0053](0053-assignment-authorization-and-scope.md) | Assignment authorization: scope in the selector, 404 for invisible, 403 for forbidden | Accepted |
+| [0054](0054-executions-and-responses.md) | Executions and responses: one live execution per assignment, relational answers, frozen once submitted | Accepted |
+| [0055](0055-save-concurrency-and-submission.md) | Saving and submission: revisions, locks and one transaction | Accepted |
+| [0056](0056-evidence-boundary-and-hidden-answers.md) | Evidence boundary and hidden-answer retention | Accepted |

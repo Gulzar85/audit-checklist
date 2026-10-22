@@ -1,4 +1,4 @@
-"""Root URL configuration.
+﻿"""Root URL configuration.
 
 Web pages live under CBVs (see ``apps.core`` / ``apps.accounts``), the versioned
 REST API is mounted at ``/api/v1/`` and the OpenAPI schema at ``/api/schema/``.
@@ -38,6 +38,7 @@ urlpatterns += [
     path("access/", include("apps.permissions.urls", namespace="access")),
     path("checklists/", include("apps.checklists.urls", namespace="checklists")),
     path("assignments/", include("apps.assignments.urls", namespace="assignments")),
+    path("executions/", include("apps.executions.urls", namespace="executions")),
     # Versioned REST API.
     path("api/v1/", include(("apps.api.v1.urls", "v1"), namespace="v1")),
     # API documentation / schema.
@@ -48,3 +49,4 @@ urlpatterns += [
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+

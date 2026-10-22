@@ -1,0 +1,35 @@
+﻿{% load ui %}<div id="exec-main">
+  {% if fragment %}{% include "executions/_nav.html" with oob=True %}{% endif %}
+  <section class="mb-4" aria-label="Progress">
+    <div class="flex items-center justify-between gap-3 text-sm">
+      <p><span class="font-medium">{{ progress.percent }}% complete</span> <span class="text-muted-foreground">· {{ progress.answered }} of {{ progress.total }} {{ progress.basis }} question{{ progress.total|pluralize }}</span></p>
+      <p id="exec-status" role="status" class="text-xs text-muted-foreground">{% if saved_at %}Saved {{ saved_at|time:"H:i:s" }}{% else %}Changes are saved to the server when you leave a field.{% endif %}</p>
+    </div>
+    <progress class="progress mt-2 w-full" value="{{ progress.percent }}" max="100" aria-label="Checklist progress">{{ progress.percent }}%</progress>
+  </section>
+  {% if current %}
+  <form id="exec-form" method="post" action="{% url 'executions:workspace' execution.pk %}" class="card"
+        hx-post="{% url 'executions:workspace' execution.pk %}" hx-trigger="change delay:500ms" hx-target="#exec-main" hx-swap="outerHTML" hx-sync="this:queue last" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="section" value="{{ current.code }}">
+    <div class="card-header"><h2 class="card-title">{{ current.section.name }}</h2></div>
+    {% if current.section.instructions or current.section.description %}<p class="px-5 pt-3 text-sm text-muted-foreground whitespace-pre-line">{{ current.section.instructions|default:current.section.description }}</p>{% endif %}
+    <div class="card-body">
+      {% for iv in current.items %}{% include "executions/_item.html" %}{% empty %}<p class="text-sm text-muted-foreground">No questions apply in this section right now.</p>{% endfor %}
+    </div>
+    <div class="card-footer flex flex-wrap items-center justify-between gap-2">
+      <div class="flex gap-2">
+        {% if previous_section %}<button type="submit" name="action" value="prev" class="btn btn-secondary" hx-disable="true">{% icon "arrow-left" %} Previous</button>{% endif %}
+        {% if next_section %}<button type="submit" name="action" value="next" class="btn btn-secondary" hx-disable="true">Next {% icon "arrow-right" %}</button>{% endif %}
+      </div>
+      <div class="flex gap-2">
+        <button type="submit" name="action" value="save" class="btn btn-secondary" hx-disable="true">{% icon "save" %} Save draft</button>
+        <button type="submit" name="action" value="review" class="btn btn-primary" hx-disable="true">{% icon "clipboard-check" %} Review before submit</button>
+      </div>
+    </div>
+  </form>
+  {% else %}
+    <div class="card card-body"><p class="text-sm text-muted-foreground">This checklist has no applicable questions.</p></div>
+  {% endif %}
+</div>
+

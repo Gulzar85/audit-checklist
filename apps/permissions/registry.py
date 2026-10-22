@@ -1,4 +1,4 @@
-"""The permission registry: the single list of every permission the platform knows.
+﻿"""The permission registry: the single list of every permission the platform knows.
 
 A permission code is ``<resource>.<action>`` (``location.update``).  Code never writes the
 string: it imports the constant from :class:`P`, so a typo is an ``AttributeError`` at import
@@ -111,6 +111,7 @@ REGISTRY: tuple[PermissionDef, ...] = (
     _p("execution", "create", "Start checklist executions"),
     _p("execution", "update", "Continue checklist executions"),
     _p("execution", "submit", "Submit checklist executions"),
+    _p("execution", "cancel", "Cancel an in-progress checklist execution"),
     _p("finding", "view", "View findings"),
     _p("finding", "create", "Raise findings"),
     _p("finding", "update", "Edit findings"),
@@ -175,7 +176,7 @@ SYSTEM_ROLES: dict[str, tuple[str, str, tuple[str, ...]]] = {
         "Oversees quality across the organization; read access plus location upkeep.",
         (*_VIEW_ALL, P.LOCATION_CREATE, P.LOCATION_UPDATE, P.LOCATION_MOVE, P.AUDIT_LOG_VIEW,
          P.CHECKLIST_CREATE, P.CHECKLIST_UPDATE, P.CHECKLIST_PUBLISH, P.CHECKLIST_MANAGE, P.FINDING_CREATE, P.FINDING_UPDATE,
-         P.ASSIGNMENT_CREATE, P.ASSIGNMENT_ISSUE, P.ASSIGNMENT_UPDATE, P.ASSIGNMENT_CANCEL, P.ASSIGNMENT_REOPEN, P.ASSIGNMENT_BULK_CREATE,
+         P.ASSIGNMENT_CREATE, P.ASSIGNMENT_ISSUE, P.ASSIGNMENT_UPDATE, P.ASSIGNMENT_CANCEL, P.ASSIGNMENT_REOPEN, P.ASSIGNMENT_BULK_CREATE, P.EXECUTION_CANCEL,
          P.FINDING_CLOSE, P.CORRECTIVE_ACTION_CREATE, P.CORRECTIVE_ACTION_ASSIGN, P.CORRECTIVE_ACTION_VERIFY),
     ),
     "auditor": (
@@ -216,3 +217,4 @@ SYSTEM_ROLES: dict[str, tuple[str, str, tuple[str, ...]]] = {
         (P.ORGANIZATION_VIEW, P.LOCATION_VIEW, P.REPORT_VIEW, P.DASHBOARD_VIEW),
     ),
 }
+

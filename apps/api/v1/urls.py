@@ -6,6 +6,7 @@ from django.urls import include, path
 from rest_framework.routers import SimpleRouter
 
 from .assignments import AssignmentViewSet
+from .executions import AssignmentExecutionView, ExecutionViewSet, MyAssignmentsView, StartExecutionView
 from .checklists import AnswerTypeDetailView, AnswerTypeListView, ChecklistVersionViewSet, ChecklistViewSet, RuleMetadataView
 from .access import MemberViewSet, MyAccessView, PermissionListView, RoleViewSet
 from .locations import LocationTypeViewSet, LocationViewSet
@@ -27,11 +28,15 @@ router.register("roles", RoleViewSet, basename="role")
 router.register("checklists", ChecklistViewSet, basename="checklist")
 router.register("checklist-versions", ChecklistVersionViewSet, basename="checklist-version")
 router.register("assignments", AssignmentViewSet, basename="assignment")
+router.register("executions", ExecutionViewSet, basename="execution")
 router.register("members", MemberViewSet, basename="member")
 
 urlpatterns = [
     path("", APIRootView.as_view(), name="root"),
     path("health/", HealthCheckView.as_view(), name="health"),
+    path("my-assignments/", MyAssignmentsView.as_view(), name="my-assignments"),
+    path("assignments/<uuid:pk>/execution/", AssignmentExecutionView.as_view(), name="assignment-execution"),
+    path("assignments/<uuid:pk>/start-execution/", StartExecutionView.as_view(), name="assignment-start-execution"),
     path("me/", MeView.as_view(), name="me"),
     # Must precede the router: ``answer-types`` would otherwise be read as a checklist id.
     path("checklists/rules/metadata/", RuleMetadataView.as_view(), name="rule-metadata"),
@@ -43,4 +48,5 @@ urlpatterns = [
     path("preferences/appearance/", AppearancePreferenceView.as_view(), name="appearance"),
     path("", include(router.urls)),
 ]
+
 

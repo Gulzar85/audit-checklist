@@ -1,4 +1,4 @@
-"""Vocabulary of checklist assignments (ADR 0051).
+﻿"""Vocabulary of checklist assignments (ADR 0051).
 
 Persisted statuses: ``draft``, ``assigned``, ``cancelled`` (set by Phase 8) and ``in_progress``, ``completed`` (reserved:
 only Phase 9's execution integration may set them - no Phase 8 code path does).  ``overdue`` is *derived*, never stored:
@@ -45,4 +45,14 @@ TRANSITIONS: dict[str, frozenset[str]] = {
     AssignmentStatus.CANCELLED: frozenset({AssignmentStatus.DRAFT}),  # an explicit, authorized reopen
 }
 
+#: Transitions only the execution engine (Phase 9) may perform, through ``services.lifecycle.mark_in_progress`` /
+#: ``mark_completed``.  They are deliberately *not* in ``TRANSITIONS``: no form, API payload, import or admin can request them.
+SYSTEM_TRANSITIONS: dict[str, frozenset[str]] = {
+    AssignmentStatus.ASSIGNED: frozenset({AssignmentStatus.IN_PROGRESS}),
+    # in_progress -> assigned: the only live execution was cancelled, so the work is open again.
+    AssignmentStatus.IN_PROGRESS: frozenset({AssignmentStatus.COMPLETED, AssignmentStatus.ASSIGNED}),
+}
+
 DEFAULT_DUE_SOON_HOURS = 48
+
+

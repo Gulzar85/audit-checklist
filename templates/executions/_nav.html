@@ -1,0 +1,14 @@
+﻿{% load ui %}<nav id="exec-nav"{% if oob %} hx-swap-oob="true"{% endif %} class="card" aria-label="Checklist sections">
+  <div class="card-header"><h2 class="card-title">Sections</h2></div>
+  <ol class="divide-y divide-border">
+    {% for s in sections %}
+      <li>
+        <a class="flex items-center justify-between gap-2 px-5 py-3 text-sm {% if s.code == current.code %}font-semibold{% endif %}" href="?section={{ s.code }}"{% if s.code == current.code %} aria-current="step"{% endif %}>
+          <span>{{ s.section.name }}</span>
+          <span class="text-xs text-muted-foreground">{% if s.total %}{{ s.answered }}/{{ s.total }}{% else %}{% icon "check" %}{% endif %}</span>
+        </a>
+      </li>
+    {% endfor %}
+  </ol>
+</nav>
+

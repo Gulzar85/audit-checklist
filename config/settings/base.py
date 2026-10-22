@@ -573,6 +573,8 @@ JAZZMIN_SETTINGS = {
         "checklists.ChecklistRule": "fas fa-project-diagram",
         "assignments": "fas fa-user-check",
         "assignments.ChecklistAssignment": "fas fa-user-check",
+        "executions.ChecklistExecution": "fas fa-play-circle",
+        "executions.ChecklistResponse": "fas fa-reply",
         "executions": "fas fa-play-circle",
         "findings": "fas fa-triangle-exclamation",
         "corrective_actions": "fas fa-screwdriver-wrench",

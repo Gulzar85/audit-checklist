@@ -1,0 +1,31 @@
+﻿{% extends "base.html" %}
+{% load django_tables2 ui %}
+{% block title %}My work &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "My work" %}{% endblock %}
+
+{% block page_header %}
+{% page_header title="My work" subtitle="Checklists assigned to you or to your locations. Each one is completed against the exact version it was issued with." icon="play" %}
+  <a href="{% url 'executions:history' %}" class="btn btn-secondary">{% icon "history" %} Execution history</a>
+{% endpage_header %}
+{% endblock %}
+
+{% block content %}
+<section class="mb-6 grid gap-3 sm:grid-cols-3" aria-label="Summary">
+  <div class="card card-body"><p class="text-xs text-muted-foreground">Open work</p><p class="text-2xl font-semibold">{{ total }}</p></div>
+  <a class="card card-body block" href="?state=in_progress"><p class="text-xs text-muted-foreground">In progress</p><p class="text-2xl font-semibold">{{ in_progress }}</p></a>
+  <a class="card card-body block" href="?state=overdue"><p class="text-xs text-muted-foreground">{% icon "alarm-clock" %} Overdue</p><p class="text-2xl font-semibold {% if overdue %}text-danger-text{% endif %}">{{ overdue }}</p></a>
+</section>
+
+<div class="card mb-6">
+  {% include "components/filter_bar.html" with filter=filter reset_url=request.path hidden=hidden_filters %}
+</div>
+
+<div class="card">
+  {% if table.rows %}
+    {% render_table table %}
+  {% else %}
+    {% include "components/states/empty.html" with icon="clipboard-check" title="Nothing to do right now" message="When a checklist is assigned to you or your location it appears here." %}
+  {% endif %}
+</div>
+{% endblock %}

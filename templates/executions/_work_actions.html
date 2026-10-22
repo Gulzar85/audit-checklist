@@ -1,0 +1,10 @@
+﻿{% load ui %}{% comment %}Row action of the worklist: Start (POST, idempotent), Continue, or View. Authorization is re-checked by the destination.{% endcomment %}
+<div class="flex justify-end">
+  {% if record.live and record.live.status == "in_progress" %}
+    <a class="btn btn-primary btn-sm" href="{% url 'executions:workspace' record.live.pk %}">{% icon "play" %} Continue</a>
+  {% elif record.live %}
+    <a class="btn btn-secondary btn-sm" href="{% url 'executions:detail' record.live.pk %}">{% icon "eye" %} View</a>
+  {% else %}
+    <form method="post" action="{% url 'executions:start' record.pk %}">{% csrf_token %}<button type="submit" class="btn btn-primary btn-sm">{% icon "play" %} Start</button></form>
+  {% endif %}
+</div>

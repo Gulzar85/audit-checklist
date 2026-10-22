@@ -1,0 +1,50 @@
+﻿{% extends "base.html" %}
+{% load ui %}
+{% block title %}Review {{ execution.reference }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% url 'executions:workspace' execution.pk as w %}{% breadcrumbs "Home" "core:home" "My work" "executions:list" execution.reference w "Review" %}{% endblock %}
+{% block page_header %}{% page_header title="Review before submitting" subtitle="Everything is checked again on the server when you submit." icon="clipboard-check" %}{% endpage_header %}{% endblock %}
+
+{% block content %}
+<div class="grid gap-6 lg:grid-cols-3">
+  <section class="card lg:col-span-1" aria-labelledby="rv-summary">
+    <div class="card-header"><h2 id="rv-summary" class="card-title">Summary</h2></div>
+    <dl class="card-body space-y-2 text-sm">
+      <div><dt class="text-muted-foreground">Checklist</dt><dd class="font-medium">{{ execution.version.template.name }} · version {{ execution.version.version_number }}</dd></div>
+      <div><dt class="text-muted-foreground">Location</dt><dd>{{ path }}</dd></div>
+      <div><dt class="text-muted-foreground">Progress</dt><dd>{{ progress.percent }}% · {{ progress.answered_required }} of {{ progress.required_items }} required question{{ progress.required_items|pluralize }} answered</dd></div>
+      <div><dt class="text-muted-foreground">Blocking problems</dt><dd class="{% if blocked %}text-danger-text font-medium{% endif %}">{{ problems|length }}</dd></div>
+    </dl>
+  </section>
+  <section class="card lg:col-span-2" aria-labelledby="rv-problems">
+    <div class="card-header"><h2 id="rv-problems" class="card-title">{% if blocked %}Fix these before submitting{% else %}Ready to submit{% endif %}</h2></div>
+    {% if blocked %}
+      <ul class="divide-y divide-border">
+        {% for p in problems %}
+          <li class="px-5 py-3 text-sm">
+            {% if p.item %}<a class="font-medium" href="{% url 'executions:workspace' execution.pk %}?section={{ p.section }}#item-{{ p.item }}">{{ p.question }}</a>{% else %}<span class="font-medium">Checklist</span>{% endif %}
+            <ul class="mt-1 list-disc pl-5 text-danger-text">{% for x in p.problems %}<li>{{ x.message }}</li>{% endfor %}</ul>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="card-body text-sm">Every applicable required question is answered and valid. Once submitted, the answers can no longer be edited.</p>
+    {% endif %}
+    <div class="card-footer flex flex-wrap justify-end gap-2">
+      <a class="btn btn-secondary" href="{% url 'executions:workspace' execution.pk %}">{% icon "arrow-left" %} Back to the checklist</a>
+      {% if can_submit and not blocked %}
+        <div x-data="confirmDialog">
+          <button type="button" class="btn btn-primary" @click="show">{% icon "send" %} Submit checklist</button>
+          <dialog x-ref="dialog" class="modal-dialog" @click="onBackdrop" @close="onClose" aria-labelledby="submit-title">
+            <form method="post" action="{% url 'executions:submit' execution.pk %}" class="p-6">{% csrf_token %}
+              <h2 id="submit-title" class="text-lg font-semibold">Submit {{ execution.reference }}?</h2>
+              <p class="mt-2 text-sm text-muted-foreground">The answers become read-only. This cannot be undone.</p>
+              <div class="mt-6 flex justify-end gap-2"><button type="button" class="btn btn-secondary" @click="hide">Not yet</button><button type="submit" class="btn btn-primary">Submit</button></div>
+            </form>
+          </dialog>
+        </div>
+      {% elif not can_submit %}<p class="self-center text-sm text-muted-foreground">You do not have permission to submit this checklist.</p>{% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

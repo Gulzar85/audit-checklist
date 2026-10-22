@@ -1,4 +1,4 @@
-"""Creating and editing assignments.  Authorization, validation, locking, history and audit all happen here, once."""
+﻿"""Creating and editing assignments.  Authorization, validation, locking, history and audit all happen here, once."""
 
 from __future__ import annotations
 
@@ -27,6 +27,9 @@ VERBS = {
     "due_changed": "assignment.due_date_changed",
     "priority_changed": "assignment.priority_changed",
     "bulk_created": "assignment.bulk_created",
+    "started": "assignment.started",
+    "completed": "assignment.completed",
+    "released": "assignment.released",
     "refused": "assignment.transition_refused",
 }
 
@@ -183,3 +186,5 @@ def change_priority(assignment: ChecklistAssignment, *, actor: Any, priority: st
 
 
 __all__ = ["VERBS", "change_assignee", "change_due_date", "change_priority", "create_assignment", "log", "timezone", "update_draft"]
+
+

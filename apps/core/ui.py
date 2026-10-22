@@ -1,4 +1,4 @@
-"""UI vocabulary shared by templates: one place that maps a *status* to how it looks.
+﻿"""UI vocabulary shared by templates: one place that maps a *status* to how it looks.
 
 Templates never choose colours.  A status string (``"published"``) maps to a **tone**
 (``success | warning | danger | info | neutral``, the theme engine's semantic tokens), an icon and a
@@ -28,6 +28,7 @@ STATUSES: dict[str, StatusInfo] = {
     "superseded": StatusInfo("neutral", "history", "Superseded"),
     "assigned": StatusInfo("info", "user-check", "Assigned"),
     "cancelled": StatusInfo("neutral", "circle-x", "Cancelled"),
+    "submitted": StatusInfo("success", "circle-check", "Submitted"),
     "overdue": StatusInfo("danger", "alarm-clock", "Overdue"),
     "archived": StatusInfo("neutral", "archive", "Archived"),
     "completed": StatusInfo("success", "circle-check-big", "Completed"),

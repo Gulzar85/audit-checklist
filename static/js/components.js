@@ -868,4 +868,44 @@ document.addEventListener("alpine:init", function () {
       },
     };
   });
+
+  /* Checklist execution workspace: a truthful save indicator around the HTMX autosave.  The server renders "Saved HH:MM:SS"
+     after it has stored the answers; this only reports an in-flight request or a failure - it never claims a save itself. */
+  Alpine.data("executionForm", function () {
+    function status(text, bad) {
+      var el = document.getElementById("exec-status");
+      if (!el) {
+        return;
+      }
+      el.textContent = text;
+      el.classList.toggle("text-danger-text", !!bad);
+    }
+    function isForm(event) {
+      return !!(event.detail && event.detail.elt && event.detail.elt.id === "exec-form");
+    }
+    return {
+      init: function () {
+        var root = this.$el;
+        root.addEventListener("htmx:beforeRequest", function (event) {
+          if (isForm(event)) {
+            status("Saving…", false);
+          }
+        });
+        root.addEventListener("htmx:beforeSwap", function (event) {
+          var url = (event.detail.xhr && event.detail.xhr.responseURL) || "";
+          if (isForm(event) && url.indexOf("/auth/login") !== -1) {
+            event.detail.shouldSwap = false;  /* the session expired: never replace the form with the sign-in page */
+            status("Your session expired. Your answers on this page were not saved - sign in again, then re-enter them.", true);
+          }
+        });
+        var failed = function (event) {
+          if (isForm(event)) {
+            status("Not saved. Your answers are still on this page - check your connection and try again.", true);
+          }
+        };
+        root.addEventListener("htmx:responseError", failed);
+        root.addEventListener("htmx:sendError", failed);
+      },
+    };
+  });
 });
