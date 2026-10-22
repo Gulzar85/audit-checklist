@@ -5,9 +5,9 @@
  */
 
 export const SCHEMA_VERSION = 1; // the sync / package contract (apps/executions/offline/compat.py)
-export const EVALUATOR_VERSION = 1; // the rules evaluator (rules-engine.js)
+export const EVALUATOR_VERSION = 2; // the rules evaluator (rules-engine.js); 2 = evidence (REQUIRE_EVIDENCE, photo/file/signature answers)
 export const DB_NAME = "checklist-offline";
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 
 export const STORES = {
   meta: "meta",
@@ -16,12 +16,15 @@ export const STORES = {
   operations: "operations",
   conflicts: "conflicts",
   syncState: "syncState",
+  evidence: "evidence", // Phase 11: queued evidence files (Blobs) and their upload state
 };
 
 /** Package states: only ``ready`` may be opened offline; ``preparing`` is an interrupted or in-flight download. */
 export const PACKAGE_STATE = { preparing: "preparing", ready: "ready", failed: "failed" };
 /** Local answer states shown to the user (never "synced" until the server acknowledged it). */
 export const SYNC_STATE = { pending: "pending", syncing: "syncing", synced: "synced", failed: "failed", conflict: "conflict" };
+/** Evidence entry states.  Only ``available`` means "verified by the server"; ``received`` means the server has the bytes but the check is pending. */
+export const EVIDENCE_STATE = { local: "local", uploading: "uploading", received: "received", available: "available", failed: "failed", rejected: "rejected", quarantined: "quarantined" };
 /** Queue operation states. */
 export const OP_STATE = { pending: "pending", sending: "sending", failed: "failed", conflict: "conflict", rejected: "rejected", blocked: "blocked", applied: "applied" };
 
@@ -124,5 +127,15 @@ export function validateOperationRecord(rec) {
   need(["upsert_response", "clear_response", "submit"].includes(rec.type), "Operation record has an unknown type.");
   need(Object.values(OP_STATE).includes(rec.state), "Operation record has an unknown state.");
   need(Number.isInteger(rec.seq) && rec.seq >= 0, "Operation record has a bad sequence number.");
+  return rec;
+}
+
+/** Validate a stored evidence entry (the database is untrusted: a tampered record must not reach the upload code). */
+export function validateEvidenceRecord(rec) {
+  need(isObject(rec), "Evidence record is not an object.");
+  need(isUuid(rec.id) && typeof rec.ns === "string" && isUuid(rec.assignmentId) && isUuid(rec.itemId), "Evidence record has bad identifiers.");
+  need(Object.values(EVIDENCE_STATE).includes(rec.state), "Evidence record has an unknown state.");
+  need(typeof rec.name === "string" && rec.name.length > 0 && rec.name.length <= 255 && !/[\\/]/.test(rec.name), "Evidence record has a bad file name.");
+  need(Number.isInteger(rec.size) && rec.size > 0, "Evidence record has a bad size.");
   return rec;
 }

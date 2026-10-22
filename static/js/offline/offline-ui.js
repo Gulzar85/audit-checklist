@@ -148,5 +148,8 @@ export function answerControl(item, evalResult, current, { onValue, disabled }) 
       })))))));
     return h("div", { class: "overflow-x-auto" }, table);
   }
+  if (["photo", "file", "signature"].includes(type)) {
+    return null; // answered by attached files: see evidencePanel in offline-app.js
+  }
   return alert("warning", "This question type cannot be answered offline.");
 }

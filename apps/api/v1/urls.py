@@ -7,6 +7,9 @@ from rest_framework.routers import SimpleRouter
 
 from .assignments import AssignmentViewSet
 from .offline import OfflineAssignmentListView, OfflineManifestView, OfflinePackageView, OfflineSessionView, OfflineSyncView, ResolveConflictView
+from .evidence import (
+    AssetFileView, AssetPreviewView, AssetStatusView, AssetView, AttachmentDetailView, AttachmentListView, EvidenceLimitsView, TargetAttachmentsView, UploadView,
+)
 from .executions import AssignmentExecutionView, ExecutionViewSet, MyAssignmentsView, StartExecutionView
 from .checklists import AnswerTypeDetailView, AnswerTypeListView, ChecklistVersionViewSet, ChecklistViewSet, RuleMetadataView
 from .access import MemberViewSet, MyAccessView, PermissionListView, RoleViewSet
@@ -36,6 +39,15 @@ urlpatterns = [
     path("", APIRootView.as_view(), name="root"),
     path("health/", HealthCheckView.as_view(), name="health"),
     path("my-assignments/", MyAssignmentsView.as_view(), name="my-assignments"),
+    path("evidence/limits/", EvidenceLimitsView.as_view(), name="evidence-limits"),
+    path("evidence/uploads/", UploadView.as_view(), name="evidence-upload"),
+    path("evidence/<uuid:pk>/", AssetView.as_view(), name="evidence-detail"),
+    path("evidence/<uuid:pk>/status/", AssetStatusView.as_view(), name="evidence-status"),
+    path("evidence/<uuid:pk>/download/", AssetFileView.as_view(), name="evidence-download"),
+    path("evidence/<uuid:pk>/preview/", AssetPreviewView.as_view(), name="evidence-preview"),
+    path("attachments/", AttachmentListView.as_view(), name="attachments"),
+    path("attachments/<uuid:pk>/", AttachmentDetailView.as_view(), name="attachment"),
+    path("targets/<str:target_type>/<uuid:target_id>/attachments/", TargetAttachmentsView.as_view(), name="target-attachments"),
     path("offline/session/", OfflineSessionView.as_view(), name="offline-session"),
     path("offline/manifest/", OfflineManifestView.as_view(), name="offline-manifest"),
     path("offline/assignments/", OfflineAssignmentListView.as_view(), name="offline-assignments"),

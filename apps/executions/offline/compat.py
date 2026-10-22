@@ -11,15 +11,17 @@ from __future__ import annotations
 from typing import Any
 
 from apps.checklists.answer_types import registry
+from apps.evidence.validation import describe_limits
 
 SCHEMA_VERSION = 1  # the sync / package contract
-EVALUATOR_VERSION = 1  # the JavaScript rules evaluator
+EVALUATOR_VERSION = 2  # the JavaScript rules evaluator (2: evidence - REQUIRE_EVIDENCE and photo/file/signature answers)
 
-#: Answer types the offline workspace can render, validate and store.
+#: Answer types the offline workspace can render, validate and store.  Evidence types (photo / file / signature) are *answered by uploads*:
+#: the device stores the file Blob in IndexedDB and uploads it through the evidence endpoint (Phase 11, docs/offline-evidence-sync.md).
 SUPPORTED_ANSWER_TYPES = (
     "boolean", "yes_no", "yes_no_na", "single_choice", "multiple_choice", "score", "numeric", "text", "long_text", "date", "datetime", "matrix",
+    "photo", "file", "signature",
 )
-#: Evidence types: no secure evidence storage exists yet (Phase 11), so they are never captured offline.
 MEDIA_ANSWER_TYPES = ("photo", "file", "signature")
 
 #: Comparison families the client evaluator implements; text (Unicode case folding) and datetime (time zones) are server-only.
@@ -30,7 +32,7 @@ SUPPORTED_OPERATORS = (
 )
 SUPPORTED_ACTIONS = (
     "SHOW_ITEM", "HIDE_ITEM", "SHOW_SECTION", "HIDE_SECTION", "REQUIRE_ITEM", "MAKE_OPTIONAL", "REQUIRE_COMMENT", "ADD_INSTRUCTIONS",
-    "DISPLAY_MESSAGE",
+    "DISPLAY_MESSAGE", "REQUIRE_EVIDENCE",
 )
 
 #: Limits of one sync request (abuse control).
@@ -42,11 +44,11 @@ MAX_VALUE_BYTES = 20_000
 def manifest() -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION, "evaluator_version": EVALUATOR_VERSION,
-        "supported_answer_types": list(SUPPORTED_ANSWER_TYPES), "unsupported_answer_types": list(MEDIA_ANSWER_TYPES),
+        "supported_answer_types": list(SUPPORTED_ANSWER_TYPES), "unsupported_answer_types": [],
         "supported_operators": list(SUPPORTED_OPERATORS), "supported_actions": list(SUPPORTED_ACTIONS),
         "limits": {"max_operations": MAX_OPERATIONS, "max_body_bytes": MAX_BODY_BYTES, "max_value_bytes": MAX_VALUE_BYTES},
         "operations": ["upsert_response", "clear_response", "submit"],
-        "evidence": "unavailable",
+        "evidence": "supported", "evidence_upload": "/api/v1/evidence/uploads/", "evidence_limits": describe_limits(),
     }
 
 
@@ -75,10 +77,7 @@ def compatibility(snapshot: Any, compiled: Any) -> list[str]:
     for item in snapshot.items.values():
         if not item.active:
             continue
-        if item.answer_type in MEDIA_ANSWER_TYPES:
-            if item.required:
-                reasons.append(f"“{item.question}” needs a photo, file or signature, which cannot be captured yet")
-        elif item.answer_type not in SUPPORTED_ANSWER_TYPES:
+        if item.answer_type not in SUPPORTED_ANSWER_TYPES:
             reasons.append(f"“{item.question}” uses an answer type that is not available offline")
     if compiled.cyclic:
         reasons.append("the checklist's rules cannot be evaluated")
@@ -86,8 +85,6 @@ def compatibility(snapshot: Any, compiled: Any) -> list[str]:
         _condition_problems(rule.stored_condition, snapshot.items, reasons)
         for action in rule.stored_actions:
             kind = action.get("type")
-            if kind == "REQUIRE_EVIDENCE":
-                reasons.append(f"rule “{rule.name}” requires evidence, which cannot be captured yet")
-            elif kind not in SUPPORTED_ACTIONS:
+            if kind not in SUPPORTED_ACTIONS:
                 reasons.append(f"rule “{rule.name}” uses {kind}, which is not available offline")
     return list(dict.fromkeys(reasons))

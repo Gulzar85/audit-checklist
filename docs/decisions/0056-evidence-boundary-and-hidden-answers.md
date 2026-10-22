@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-10-22
+- **Note:** the evidence boundary part is superseded by [ADR 0060](0060-evidence-model-and-target-registry.md) (Phase 11); the hidden-answer retention policy stands.
 
 ## Context
 Photo, file and signature answers need secure storage (Phase 11), and rules can hide a question after it was answered.

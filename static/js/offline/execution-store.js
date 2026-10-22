@@ -7,13 +7,15 @@
  */
 import { evaluate, problems as localProblems, progress as localProgress } from "./rules-engine.js";
 import { normalize, isEmpty } from "./validators.js";
-import { PACKAGE_STATE, STORES, SYNC_STATE } from "./schema.js";
+import { EVIDENCE_STATE, PACKAGE_STATE, STORES, SYNC_STATE } from "./schema.js";
+import { EvidenceStore } from "./evidence-store.js";
 import { LocalConflict, packageKey, planResponseWrite, planSubmit } from "./sync-queue.js";
 
 export class ExecutionStore {
   constructor({ ctx }) {
     this.ctx = ctx;
     this.chain = Promise.resolve();
+    this.evidence = new EvidenceStore({ ctx });
   }
 
   serialized(task) {
@@ -46,6 +48,26 @@ export class ExecutionStore {
         answers[item.code] = r.value;
       }
     }
+    // Evidence questions are answered by the files attached to them (local entries count for the on-device experience; the server counts only verified ones).
+    const entries = await this.evidence.list(assignmentId);
+    const evidence = {};
+    const counts_ = {};
+    for (const e of entries) {
+      if ([EVIDENCE_STATE.rejected, EVIDENCE_STATE.quarantined].includes(e.state)) {
+        (evidence[e.itemCode] ||= []).push(e);
+        continue;
+      }
+      (evidence[e.itemCode] ||= []).push(e);
+      (counts_[e.itemCode] ||= { total: 0, byKind: {} });
+      counts_[e.itemCode].total += 1;
+      counts_[e.itemCode].byKind[e.kind] = (counts_[e.itemCode].byKind[e.kind] || 0) + 1;
+    }
+    for (const item of pkg.items) {
+      if (!["photo", "file", "signature"].includes(item.answer_type) || !counts_[item.code]) continue;
+      const live = (evidence[item.code] || []).filter((e) => ![EVIDENCE_STATE.rejected, EVIDENCE_STATE.quarantined].includes(e.state));
+      answers[item.code] = item.answer_type === "signature" ? { signer_name: live[0].caption || "", file_id: live[0].id }
+        : live.map((e) => ({ file_id: e.id, name: e.name, size: e.size, content_type: e.type }));
+    }
     const evaluation = evaluate(pkg, answers, notApplicable);
     const ops = await this.ctx.storage.getAllByIndex(STORES.operations, "byAssignment", assignmentId);
     const counts = { local: 0, pending: 0, syncing: 0, synced: 0, failed: 0, conflict: 0 };
@@ -63,7 +85,7 @@ export class ExecutionStore {
     const readOnly = record.executionStatus === "submitted" || record.submitState === "submitted" || !!record.blockedReason || record.executionStatus === "cancelled";
     return {
       record, pkg, evaluation, responses, answers, progress: localProgress(evaluation), counts, readOnly,
-      problems: localProblems(evaluation, responses), submit: submitOp ? { state: submitOp.state, error: submitOp.lastError, problems: submitOp.errors } : null,
+      evidence, problems: localProblems(evaluation, responses, counts_), submit: submitOp ? { state: submitOp.state, error: submitOp.lastError, problems: submitOp.errors } : null,
       submitState: record.submitState, blockedReason: record.blockedReason,
     };
   }

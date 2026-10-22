@@ -5,7 +5,7 @@
 | Where | What | Never |
 |---|---|---|
 | IndexedDB (`checklist-offline`) | the prepared package (checklist definition, assignment metadata, location path, instructions), the user's answers and comments, the sync queue, conflicts | passwords, OAuth/MSAL tokens, session secrets, permissions, roles, other users' data |
-| Cache Storage (`cp-static-v6`) | the public app shell, the offline fallback page, CSS/JS/icons | authenticated HTML, API responses, anything with user data |
+| Cache Storage (`cp-static-v7`) | the public app shell, the offline fallback page, CSS/JS/icons | authenticated HTML, API responses, anything with user data |
 | `localStorage` | `cp-offline-account` (user id + organization id), `cp-offline-session-ended` (flag), the retention-days setting | tokens, answers |
 | memory only | the CSRF token returned by `GET /offline/session/` | - |
 

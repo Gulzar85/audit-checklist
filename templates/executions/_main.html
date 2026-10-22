@@ -28,6 +28,12 @@
       </div>
     </div>
   </form>
+  {% for iv in current.items %}{% if iv.evidence and iv.evidence.can_upload %}
+    <form id="ev-form-{{ iv.id }}" method="post" action="{% url 'evidence:upload' %}" enctype="multipart/form-data" hidden
+          hx-post="{% url 'evidence:upload' %}" hx-encoding="multipart/form-data" hx-trigger="change from:#ev-input-{{ iv.id }}" hx-target="#evidence-{{ iv.id }}" hx-swap="outerHTML">
+      {% csrf_token %}<input type="hidden" name="execution" value="{{ execution.pk }}"><input type="hidden" name="item" value="{{ iv.id }}">
+    </form>
+  {% endif %}{% endfor %}
   {% else %}
     <div class="card card-body"><p class="text-sm text-muted-foreground">This checklist has no applicable questions.</p></div>
   {% endif %}

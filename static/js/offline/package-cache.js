@@ -15,7 +15,8 @@ export async function unsyncedCount(ctx, assignmentId) {
   const responses = await ctx.storage.getAllByIndex(STORES.responses, "byAssignment", assignmentId);
   const ops = await ctx.storage.getAllByIndex(STORES.operations, "byAssignment", assignmentId);
   const conflicts = await ctx.storage.getAllByIndex(STORES.conflicts, "byAssignment", assignmentId);
-  return responses.filter((r) => r.syncState !== SYNC_STATE.synced).length + ops.filter((o) => o.state !== "applied").length + conflicts.length;
+  const evidence = (await ctx.storage.getAllByIndex(STORES.evidence, "byAssignment", assignmentId)).filter((e) => e.ns === ctx.ns && ["local", "uploading", "failed", "rejected"].includes(e.state));
+  return responses.filter((r) => r.syncState !== SYNC_STATE.synced).length + ops.filter((o) => o.state !== "applied").length + conflicts.length + evidence.length;
 }
 
 export class PackageCache {
@@ -146,6 +147,9 @@ export class PackageCache {
     for (const c of await ctx.storage.getAllByIndex(STORES.conflicts, "byAssignment", assignmentId)) {
       batch.push({ type: "delete", store: STORES.conflicts, key: c.opId });
     }
+    for (const e of await ctx.storage.getAllByIndex(STORES.evidence, "byAssignment", assignmentId)) {
+      if (e.ns === ctx.ns) batch.push({ type: "delete", store: STORES.evidence, key: e.id });
+    }
     await ctx.storage.batch(batch);
     return { removed: true, unsynced: 0 };
   }
@@ -179,6 +183,11 @@ export async function purgeOtherAccounts(storage, currentNs) {
       unsyncedAssignments.add(`${o.ns}|${o.assignmentId}`);
     }
   }
+  for (const e of await storage.getAll(STORES.evidence)) {
+    if (e.ns !== currentNs && ["local", "uploading", "failed", "rejected"].includes(e.state)) {
+      unsyncedAssignments.add(`${e.ns}|${e.assignmentId}`);
+    }
+  }
   for (const p of await storage.getAll(STORES.packages)) {
     if (p.ns === currentNs) {
       continue;
@@ -190,6 +199,11 @@ export async function purgeOtherAccounts(storage, currentNs) {
       for (const r of await storage.getAllByIndex(STORES.responses, "byAssignment", p.assignmentId)) {
         if (r.ns === p.ns) {
           batch.push({ type: "delete", store: STORES.responses, key: r.key });
+        }
+      }
+      for (const e of await storage.getAllByIndex(STORES.evidence, "byAssignment", p.assignmentId)) {
+        if (e.ns === p.ns) {
+          batch.push({ type: "delete", store: STORES.evidence, key: e.id });
         }
       }
     }

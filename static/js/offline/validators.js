@@ -9,6 +9,9 @@ const DEFAULTS = {
   score: { min: 1, max: 5, step: 1 },
   text: { min_length: 0, max_length: 255 },
   long_text: { min_length: 0, max_length: 5000 },
+  photo: { max_files: 1, max_size_mb: 10, allowed_extensions: ["jpg", "jpeg", "png", "webp", "heic"] },
+  file: { max_files: 1, max_size_mb: 10, allowed_extensions: ["pdf", "doc", "docx", "xls", "xlsx", "csv", "txt", "jpg", "jpeg", "png"] },
+  signature: { require_name: true },
 };
 
 /** Fill the defaults the server would (a package already has them; test fixtures may not). */
@@ -86,6 +89,36 @@ function textValue(raw, config, multiline) {
     return bad("too_long", `Enter at most ${config.max_length} characters.`);
   }
   return ok(value);
+}
+
+/** photo / file answers are lists of *references* to uploads (the files themselves travel through the evidence upload, never as an answer). */
+function fileRefs(raw, config) {
+  const entries = Array.isArray(raw) ? raw : raw && typeof raw === "object" ? [raw] : null;
+  if (!entries) {
+    return bad("type", "Provide a list of uploaded files.");
+  }
+  const seen = new Set();
+  const out = [];
+  for (const e of entries) {
+    if (!e || typeof e !== "object" || typeof e.name !== "string" || !/^[0-9a-f-]{36}$/i.test(String(e.file_id))) {
+      return bad("file_id", "Each file needs the id returned by the upload.");
+    }
+    const ext = e.name.includes(".") ? e.name.split(".").pop().toLowerCase() : "";
+    if (!(config.allowed_extensions || []).includes(ext)) {
+      return bad("extension", "This file type is not allowed here.");
+    }
+    if (!Number.isInteger(e.size) || e.size < 1 || e.size > (config.max_size_mb || 10) * 1024 * 1024) {
+      return bad("too_large", `Files may be at most ${config.max_size_mb || 10} MB.`);
+    }
+    if (!seen.has(e.file_id)) {
+      seen.add(e.file_id);
+      out.push({ file_id: e.file_id, name: e.name, size: e.size, content_type: e.content_type || null });
+    }
+  }
+  if (out.length > (config.max_files || 1)) {
+    return bad("too_many", `At most ${config.max_files || 1} file${(config.max_files || 1) === 1 ? "" : "s"} may be attached.`);
+  }
+  return ok(out);
 }
 
 function optionValues(options) {
@@ -184,6 +217,22 @@ export function normalize(item, raw, availableOptions) {
         return bad("incomplete", "Answer every row.");
       }
       return ok(out);
+    }
+    case "photo":
+    case "file":
+      return fileRefs(raw, config);
+    case "signature": {
+      if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+        return bad("type", "Provide the signer and signature.");
+      }
+      const name = typeof raw.signer_name === "string" ? raw.signer_name.trim() : "";
+      if (config.require_name !== false && !name) {
+        return bad("signer_name", "Enter the signer\u2019s name.");
+      }
+      if (!name && !raw.file_id) {
+        return bad("signature", "A signature needs a name or a signature image.");
+      }
+      return ok({ signer_name: name, file_id: raw.file_id || null });
     }
     default:
       return bad("unsupported", "This question type cannot be answered offline.");

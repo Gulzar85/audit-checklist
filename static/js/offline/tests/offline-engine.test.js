@@ -53,7 +53,7 @@ test("an offline download is not ready", async () => {
 });
 
 test("an invalid or partial package never becomes ready", async () => {
-  for (const bad of [{ items: [] }, { sections: [] }, { package_hash: "nope" }, { schema_version: 99 }, { evaluator_version: 2 }]) {
+  for (const bad of [{ items: [] }, { sections: [] }, { package_hash: "nope" }, { schema_version: 99 }, { evaluator_version: 3 }]) {
     const s = setup({ server: new FakeServer(fixturePackage(bad)) });
     const r = await s.cache.prepare(A);
     assert.equal(r.status, "failed", JSON.stringify(Object.keys(bad)));

@@ -34,6 +34,7 @@ class ItemView:
     errors: list[str] = field(default_factory=list)
     conflict: bool = False
     can_na: bool = False
+    evidence: dict[str, Any] | None = None  # the evidence panel (apps.evidence.presentation.panel_for), when the item takes evidence
 
     @property
     def id(self) -> str:
@@ -76,7 +77,7 @@ def _options(item: Any, result: Any) -> list[dict[str, Any]]:
 
 
 def build_sections(state: ExecutionState, sections: Any, *, posted: dict[str, Any] | None = None, errors: dict[str, list[str]] | None = None,
-                   conflicts: set[str] | None = None) -> list[SectionView]:
+                   conflicts: set[str] | None = None, evidence_editable: bool = False) -> list[SectionView]:
     """``posted`` = raw values (by item id) to show instead of the stored ones (answers that were refused)."""
     posted, errors, conflicts = posted or {}, errors or {}, conflicts or set()
     ev = state.evaluation
@@ -95,6 +96,11 @@ def build_sections(state: ExecutionState, sections: Any, *, posted: dict[str, An
                           not_applicable=bool(response and response.status == "not_applicable"),
                           can_na=not result.required and widget not in ("media",), errors=errors.get(str(item.pk), []),
                           conflict=str(item.pk) in conflicts)
+            if widget == "media" or result.evidence:
+                from apps.evidence.presentation import panel_for
+
+                iv.evidence = panel_for(state.execution, state.snapshot.items[item.code], result, state.evidence.get(str(item.pk), []),
+                                        editable=evidence_editable)
             value = posted.get(str(item.pk), response.value if response and response.status == "answered" else None)
             config = {**item.config, **(result.constraints or {})}
             if widget in ("radio", "select", "checkbox"):

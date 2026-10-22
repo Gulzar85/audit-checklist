@@ -131,7 +131,10 @@ export class ConflictHandler {
     const conflicts = (await ctx.storage.getAllByIndex(STORES.conflicts, "byAssignment", assignmentId)).map((c) => ({
       question: (byId[c.itemId] || {}).question || c.itemId, reason: c.code, local: c.local, server: c.server,
     }));
-    return { schema_version: SCHEMA_VERSION, assignment_id: assignmentId, exported_at: new Date(ctx.now()).toISOString(), responses, conflicts };
+    const evidence = (await ctx.storage.getAllByIndex(STORES.evidence, "byAssignment", assignmentId)).filter((e) => e.ns === ctx.ns).map((e) => ({
+      question: (byId[e.itemId] || {}).question || e.itemId, name: e.name, size: e.size, state: e.state, error: e.error, note: "File contents are not included in this export; use Save a copy in the app.",
+    }));
+    return { schema_version: SCHEMA_VERSION, assignment_id: assignmentId, exported_at: new Date(ctx.now()).toISOString(), responses, conflicts, evidence };
   }
 }
 

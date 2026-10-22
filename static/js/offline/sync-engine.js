@@ -7,6 +7,8 @@
  */
 import { SCHEMA_VERSION, STORES } from "./schema.js";
 import { applyResult, markSending, markTransientFailure, queueSummary, recoverInterrupted, resetFailed, takeBatch } from "./sync-queue.js";
+import { EVIDENCE_STATE } from "./schema.js";
+import { applyStatus, applyUploadResponse, formDataFor, markTransient, pendingUploads, receivedEntries, recoverUploading, resetFailedEvidence } from "./evidence-store.js";
 
 const STATUSES = new Set(["applied", "conflict", "rejected", "blocked"]);
 
@@ -42,6 +44,7 @@ export class SyncEngine {
 
   async start() {
     await recoverInterrupted(this.ctx);
+    await recoverUploading(this.ctx);
     return this.run();
   }
 
@@ -53,6 +56,7 @@ export class SyncEngine {
     const job = async () => {
       if (force) {
         await resetFailed(this.ctx);
+        await resetFailedEvidence(this.ctx);
       }
       return this._run();
     };
@@ -85,7 +89,12 @@ export class SyncEngine {
       this.setStatus("account_changed", "A different account is signed in. This device's offline work belongs to another account.");
       return { ok: false, reason: "account_changed" };
     }
-    const summary = { applied: 0, conflict: 0, rejected: 0, blocked: 0, sent: 0 };
+    const evidence = await this._syncEvidence(session.csrfToken);
+    if (evidence.stop) {
+      await this.scheduleRetry();
+      return { ok: false, reason: evidence.reason };
+    }
+    const summary = { applied: 0, conflict: 0, rejected: 0, blocked: 0, sent: 0, uploaded: evidence.uploaded };
     for (let round = 0; round < 50; round += 1) {
       const now = this.ctx.now();
       const batch = await takeBatch(this.ctx, now, this.limit);
@@ -111,6 +120,49 @@ export class SyncEngine {
     this.setStatus("idle");
     await this.scheduleRetry();
     return { ok: true, ...summary };
+  }
+
+  /** Upload queued evidence (before the answer operations, so a submit always follows its files), then ask about files still being checked. */
+  async _syncEvidence(csrfToken) {
+    const { ctx } = this;
+    let uploaded = 0;
+    for (const entry of await pendingUploads(ctx, ctx.now())) {
+      await ctx.storage.put(STORES.evidence, { ...entry, state: EVIDENCE_STATE.uploading });
+      const pkg = await ctx.storage.get(STORES.packages, `${ctx.ns}|${entry.assignmentId}`);
+      let response;
+      try {
+        response = await this.fetchImpl("/api/v1/evidence/uploads/", {
+          method: "POST", credentials: "same-origin", cache: "no-store", headers: { Accept: "application/json", "X-CSRFToken": csrfToken || "" },
+          body: formDataFor(entry, pkg && pkg.executionId), // no Content-Type header: the browser sets the multipart boundary
+        });
+      } catch (error) {
+        this.connectivity.report(false);
+        await markTransient(ctx, entry, "No connection to the server.", 0);
+        this.setStatus("offline");
+        return { stop: true, reason: "offline", uploaded };
+      }
+      this.connectivity.report(true);
+      const outcome = await applyUploadResponse(ctx, entry, response);
+      if (outcome === "auth") {
+        await ctx.storage.put(STORES.evidence, { ...entry, state: EVIDENCE_STATE.local });
+        this.setStatus("auth", "Sign in again to synchronize. Your files stay on this device.");
+        return { stop: true, reason: "auth", uploaded };
+      }
+      if (outcome === "ok") {
+        uploaded += 1;
+      }
+    }
+    for (const entry of await receivedEntries(ctx)) {
+      try {
+        const response = await this.fetchImpl(`/api/v1/evidence/${entry.serverAssetId}/status/`, { credentials: "same-origin", cache: "no-store", headers: { Accept: "application/json" } });
+        await applyStatus(ctx, entry, response);
+      } catch (error) {
+        this.connectivity.report(false);
+        break;
+      }
+    }
+    this.onChange(this.snapshot());
+    return { stop: false, uploaded };
   }
 
   async _send(batch, csrfToken) {

@@ -1,4 +1,4 @@
-﻿"""``/api/v1/executions/``: contract, answers, validation, submission, scope isolation, protected fields."""
+"""``/api/v1/executions/``: contract, answers, validation, submission, scope isolation, protected fields."""
 
 from __future__ import annotations
 
@@ -152,7 +152,7 @@ class TestAnswers:
     def test_media_answers_are_refused_until_evidence_exists(self, w):
         ex = started(w)
         r = put(api(w["runner"]), w, ex, "SIGN", {"signer_name": "A", "file_id": None})
-        assert r.status_code == 400 and r.json()["error"]["details"]["errors"][item_id(w["eversion"], "SIGN")][0]["code"] == "evidence_unavailable"
+        assert r.status_code == 400 and r.json()["error"]["details"]["errors"][item_id(w["eversion"], "SIGN")][0]["code"] == "use_evidence_upload"
 
     def test_protected_fields_are_rejected(self, w, org_b):
         ex = started(w)

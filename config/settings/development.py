@@ -7,6 +7,10 @@ from .base import BASE_CSP, INSTALLED_APPS, REST_FRAMEWORK
 
 DEBUG = True
 
+# Development only: no malware scanner is configured, so files are accepted as "scan not required".  Production keeps the default (True)
+# and an unscanned file then stays pending and unavailable - see docs/evidence-malware-scanning.md.
+EVIDENCE_SCAN_REQUIRED = False
+
 ALLOWED_HOSTS = ["*"]
 
 # Local development should not send real email and must not require SMTP

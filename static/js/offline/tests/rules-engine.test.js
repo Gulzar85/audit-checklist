@@ -14,7 +14,6 @@ const FAMILY = { text: "text", long_text: "text", datetime: "ordered" };
 /** The offline compatibility policy (apps/executions/offline/compat.py) applied to a vector: can the client evaluator run it? */
 function supported(vector) {
   const items = Object.fromEntries(vector.items.map((i) => [i.code, i]));
-  if (vector.items.some((i) => ["photo", "file", "signature"].includes(i.answer_type))) return false;
   const walk = (node) => {
     if (!node) return true;
     if (node.conditions) return node.conditions.every(walk);
@@ -54,6 +53,7 @@ for (const vector of runnable) {
       if (e.messages) assert.deepEqual(result.messages.map((m) => m.message), e.messages);
       if (e.comment_required) assert.deepEqual(Object.values(result.items).filter((r) => r.commentRequired).map((r) => r.code).sort(), [...e.comment_required].sort());
       for (const [code, prompts] of Object.entries(e.comment_prompts || {})) assert.deepEqual(result.items[code].commentPrompts, prompts);
+      for (const [code, evidence] of Object.entries(e.evidence || {})) assert.deepEqual(result.items[code].evidence, evidence, `evidence ${code}`);
       for (const [code, status] of Object.entries(e.answer_status || {})) assert.equal(result.items[code].answer.status, status, `status ${code}`);
       if (e.unanswered_required) assert.deepEqual(result.completion.unansweredRequired, e.unanswered_required);
     });

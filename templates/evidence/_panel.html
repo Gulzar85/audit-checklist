@@ -1,0 +1,48 @@
+{% load ui %}{% comment %}
+Evidence panel of one question.  Params: panel (apps.evidence.presentation.panel_for), error (optional), readonly (optional).
+Rendered inside the workspace (upload controls point at forms OUTSIDE the autosave form via the `form` attribute - forms cannot nest),
+and read-only on the execution detail page.  Status is always text + icon, never colour alone.
+{% endcomment %}
+<div id="evidence-{{ panel.item_id }}" class="mt-3 rounded-lg border border-border p-3" role="group" aria-label="Evidence files">
+  <p class="flex items-center gap-2 text-sm font-medium">{% icon "paperclip" %} Evidence{% if panel.attachments %} <span class="text-xs font-normal text-muted-foreground">({{ panel.attachments|length }} of {{ panel.max_files }})</span>{% endif %}</p>
+  {% if panel.requirement %}<p class="mt-1 text-sm {% if panel.attachments %}text-muted-foreground{% else %}text-warning-text{% endif %}">{{ panel.requirement }}</p>{% endif %}
+  {% if error %}<p class="mt-2 text-sm text-danger-text" role="alert">{% icon "circle-alert" %} {{ error }}</p>{% endif %}
+  {% if panel.attachments %}
+    <ul class="mt-2 divide-y divide-border">
+      {% for a in panel.attachments %}
+        <li class="flex flex-wrap items-center gap-3 py-2 text-sm{% if a.detached %} opacity-60{% endif %}">
+          {% if a.is_image %}<img src="{{ a.preview_url }}" alt="Preview of {{ a.name }}" class="h-14 w-14 rounded border border-border object-cover" loading="lazy" width="56" height="56">
+          {% else %}<span class="flex h-14 w-14 items-center justify-center rounded border border-border text-muted-foreground" aria-hidden="true">{% icon "file-text" "md" %}</span>{% endif %}
+          <div class="min-w-0 flex-1">
+            <p class="truncate font-medium">{{ a.name }}</p>
+            <p class="text-xs text-muted-foreground">{{ a.size }} · {{ a.content_type }}{% if a.caption %} · {{ a.caption }}{% endif %}</p>
+            <p class="mt-1">{% tone_badge a.status_label a.tone %}{% if a.detached %} {% tone_badge "Removed" "neutral" %}{% endif %}</p>
+          </div>
+          <div class="flex gap-1">
+            {% if a.can_open and not a.detached %}<a class="btn btn-ghost btn-sm" href="{{ a.download_url }}">{% icon "download" %} Download</a>{% endif %}
+            {% if panel.editable and not readonly and not a.detached %}
+              <button type="button" class="btn btn-ghost btn-sm" hx-post="{{ a.detach_url }}" hx-target="#evidence-{{ panel.item_id }}" hx-swap="outerHTML" hx-params="none" hx-confirm="Remove {{ a.name }} from this question?" aria-label="Remove {{ a.name }}">{% icon "trash-2" %} Remove</button>
+            {% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="mt-2 text-sm text-muted-foreground">No files attached yet.</p>
+  {% endif %}
+  {% if panel.any_pending %}<p class="mt-2 text-xs text-muted-foreground" role="status">Files waiting for the security check do not count as evidence until they are verified.</p>{% endif %}
+  {% if not readonly %}
+    {% if panel.can_upload %}
+      <div class="mt-3">
+        {% if panel.needs_name %}<label class="label" for="ev-caption-{{ panel.item_id }}">Signer's name</label><input id="ev-caption-{{ panel.item_id }}" class="input mb-2 max-w-xs" type="text" name="caption" form="ev-form-{{ panel.item_id }}" maxlength="120" required>{% endif %}
+        <label class="label" for="ev-input-{{ panel.item_id }}">Add a file</label>
+        <div class="flex flex-wrap items-center gap-2">
+          <input id="ev-input-{{ panel.item_id }}" class="input max-w-xs" type="file" name="file" form="ev-form-{{ panel.item_id }}" accept="{{ panel.accept }}"{% if panel.capture %} capture="{{ panel.capture }}"{% endif %} aria-describedby="ev-hint-{{ panel.item_id }}">
+          <button type="submit" form="ev-form-{{ panel.item_id }}" class="btn btn-secondary btn-sm">{% icon "upload" %} Upload</button>
+        </div>
+        <progress id="ev-progress-{{ panel.item_id }}" class="progress mt-2 hidden w-full max-w-xs" max="100" value="0" aria-label="Upload progress"></progress>
+        <p id="ev-hint-{{ panel.item_id }}" class="mt-1 text-xs text-muted-foreground">{{ panel.extensions }} · up to {{ panel.max_mb }} MB each. Files are checked and stored privately.</p>
+      </div>
+    {% elif panel.editable %}<p class="mt-2 text-xs text-muted-foreground">The limit of {{ panel.max_files }} file{{ panel.max_files|pluralize }} is reached. Remove one to add another.</p>{% endif %}
+  {% endif %}
+</div>

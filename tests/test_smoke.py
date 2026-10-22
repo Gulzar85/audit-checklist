@@ -38,6 +38,7 @@ def test_all_local_apps_are_installed():
         "apps.checklists",
         "apps.assignments",
         "apps.executions",
+        "apps.evidence",
         "apps.findings",
         "apps.corrective_actions",
         "apps.workflows",

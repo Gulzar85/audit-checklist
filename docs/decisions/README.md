@@ -64,3 +64,6 @@ consequences. New records are appended; existing ones are superseded, not edited
 | [0057](0057-offline-sync-protocol-and-idempotency.md) | Offline synchronization: per-operation atomic, ordered, idempotent by durable receipts | Accepted |
 | [0058](0058-offline-client-evaluator-and-compatibility-policy.md) | A small, versioned client evaluator and a refuse-don't-degrade compatibility policy | Accepted |
 | [0059](0059-offline-storage-service-worker-and-privacy.md) | Offline storage, service-worker allowlist and privacy | Accepted |
+| [0060](0060-evidence-model-and-target-registry.md) | Evidence: asset/attachment model, explicit targets, immutable facts | Accepted |
+| [0061](0061-upload-pipeline-lifecycle-and-scanning.md) | Upload pipeline, lifecycle and scanning | Accepted |
+| [0062](0062-offline-evidence-over-the-existing-sync.md) | Offline evidence over the existing sync engine | Accepted |

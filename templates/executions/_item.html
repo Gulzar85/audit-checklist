@@ -36,12 +36,13 @@
     <div class="overflow-x-auto"><table class="table"><thead><tr><th scope="col"><span class="sr-only">Row</span></th>{% for c in iv.rows.0.cells %}<th scope="col">{{ c.label }}</th>{% endfor %}</tr></thead>
       <tbody>{% for r in iv.rows %}<tr><th scope="row">{{ r.label }}</th>{% for c in r.cells %}<td>{% if iv.multiple %}<input type="checkbox" class="checkbox" name="m__{{ iv.id }}__{{ r.key }}" value="{{ c.key }}"{% if c.checked %} checked{% endif %} aria-label="{{ r.label }}: {{ c.label }}">{% else %}<input type="radio" class="radio" name="m__{{ iv.id }}__{{ r.key }}" value="{{ c.key }}"{% if c.checked %} checked{% endif %} aria-label="{{ r.label }}: {{ c.label }}">{% endif %}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
   {% elif iv.widget == "media" %}
-    <p class="alert alert-warning" role="status">{% icon "triangle-alert" %}<span>Photos, files and signatures cannot be captured yet - secure evidence storage arrives in a later release.{% if iv.required %} This question is required, so the checklist cannot be submitted until then.{% endif %}</span></p>
+    {% include "evidence/_panel.html" with panel=iv.evidence %}
   {% else %}
     <p class="alert alert-warning" role="status">{% icon "triangle-alert" %}<span>This question uses an answer type that cannot be shown here.</span></p>
   {% endif %}
   {% if iv.widget == "radio" or iv.widget == "checkbox" or iv.widget == "score" or iv.widget == "boolean" or iv.widget == "matrix" %}</fieldset>{% endif %}
 
+  {% if iv.widget != "media" and iv.evidence %}{% include "evidence/_panel.html" with panel=iv.evidence %}{% endif %}
   {% if iv.can_na %}<label class="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" class="checkbox" name="na__{{ iv.id }}" value="1"{% if iv.not_applicable %} checked{% endif %}> Not applicable</label>{% endif %}
   {% if iv.widget != "media" %}
   <details class="mt-2"{% if iv.comment or iv.result.comment_required %} open{% endif %}>

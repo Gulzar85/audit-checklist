@@ -35,7 +35,8 @@
             <div class="px-5 py-3 text-sm">
               <dt class="font-medium">{{ row.item.question }}</dt>
               <dd class="mt-1">
-                {% if row.answer.kind == "empty" %}<span class="text-muted-foreground">Not answered</span>
+                {% if row.evidence %}{% include "evidence/_panel.html" with panel=row.evidence readonly=True %}
+                {% elif row.answer.kind == "empty" %}<span class="text-muted-foreground">Not answered</span>
                 {% elif row.answer.kind == "na" %}<span class="text-muted-foreground">Not applicable</span>
                 {% elif row.answer.kind == "list" %}{{ row.answer.items|join:", " }}
                 {% elif row.answer.kind == "matrix" %}<ul class="list-disc pl-5">{% for label, cell in row.answer.rows %}<li>{{ label }}: {{ cell }}</li>{% endfor %}</ul>

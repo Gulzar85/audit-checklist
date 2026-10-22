@@ -134,7 +134,8 @@ class WorkspaceView(ExecutionObjectMixin, TemplateView):
     def context(self, *, posted=None, errors=None, conflicts=None, section=None, saved_at=None):  # noqa: ANN001, ANN201
         ex = self.execution
         state = services.build_state(ex)
-        sections = build_sections(state, get_sections_for_version(ex.version), posted=posted, errors=errors, conflicts=conflicts)
+        sections = build_sections(state, get_sections_for_version(ex.version), posted=posted, errors=errors, conflicts=conflicts,
+                                  evidence_editable=policies.can_work(self.request.user, ex))
         visible = [s for s in sections if s.visible]
         current = next((s for s in visible if s.code == (section or self.request.GET.get("section"))), visible[0] if visible else None)
         index = visible.index(current) if current in visible else -1
@@ -269,7 +270,12 @@ class ExecutionDetailView(ExecutionObjectMixin, TemplateView):
                 response = state.responses.get(item.code)
                 if response is not None and response.is_hidden:
                     continue
-                rows.append({"item": item, "answer": format_answer(item, response), "comment": response.comment if response else "",
+                panel = None
+                if item.answer_type in ("photo", "file", "signature") or result.evidence:
+                    from apps.evidence.presentation import panel_for
+
+                    panel = panel_for(ex, state.snapshot.items[item.code], result, state.evidence.get(str(item.pk), []), editable=False)
+                rows.append({"item": item, "evidence": panel, "answer": format_answer(item, response), "comment": response.comment if response else "",
                              "required": result.required, "revision": response.revision if response else 0})
             if rows:
                 blocks.append({"section": section, "rows": rows})

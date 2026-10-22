@@ -6,7 +6,7 @@ import { newId } from "../schema.js";
 
 export const A = "11111111-1111-4111-8111-111111111111"; // assignment
 export const V = "22222222-2222-4222-8222-222222222222"; // version
-export const ITEMS = { exit: "33333333-3333-4333-8333-333333333331", temp: "33333333-3333-4333-8333-333333333332", why: "33333333-3333-4333-8333-333333333333" };
+export const ITEMS = { exit: "33333333-3333-4333-8333-333333333331", temp: "33333333-3333-4333-8333-333333333332", why: "33333333-3333-4333-8333-333333333333", photo: "33333333-3333-4333-8333-333333333334" };
 export const USER = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 export const ORG = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 export const ACCOUNT = { userId: USER, organizationId: ORG };
@@ -14,7 +14,7 @@ export const NS = `${USER}:${ORG}`;
 
 export function fixturePackage(overrides = {}) {
   return {
-    schema_version: 1, evaluator_version: 1, package_hash: "a".repeat(64), generated_at: "2026-10-22T10:00:00Z", execution: null,
+    schema_version: 1, evaluator_version: 2, package_hash: "a".repeat(64), generated_at: "2026-10-22T10:00:00Z", execution: null,
     assignment: { id: A, reference: "ASG-00001", status: "assigned", priority: "normal", due_at: null, instructions: "", organization: ORG, location: { id: newId(), name: "R1", path: "North / R1" } },
     checklist: { template: newId(), name: "Daily", code: "D", version_id: V, version_number: 1, integrity_hash: "x" },
     sections: [{ id: newId(), code: "S1", name: "Safety", description: "", instructions: "", sort_order: 1 }],
@@ -43,6 +43,11 @@ export class FakeServer {
     this.down = false; // network failure before the server sees the request
     this.dropResponse = false; // the server processes the request but the response never arrives
     this.status = null; // force an HTTP status
+    this.assets = new Map(); // operation id -> {id, attachment, status, sha}
+    this.evidenceStatus = "available"; // what a new upload becomes: "available" | "pending_scan"
+    this.evidenceError = null; // {status, code, message} to refuse uploads
+    this.evidenceDrop = false; // process the upload but lose the response
+    this.uploadCount = 0;
   }
 
   fetch = async (url, init = {}) => {
@@ -52,6 +57,31 @@ export class FakeServer {
     }
     if (url.endsWith("/health/")) {
       return ok({ status: "ok" });
+    }
+    if (url.endsWith("/evidence/uploads/")) {
+      this.uploadCount += 1;
+      const form = init.body;
+      const op = form.get("operation_id");
+      const file = form.get("file");
+      if (this.evidenceError) {
+        const e = this.evidenceError;
+        return err(e.status, { details: { code: e.code, file: [e.message] } });
+      }
+      if (this.assets.has(op)) {
+        const a = this.assets.get(op);
+        return ok({ id: a.attachment, execution: "e".repeat(8) + "-0000-4000-8000-000000000000", asset: { id: a.id, status: a.status }, duplicate: true }, 200);
+      }
+      const asset = { id: crypto.randomUUID(), attachment: crypto.randomUUID(), status: this.evidenceStatus, sha: form.get("client_sha256"), name: file.name, size: file.size };
+      this.assets.set(op, asset);
+      if (this.evidenceDrop) {
+        throw new TypeError("connection reset");
+      }
+      return ok({ id: asset.attachment, execution: "e".repeat(8) + "-0000-4000-8000-000000000000", asset: { id: asset.id, status: asset.status }, duplicate: false }, 201);
+    }
+    if (/\/evidence\/[0-9a-f-]{36}\/status\/$/.test(url)) {
+      const id = url.split("/").slice(-3)[0];
+      const asset = [...this.assets.values()].find((a) => a.id === id);
+      return asset ? ok({ id, status: asset.status, available: asset.status === "available" }) : err(404);
     }
     if (url.endsWith("/offline/session/")) {
       return this.session ? ok(this.session) : err(401);

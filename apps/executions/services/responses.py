@@ -31,7 +31,7 @@ from ..models import ChecklistExecution, ChecklistResponse
 from .base import VERBS, integrity_error, lock_execution, log
 from .errors import ExecutionConflict
 from .evaluation import ExecutionState, answers_from, build_state, compile_for
-from .validation import EVIDENCE_UNAVAILABLE, is_media, problem
+from .validation import EVIDENCE_VIA_UPLOAD, is_media, problem
 
 MAX_COMMENT = 2000
 
@@ -102,7 +102,7 @@ def save_answers(execution: ChecklistExecution, *, actor: Any, inputs: list[Answ
             errors[spec.id] = [problem("comment_too_long", f"A comment may be at most {MAX_COMMENT} characters.")]
             continue
         if is_media(spec.answer_type) and not inp.not_applicable and not _is_empty(spec.answer_type, inp.value):
-            errors[spec.id] = [problem("evidence_unavailable", EVIDENCE_UNAVAILABLE)]
+            errors[spec.id] = [problem("use_evidence_upload", EVIDENCE_VIA_UPLOAD)]
             continue
         candidates[spec.code] = inp
 

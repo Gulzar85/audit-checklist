@@ -14,6 +14,13 @@ from .env import database_from_url, env
 
 DEBUG = False
 
+# Evidence tests write to a throw-away private directory (tests/evidence_support.py swaps in scanner doubles per test).
+import tempfile as _tempfile  # noqa: E402
+from pathlib import Path as _Path  # noqa: E402
+
+EVIDENCE_ROOT = _Path(_tempfile.mkdtemp(prefix="evidence-tests-"))
+EVIDENCE_SCAN_REQUIRED = False
+
 # Reuse the development database URL unless a dedicated test database is given.
 DATABASES = {
     "default": database_from_url(

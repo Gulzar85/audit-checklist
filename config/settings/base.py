@@ -1,4 +1,4 @@
-﻿"""Base settings shared by every environment.
+"""Base settings shared by every environment.
 
 Nothing in this file contains a secret.  All sensitive or environment-specific
 values are read from environment variables (see ``.env.example``) via
@@ -84,6 +84,7 @@ LOCAL_APPS = [
     "apps.checklists",
     "apps.assignments",
     "apps.executions",
+    "apps.evidence",
     "apps.findings",
     "apps.corrective_actions",
     "apps.workflows",
@@ -292,6 +293,27 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# ---------------------------------------------------------------------------
+# Evidence & attachments (Phase 11) - PRIVATE storage, never under MEDIA_ROOT / STATIC_ROOT / a web-served directory.
+# ---------------------------------------------------------------------------
+EVIDENCE_ROOT = Path(env("EVIDENCE_ROOT", str(BASE_DIR / "private_evidence")))
+#: Storage backend (dotted path of an ``apps.evidence.storage.EvidenceStorage`` subclass).  Only the private filesystem backend ships;
+#: an object-storage adapter implements the same four methods (put / open / delete / exists).
+EVIDENCE_STORAGE = env("EVIDENCE_STORAGE", "apps.evidence.storage.FileSystemEvidenceStorage")
+EVIDENCE_MAX_FILE_BYTES = env_int("EVIDENCE_MAX_FILE_BYTES", 10 * 1024 * 1024)
+EVIDENCE_MAX_REQUEST_BYTES = env_int("EVIDENCE_MAX_REQUEST_BYTES", 12 * 1024 * 1024)
+EVIDENCE_MAX_PIXELS = env_int("EVIDENCE_MAX_PIXELS", 40_000_000)
+EVIDENCE_MAX_PER_TARGET = env_int("EVIDENCE_MAX_PER_TARGET", 10)
+#: Malware scanning (apps/evidence/scanning.py).  When REQUIRED (the default) a file is never served or counted as evidence until a
+#: scanner answered "clean"; with no scanner configured it simply stays pending.  Development turns this off explicitly.
+EVIDENCE_SCANNER = env("EVIDENCE_SCANNER", "apps.evidence.scanning.UnconfiguredScanner")
+EVIDENCE_SCAN_REQUIRED = env_bool("EVIDENCE_SCAN_REQUIRED", True)
+EVIDENCE_CLAMD_HOST = env("EVIDENCE_CLAMD_HOST", "127.0.0.1")
+EVIDENCE_CLAMD_PORT = env_int("EVIDENCE_CLAMD_PORT", 3310)
+EVIDENCE_CLAMD_TIMEOUT = env_int("EVIDENCE_CLAMD_TIMEOUT", 10)
+#: May users see files that are still waiting for the security scan?  (Quarantined files are never served.)
+EVIDENCE_ALLOW_VIEW_PENDING = env_bool("EVIDENCE_ALLOW_VIEW_PENDING", False)
+
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {
@@ -401,6 +423,7 @@ REST_FRAMEWORK = {
         "anon": env("API_THROTTLE_ANON", "60/min"),
         "user": env("API_THROTTLE_USER", "1000/hour"),
         "offline_sync": env("API_THROTTLE_OFFLINE_SYNC", "120/min"),
+        "evidence_upload": env("API_THROTTLE_EVIDENCE_UPLOAD", "60/min"),
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_RENDERER_CLASSES": [
@@ -577,7 +600,10 @@ JAZZMIN_SETTINGS = {
         "executions.ChecklistExecution": "fas fa-play-circle",
         "executions.ChecklistResponse": "fas fa-reply",
         "executions.SyncReceipt": "fas fa-sync",
+        "evidence.EvidenceAsset": "fas fa-paperclip",
+        "evidence.EvidenceAttachment": "fas fa-link",
         "executions": "fas fa-play-circle",
+        "evidence": "fas fa-paperclip",
         "findings": "fas fa-triangle-exclamation",
         "corrective_actions": "fas fa-screwdriver-wrench",
         "workflows": "fas fa-diagram-project",

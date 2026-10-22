@@ -48,9 +48,10 @@ attention*, *Sign in to synchronize*, *Different account signed in*.
 
 ## Supported / limited
 
-Supported offline: every answer type except evidence (boolean, yes/no, yes/no/N-A, single/multiple choice, score, numeric, text, long
+Supported offline: every answer type (boolean, yes/no, yes/no/N-A, single/multiple choice, score, numeric, text, long
 text, date, date-time, matrix), sections, progress, comments, and the rule features listed in
-[offline-execution.md](offline-execution.md). Not available offline: photo / file / signature (no evidence storage until Phase 11) and
+[offline-execution.md](offline-execution.md). Photo / file / signature work offline since Phase 11 (Blobs in the `evidence` store, see
+[offline-evidence-sync.md](offline-evidence-sync.md)). Not available offline:
 checklists whose rules the client evaluator does not implement - those are **refused at preparation** with the reason, never degraded
 silently.
 

@@ -20,7 +20,7 @@
  */
 "use strict";
 
-const CACHE_VERSION = "cp-static-v6";
+const CACHE_VERSION = "cp-static-v7";
 const CACHE_PREFIX = "cp-static-";
 const OFFLINE_URL = "/offline/";
 const OFFLINE_APP_URL = "/offline/app/";
@@ -44,6 +44,7 @@ const PRECACHE_URLS = [
   "/static/js/offline/database-migrations.js",
   "/static/js/offline/validators.js",
   "/static/js/offline/rules-engine.js",
+  "/static/js/offline/evidence-store.js",
   "/static/js/offline/package-cache.js",
   "/static/js/offline/execution-store.js",
   "/static/js/offline/sync-queue.js",

@@ -1,4 +1,4 @@
-﻿"""The offline protocol on the server: package, manifest, synchronization (idempotency, ordering, conflicts), conflict resolution."""
+"""The offline protocol on the server: package, manifest, synchronization (idempotency, ordering, conflicts), conflict resolution."""
 
 from __future__ import annotations
 
@@ -61,8 +61,8 @@ def results(response):
 class TestManifestAndPackage:
     def test_manifest(self, w):
         data = api(w["runner"]).get(BASE + "manifest/").json()
-        assert data["schema_version"] == 1 and "numeric" in data["supported_answer_types"] and data["unsupported_answer_types"] == ["photo", "file", "signature"]
-        assert data["limits"]["max_operations"] == compat.MAX_OPERATIONS and data["evidence"] == "unavailable"
+        assert data["schema_version"] == 1 and "numeric" in data["supported_answer_types"] and data["unsupported_answer_types"] == [] and {"photo", "file", "signature"} <= set(data["supported_answer_types"])
+        assert data["limits"]["max_operations"] == compat.MAX_OPERATIONS and data["evidence"] == "supported" and data["evidence_upload"] == "/api/v1/evidence/uploads/"
         assert api(None).get(BASE + "manifest/").status_code in (401, 403)
 
     def test_the_assignment_list_says_what_can_run_offline(self, w):
@@ -252,7 +252,7 @@ class TestSync:
     def test_media_answers_are_rejected_offline_too(self, w):
         a = oissued(w)
         out = results(sync(api(w["runner"]), op(w, a, "PHOTO", [{"file_id": str(uuid.uuid4()), "name": "a.jpg", "size": 1, "content_type": "image/jpeg"}])))[0]
-        assert out["status"] == "rejected" and out["errors"][0]["code"] == "evidence_unavailable"
+        assert out["status"] == "rejected" and out["errors"][0]["code"] == "use_evidence_upload"
 
     def test_clear_response(self, w):
         a = oissued(w)

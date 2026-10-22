@@ -1,4 +1,4 @@
-﻿"""The execution screens: worklist, start/resume, workspace (full page and HTMX fragment), review, submit, detail, history, access."""
+"""The execution screens: worklist, start/resume, workspace (full page and HTMX fragment), review, submit, detail, history, access."""
 
 from __future__ import annotations
 
@@ -144,8 +144,9 @@ class TestWorkspace:
         client.force_login(w["runner"])
         html = body(client.get(url("workspace", ex.pk) + "?section=FOOD"))
         assert "Fridge temperature?" in html and "Storage kind?" in html and 'type="number"' in html and "Area condition" in html
-        assert "Photos, files and signatures" not in html
-        assert "Photos, files and signatures" in body(client.get(url("workspace", ex.pk) + "?section=GEN"))
+        assert "Evidence files" not in html
+        gen = body(client.get(url("workspace", ex.pk) + "?section=GEN"))
+        assert "Evidence files" in gen and "Add a file" in gen and "No files attached yet." in gen
 
     def test_save_draft_stores_answers_and_redirects(self, client, w):
         ex = started(w)

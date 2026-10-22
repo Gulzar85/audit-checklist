@@ -16,8 +16,9 @@ export const SUPPORTED_OPERATORS = [
   "BETWEEN", "NOT_BETWEEN", "SELECTED", "NOT_SELECTED", "CONTAINS_ANY", "CONTAINS_ALL",
 ];
 export const SUPPORTED_ACTIONS = [
-  "SHOW_ITEM", "HIDE_ITEM", "SHOW_SECTION", "HIDE_SECTION", "REQUIRE_ITEM", "MAKE_OPTIONAL", "REQUIRE_COMMENT", "ADD_INSTRUCTIONS", "DISPLAY_MESSAGE",
+  "SHOW_ITEM", "HIDE_ITEM", "SHOW_SECTION", "HIDE_SECTION", "REQUIRE_ITEM", "MAKE_OPTIONAL", "REQUIRE_COMMENT", "ADD_INSTRUCTIONS", "DISPLAY_MESSAGE", "REQUIRE_EVIDENCE",
 ];
+const EVIDENCE_KINDS = ["photo", "file", "signature"];
 
 const T = "true", F = "false", U = "unknown";
 const ANSWERED = "answered", EMPTY = "empty", NOT_APPLICABLE = "not_applicable", INVALID = "invalid", HIDDEN = "hidden";
@@ -149,7 +150,7 @@ export function evaluate(pkg, answers = {}, notApplicable = []) {
     const visible = itemVisible[item.code] && sectionVisible[item.section];
     result[item.code] = {
       code: item.code, section: item.section, visible, baseRequired: item.required, required: item.required, requiredByRule: false, optionalByRule: false,
-      commentRequired: false, commentPrompts: [], instructions: [], messages: [], answer: states[item.code],
+      commentRequired: false, commentPrompts: [], evidence: null, instructions: [], messages: [], answer: states[item.code],
     };
   }
   const messages = [];
@@ -178,6 +179,10 @@ export function evaluate(pkg, answers = {}, notApplicable = []) {
         if (action.prompt) {
           item.commentPrompts.push(action.prompt);
         }
+      } else if (action.type === "REQUIRE_EVIDENCE" && item) {
+        const current = item.evidence || { kinds: [], min_count: 1 };
+        const kinds = [...new Set([...current.kinds, ...(action.kinds || [])])].sort((a, b) => EVIDENCE_KINDS.indexOf(a) - EVIDENCE_KINDS.indexOf(b));
+        item.evidence = { kinds, min_count: Math.max(current.min_count, action.min_count || 1) };
       } else if (action.type === "ADD_INSTRUCTIONS" && item) {
         item.instructions.push(action.text);
       } else if (action.type === "DISPLAY_MESSAGE") {
@@ -197,6 +202,7 @@ export function evaluate(pkg, answers = {}, notApplicable = []) {
     if (!r.visible) {
       r.commentRequired = false;
       r.commentPrompts = [];
+      r.evidence = null;
     }
   }
   for (const code of na) {
@@ -226,7 +232,7 @@ export function progress(evaluation) {
 }
 
 /** Which blocking problems would stop submission locally (the server re-checks): per item code, a list of messages. */
-export function problems(evaluation, responses = {}) {
+export function problems(evaluation, responses = {}, evidenceCounts = {}) {
   const out = {};
   for (const r of Object.values(evaluation.items)) {
     if (!r.visible) {
@@ -241,6 +247,13 @@ export function problems(evaluation, responses = {}) {
     const comment = ((responses[r.code] || {}).comment || "").trim();
     if (r.commentRequired && !comment && (r.required || [ANSWERED, NOT_APPLICABLE].includes(r.answer.status))) {
       list.push(r.commentPrompts[0] || "A comment is required.");
+    }
+    if (r.evidence) {
+      const have = evidenceCounts[r.code] || { total: 0, byKind: {} };
+      const matching = r.evidence.kinds.length ? r.evidence.kinds.reduce((n, k) => n + (have.byKind[k] || 0), 0) : have.total;
+      if (matching < r.evidence.min_count) {
+        list.push(`Add at least ${r.evidence.min_count} ${r.evidence.kinds.join(" or ") || "file"}${r.evidence.min_count === 1 ? "" : "s"} as evidence.`);
+      }
     }
     if (list.length) {
       out[r.code] = list;

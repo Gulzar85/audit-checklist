@@ -26,6 +26,8 @@ class ExecutionState:
     responses: dict[str, ChecklistResponse]  # by item code
     evaluation: Evaluation
     by_id: dict[str, ItemSpec] = field(default_factory=dict)
+    #: ``{item id: [live EvidenceAttachment]}`` (every status; only AVAILABLE ones count as the answer).
+    evidence: dict[str, list[Any]] = field(default_factory=dict)
 
     def item_for(self, ref: Any) -> ItemSpec | None:
         return self.by_id.get(str(ref))
@@ -55,10 +57,31 @@ def compile_for(execution: ChecklistExecution) -> tuple[VersionSnapshot, Compile
     return snapshot, compile_rules(snapshot)
 
 
+MEDIA_TYPES = ("photo", "file", "signature")
+
+
+def evidence_answer(answer_type: str, attachments: list[Any]) -> Any:
+    """The Phase 5 answer value of a media item, derived from its **available** attachments (server-validated files only)."""
+    ready = [a for a in attachments if a.asset.status == "available"]
+    if not ready:
+        return None
+    if answer_type == "signature":
+        return {"signer_name": ready[0].caption or "", "file_id": str(ready[0].asset_id)}
+    return [{"file_id": str(a.asset_id), "name": a.asset.original_name, "size": a.asset.size, "content_type": a.asset.content_type} for a in ready]
+
+
 def build_state(execution: ChecklistExecution, *, responses: dict[str, ChecklistResponse] | None = None,
                 loaded: tuple[VersionSnapshot, CompiledRuleSet] | None = None) -> ExecutionState:
+    from apps.evidence import selectors as evidence_selectors
+
     snapshot, compiled = loaded or compile_for(execution)
     responses = load_responses(execution) if responses is None else responses
     answers, na = answers_from(responses)
+    evidence = evidence_selectors.by_item(execution)
+    for code, spec in snapshot.items.items():  # media answers are not typed in: they ARE the attached, verified files
+        if spec.answer_type in MEDIA_TYPES:
+            value = evidence_answer(spec.answer_type, evidence.get(spec.id, []))
+            if value is not None:
+                answers[code] = value
     evaluation = evaluate(compiled, answers, na)
-    return ExecutionState(execution, snapshot, compiled, responses, evaluation, {i.id: i for i in snapshot.items.values()})
+    return ExecutionState(execution, snapshot, compiled, responses, evaluation, {i.id: i for i in snapshot.items.values()}, dict(evidence))

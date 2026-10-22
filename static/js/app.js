@@ -228,6 +228,17 @@
     }
   }
 
+  /* Evidence upload progress (Phase 11): HTMX reports XHR progress; show it on the matching <progress>.  Purely presentational - the
+   * server decides whether the file was accepted. */
+  document.addEventListener("htmx:xhr:progress", function (event) {
+    var form = event.target && event.target.closest ? event.target.closest("form[id^=ev-form-]") : null;
+    var bar = form && document.getElementById("ev-progress-" + form.id.slice("ev-form-".length));
+    if (bar && event.detail && event.detail.total) {
+      bar.classList.remove("hidden");
+      bar.value = Math.round((100 * event.detail.loaded) / event.detail.total);
+    }
+  });
+
   initOfflineAccount();
   initServiceWorker();
 })();

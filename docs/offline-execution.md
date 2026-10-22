@@ -25,13 +25,13 @@ worklist shows "Online only: …". Policy (`apps/executions/offline/compat.py`):
 
 | Feature | Offline |
 |---|---|
-| answer types except photo/file/signature | yes |
-| optional photo/file/signature | shown with a notice; cannot be answered |
-| **required** photo/file/signature, rule-required evidence | refused (no evidence capture until Phase 11) |
+| all answer types | yes |
+| photo/file/signature, rule-required evidence | yes - Blobs stored in IndexedDB and uploaded by the sync engine ([offline-evidence-sync.md](offline-evidence-sync.md)) |
 | operators EQUALS, NOT_EQUALS, IS_EMPTY, IS_NOT_EMPTY, ordered comparisons (numbers, scores, dates), BETWEEN, SELECTED, CONTAINS_ANY/ALL | yes |
 | text-contains operators, date-time comparisons | refused |
 | actions SHOW/HIDE ITEM/SECTION, REQUIRE_ITEM, MAKE_OPTIONAL, REQUIRE_COMMENT, ADD_INSTRUCTIONS, DISPLAY_MESSAGE | yes |
-| OPTION_AVAILABILITY, SET_VALIDATION_CONSTRAINT, REQUIRE_EVIDENCE | refused |
+| REQUIRE_EVIDENCE | yes (evaluator version 2) |
+| OPTION_AVAILABILITY, SET_VALIDATION_CONSTRAINT | refused |
 
 ## Local evaluation
 
@@ -69,5 +69,5 @@ python manage.py seed_demo_offline --organization <slug>
 
 ## Limitations
 
-No offline evidence capture; no offline execution *start* of an assignment that was not prepared; Background Sync only on browsers that
+Offline evidence is limited by browser storage and is not encrypted at rest; no offline execution *start* of an assignment that was not prepared; Background Sync only on browsers that
 support it; the offline workspace is a single page (not the full Phase 9 UI); IndexedDB is not encrypted ([offline-security-and-privacy.md](offline-security-and-privacy.md)).

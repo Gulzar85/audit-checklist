@@ -18,6 +18,8 @@ import { ConflictHandler } from "./conflict-handler.js";
 import { queueSummary, LocalConflict } from "./sync-queue.js";
 import { STORES, SYNC_STATE } from "./schema.js";
 import { alert, answerControl, badge, confirmDialog, downloadJson, fmtTime, h } from "./offline-ui.js";
+import { takesEvidence } from "./evidence-store.js";
+import { EVIDENCE_STATE } from "./schema.js";
 import { onSyncRequested, registerServiceWorker, requestBackgroundSync, warmShellCache } from "./service-worker-registration.js";
 
 const root = document.getElementById("offline-app");
@@ -316,13 +318,113 @@ function workspaceItem(assignmentId, item, state) {
     h("textarea", { class: "textarea mt-1", rows: 2, maxlength: 2000, "aria-label": `Comment for: ${item.question}`, disabled: locked || !rec, onchange: (e) => save({ raw: rec.status === "answered" ? rec.value : null, notApplicable: rec.status === "not_applicable", comment: e.target.value }) }));
   commentBox.querySelector("textarea").value = comment;
   if (!rec) commentBox.querySelector("textarea").setAttribute("placeholder", "Answer the question first, then add a comment.");
+  const evidence = takesEvidence(item, result) ? evidencePanel(assignmentId, item, result, state, locked) : null;
   return h("div", { class: "border-b border-border py-5 last:border-b-0" },
     h("p", { class: "label" }, item.question, result.required ? h("span", { class: "ml-1 text-xs font-normal text-danger-text", text: "(required)" }) : null),
     item.help_text || item.instructions ? h("p", { class: "mb-2 text-sm text-muted-foreground", text: [item.help_text, item.instructions].filter(Boolean).join(" · ") }) : null,
     result.instructions.map((t) => h("p", { class: "mb-2 text-sm", text: t })), result.messages.map((m) => h("p", { class: "mb-2 text-sm", text: m.message })),
-    control, na, item.answer_type === "photo" ? null : commentBox,
+    control, evidence, na, ["photo", "file", "signature"].includes(item.answer_type) ? null : commentBox,
     h("p", { class: "mt-2 text-xs" }, syncLabel(rec), rec && rec.error ? h("span", { class: "ml-2 text-danger-text", text: rec.error }) : null),
     errors.map((m) => h("p", { class: "mt-2 text-sm text-danger-text", role: "alert", text: m })));
+}
+
+const EVIDENCE_LABEL = {
+  [EVIDENCE_STATE.local]: ["Saved on this device · waiting to upload", "warning"], [EVIDENCE_STATE.uploading]: ["Uploading…", "info"],
+  [EVIDENCE_STATE.received]: ["Received by the server · security check pending", "info"], [EVIDENCE_STATE.available]: ["Available and verified", "success"],
+  [EVIDENCE_STATE.failed]: ["Upload failed · will retry (Sync now)", "danger"], [EVIDENCE_STATE.rejected]: ["Rejected - needs your action", "danger"],
+  [EVIDENCE_STATE.quarantined]: ["Quarantined - does not count", "danger"],
+};
+
+async function removeUploaded(entry) {
+  const session = await fetchSession();
+  if (session.status !== "ok") {
+    uiErrors.set(entry.itemCode, ["Reconnect and sign in to remove a file that was already uploaded."]);
+    return;
+  }
+  let response;
+  try {
+    response = await fetch(`/api/v1/attachments/${entry.serverAttachmentId}/?reason=Removed%20offline`, {
+      method: "DELETE", credentials: "same-origin", headers: { "X-CSRFToken": session.csrfToken || "" },
+    });
+  } catch (error) {
+    uiErrors.set(entry.itemCode, ["You are offline. Remove uploaded files when you are connected."]);
+    return;
+  }
+  if (response.status === 204 || response.status === 404) {
+    await app.storage.delete(STORES.evidence, entry.id);
+  } else {
+    uiErrors.set(entry.itemCode, [response.status === 409 ? "This checklist was already submitted; the file cannot be removed." : "The server did not remove the file."]);
+  }
+}
+
+/** Files attached to one question: capture or choose, a status per file, remove.  A status is only ever as true as the last server answer. */
+function evidencePanel(assignmentId, item, result, state, locked) {
+  const entries = (state.evidence && state.evidence[item.code]) || [];
+  const config = ["photo", "file"].includes(item.answer_type) ? item.config : {};
+  const exts = (config.allowed_extensions || ["jpg", "jpeg", "png", "webp", "pdf"]).filter((e) => ["jpg", "jpeg", "png", "webp", "pdf"].includes(e));
+  const isPhoto = item.answer_type === "photo" || item.answer_type === "signature";
+  const accept = (isPhoto ? exts.filter((e) => e !== "pdf") : exts).map((e) => `.${e}`).join(",");
+  const need = result.evidence ? result.evidence.min_count : item.required ? 1 : 0;
+  const rows = entries.map((e) => {
+    const [text, tone] = EVIDENCE_LABEL[e.state] || ["Unknown", "neutral"];
+    const thumb = e.blob && e.type.startsWith("image/") ? h("img", { src: URL.createObjectURL(e.blob), alt: `Preview of ${e.name}`, class: "h-14 w-14 rounded border border-border object-cover", width: 56, height: 56 })
+      : h("span", { class: "flex h-14 w-14 items-center justify-center rounded border border-border text-xs text-muted-foreground", "aria-hidden": "true" }, e.type === "application/pdf" ? "PDF" : "File");
+    const canRemoveLocal = [EVIDENCE_STATE.local, EVIDENCE_STATE.failed, EVIDENCE_STATE.rejected].includes(e.state);
+    return h("li", { class: "flex flex-wrap items-center gap-3 py-2 text-sm" }, thumb,
+      h("div", { class: "min-w-0 flex-1" }, h("p", { class: "truncate font-medium", text: e.name }),
+        h("p", { class: "text-xs text-muted-foreground", text: `${(e.size / 1024).toFixed(0)} KB${e.caption ? ` · ${e.caption}` : ""}` }),
+        h("p", { class: "mt-1" }, badge(text, tone)), e.error ? h("p", { class: "mt-1 text-xs text-danger-text", role: "alert", text: e.error }) : null),
+      h("div", { class: "flex gap-1" },
+        e.blob && [EVIDENCE_STATE.failed, EVIDENCE_STATE.rejected].includes(e.state) ? h("button", { type: "button", class: "btn btn-ghost btn-sm", onclick: () => saveCopy(e) }, "Save a copy") : null,
+        !locked && canRemoveLocal ? h("button", { type: "button", class: "btn btn-ghost btn-sm", "aria-label": `Remove ${e.name}`, onclick: async () => {
+          if (await confirmDialog({ title: "Remove this file?", message: e.state === EVIDENCE_STATE.local ? "It has not been uploaded yet and will be discarded from this device." : "It will be removed from this device.", confirmLabel: "Remove", danger: true })) {
+            await app.store.evidence.removeLocal(e);
+            render();
+          }
+        } }, "Remove") : null,
+        !locked && [EVIDENCE_STATE.received, EVIDENCE_STATE.available].includes(e.state) && e.serverAttachmentId ? h("button", { type: "button", class: "btn btn-ghost btn-sm", "aria-label": `Remove ${e.name}`, onclick: async () => {
+          if (await confirmDialog({ title: "Remove this file?", message: "It is on the server and will be detached from this question.", confirmLabel: "Remove", danger: true })) {
+            await removeUploaded(e);
+            render();
+          }
+        } }, "Remove") : null));
+  });
+  const caption = item.answer_type === "signature" ? h("input", { class: "input mb-2 max-w-xs", type: "text", id: `cap-${item.id}`, maxlength: 120, placeholder: "Signer’s name", "aria-label": "Signer’s name" }) : null;
+  const input = h("input", { class: "input max-w-xs", type: "file", id: `file-${item.id}`, accept, capture: item.answer_type === "photo" || item.answer_type === "signature" ? "environment" : null, disabled: locked,
+    "aria-label": `Add a file for: ${item.question}`,
+    onchange: async (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      uiErrors.delete(item.code);
+      try {
+        const out = await app.store.evidence.add(assignmentId, item, result, file, { caption: caption ? caption.value : "" });
+        if (!out.ok) {
+          uiErrors.set(item.code, out.errors.map((e) => e.message));
+        } else {
+          savedAt = Date.now();
+          requestBackgroundSync();
+          clearTimeout(autoSyncTimer);
+          autoSyncTimer = setTimeout(() => app.connectivity.state !== "offline" && app.engine.run().then(render), 1500);
+        }
+      } catch (error) {
+        uiErrors.set(item.code, [error instanceof StorageFailure ? error.message : "This file could not be saved on this device."]);
+      }
+      render();
+    } });
+  return h("div", { class: "mt-3 rounded-lg border border-border p-3", role: "group", "aria-label": "Evidence files" },
+    h("p", { class: "text-sm font-medium" }, "Evidence"),
+    need ? h("p", { class: "mt-1 text-sm text-muted-foreground", text: `At least ${need} verified file${need === 1 ? "" : "s"} required. Files count as submitted evidence only once the server has verified them.` }) : null,
+    rows.length ? h("ul", { class: "mt-2 divide-y divide-border" }, rows) : h("p", { class: "mt-2 text-sm text-muted-foreground", text: "No files attached yet." }),
+    locked ? null : h("div", { class: "mt-3" }, caption, input, h("p", { class: "mt-1 text-xs text-muted-foreground", text: "JPG, PNG, WEBP or PDF. The file is saved on this device first and uploaded when you are online." })));
+}
+
+function saveCopy(entry) {
+  const url = URL.createObjectURL(entry.blob);
+  const a = h("a", { href: url, download: entry.name });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 async function submitFlow(assignmentId, state) {

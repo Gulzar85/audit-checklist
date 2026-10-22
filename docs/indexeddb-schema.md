@@ -1,6 +1,6 @@
 # IndexedDB schema
 
-Database `checklist-offline`, **version 1** (`static/js/offline/schema.js` → `DB_VERSION`; migrations in `database-migrations.js`).
+Database `checklist-offline`, **version 2** (v2 adds the `evidence` store, additively; `static/js/offline/schema.js` → `DB_VERSION`; migrations in `database-migrations.js`).
 Access goes through `database.js` (`IdbStorage`): `get`, `getAll`, `getAllByIndex`, `put`, `delete` and an **atomic `batch`** that resolves
 only after the transaction committed. `memory-store.js` implements the same interface for the Node tests.
 
@@ -11,6 +11,7 @@ only after the transaction committed. `memory-store.js` implements the same inte
 | `responses` | `ns|assignmentId|itemId` | `byAssignment`, `bySyncState`, `byNs` | the local answer: `status` (`answered`/`not_applicable`/`cleared`), `value`, `comment`, `baseRevision` (last server revision known), `localRevision`, `syncState`, `opId`, `error` |
 | `operations` | `opId` | `byAssignment`, `byState`, `byNs` | the outbound queue entry (see below) |
 | `conflicts` | `opId` | `byAssignment`, `byNs` | local value, server value, reason, `resolutionOpId` |
+| `evidence` | `ns|entryId` (entry id = upload `operation_id`) | `byAssignment`, `byState`, `byNs` | an evidence entry: the **Blob** (until the server acknowledges receipt), `name`, `size`, `type`, `sha256`, `caption`, `itemId`, `state` (`local`/`uploading`/`received`/`available`/`failed`/`rejected`/`quarantined`), `attachmentId`, `assetId`, `attempts`, `error` - see [offline-evidence-sync.md](offline-evidence-sync.md) |
 | `syncState` | `ns` | - | `seq` counter, `lastSuccessAt`, `lastError` |
 
 Every record carries `ns` = `userId:organizationId`; queries are always namespaced, so one account never reads another's records.

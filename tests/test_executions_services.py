@@ -1,4 +1,4 @@
-﻿"""Execution services: models and DB guards, lifecycle, answers (every type), rules, progress, submission, authorization."""
+"""Execution services: models and DB guards, lifecycle, answers (every type), rules, progress, submission, authorization."""
 
 from __future__ import annotations
 
@@ -257,12 +257,12 @@ class TestAnswerTypes:
         r = save(w, ex, "HANDWASH", None, not_applicable=True)  # required: cannot be waved through (yes_no_na has its own "na" option)
         assert r.errors and not ChecklistResponse.objects.filter(execution=ex, item__code="HANDWASH").exists()
 
-    def test_media_answers_are_rejected_until_evidence_storage_exists(self, w):
+    def test_media_answers_cannot_be_typed_in_they_come_from_uploads(self, w):
         ex = start(w)
         for code, value in (("PHOTO", [{"file_id": "0b6c7f0e-3d4a-4a46-9b8e-2f1e5d1c7a10", "name": "a.jpg", "size": 10, "content_type": "image/jpeg"}]),
                             ("SIGN", {"signer_name": "A. Khan", "file_id": None})):
             r = save(w, ex, code, value)
-            assert r.errors[item_id(w["eversion"], code)][0]["code"] == "evidence_unavailable"
+            assert r.errors[item_id(w["eversion"], code)][0]["code"] == "use_evidence_upload"
         assert not ex.responses.exists()
         assert save(w, ex, "PHOTO", []).ok  # an optional media item simply stays empty
 

@@ -104,12 +104,18 @@ export async function planSubmit(ctx, { assignmentId, versionId }) {
 export async function takeBatch(ctx, now, limit) {
   const ops = (await ctx.storage.getAllByIndex(STORES.operations, "byNs", ctx.ns)).sort((a, b) => a.seq - b.seq);
   const ready = (o) => [OP_STATE.pending, OP_STATE.blocked].includes(o.state) && !o.dependsOn && (o.nextAttemptAt || 0) <= now;
+  const unverified = new Set(
+    (await ctx.storage.getAllByIndex(STORES.evidence, "byNs", ctx.ns)).filter((e) => ["local", "uploading", "received", "failed"].includes(e.state)).map((e) => e.assignmentId),
+  );
   const chosen = [];
   for (const op of ops.filter(ready)) {
     if (chosen.length >= limit) {
       break;
     }
     if (op.type === "submit") {
+      if (unverified.has(op.assignmentId)) {
+        continue; // evidence is still being uploaded or checked: the server only counts verified files, so submitting now would be refused
+      }
       const others = ops.filter((o) => o.assignmentId === op.assignmentId && o.type !== "submit");
       const unresolved = others.some((o) => !chosen.includes(o) && o.state !== OP_STATE.applied);
       if (unresolved) {
