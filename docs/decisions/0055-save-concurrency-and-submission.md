@@ -1,4 +1,4 @@
-﻿# 0055. Saving and submission: revisions, locks and one transaction
+# 0055. Saving and submission: revisions, locks and one transaction
 
 - **Status:** Accepted
 - **Date:** 2026-10-22

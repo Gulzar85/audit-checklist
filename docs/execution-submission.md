@@ -1,4 +1,4 @@
-﻿# Execution submission
+# Execution submission
 
 `submit(execution, actor)` is one transaction:
 

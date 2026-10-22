@@ -1,4 +1,4 @@
-﻿"""URL routes of the execution screens (namespace ``executions``)."""
+"""URL routes of the execution screens (namespace ``executions``)."""
 
 from __future__ import annotations
 

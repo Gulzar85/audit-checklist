@@ -1,4 +1,4 @@
-﻿"""Errors of the execution services.  Django ``ValidationError`` subclasses, so every channel can show them."""
+"""Errors of the execution services.  Django ``ValidationError`` subclasses, so every channel can show them."""
 
 from __future__ import annotations
 

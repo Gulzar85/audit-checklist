@@ -1,4 +1,4 @@
-﻿"""Django admin for executions: a *read-only* inspection tool.
+"""Django admin for executions: a *read-only* inspection tool.
 
 No add / change / delete: a write here would skip the execution services (eligibility, validation, revisions, the assignment
 lifecycle, audit) - and the database guard would refuse changes to a submitted execution anyway.  Non-superusers only see
@@ -11,7 +11,7 @@ from django.contrib import admin
 from simple_history.admin import SimpleHistoryAdmin
 
 from . import selectors
-from .models import ChecklistExecution, ChecklistResponse
+from .models import ChecklistExecution, ChecklistResponse, SyncReceipt
 
 
 class _ReadOnly:
@@ -64,3 +64,26 @@ class ChecklistResponseAdmin(_ReadOnly, SimpleHistoryAdmin):
         if request.user.is_superuser:
             return qs
         return qs.filter(execution__in=selectors.executions_visible_to(request.user).values("pk"))
+
+
+@admin.register(SyncReceipt)
+class SyncReceiptAdmin(_ReadOnly, admin.ModelAdmin):
+    """Idempotency receipts of offline synchronization: read-only diagnostics.
+
+    The fingerprint and result are shown (they hold answers' *outcomes*, never credentials); nothing can be added, changed or
+    deleted here, so a receipt can never be edited to replay or suppress an operation.  Retention: ``prune_sync_receipts``.
+    """
+
+    list_display = ("operation_id", "op_type", "status", "organization", "user", "assignment", "execution", "created_at")
+    list_filter = ("status", "op_type", "organization")
+    search_fields = ("operation_id", "assignment__location__name")
+    list_select_related = ("organization", "user", "assignment", "execution")
+    date_hierarchy = "created_at"
+    ordering = ("-created_at",)
+
+    def get_queryset(self, request):  # noqa: ANN001, ANN201
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        return qs.filter(execution__in=selectors.executions_visible_to(request.user).values("pk"))
+

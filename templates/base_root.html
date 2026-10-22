@@ -1,5 +1,5 @@
 {% load static %}<!DOCTYPE html>
-<html lang="en" class="h-full" data-theme="{{ ui_theme.mode }}" data-sidebar="{{ sidebar_state|default:'expanded' }}">
+<html lang="en" class="h-full" data-theme="{{ ui_theme.mode }}" data-sidebar="{{ sidebar_state|default:'expanded' }}"{% if request.user.is_authenticated and current_organization %} data-account-user="{{ request.user.pk }}" data-account-org="{{ current_organization.pk }}"{% endif %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">

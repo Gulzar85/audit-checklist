@@ -1,4 +1,4 @@
-﻿# Execution security
+# Execution security
 
 Layers (ADR 0042-0044, 0053): organization -> RBAC permission -> **location scope** -> assignment eligibility. One decision service
 (`apps.permissions.authorization`) is used by the UI, the API, the admin and the services.

@@ -110,6 +110,17 @@ class OfflineView(TemplateView):
     template_name = "pwa/offline.html"
 
 
+class OfflineAppView(TemplateView):
+    """The public, data-free offline application shell (precached by the service worker; see templates/pwa/offline_app.html)."""
+
+    template_name = "pwa/offline_app.html"
+
+    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:  # noqa: ANN002, ANN003
+        response = super().get(request, *args, **kwargs)
+        response["Cache-Control"] = "no-cache"  # always revalidated; the worker keeps its own precached copy for offline use
+        return response
+
+
 class ManifestView(TemplateView):
     """Serve the web app manifest from the root URL space."""
 
@@ -320,3 +331,4 @@ class UIShowcaseView(PolicyMixin, TemplateView):
             for root in roots
         ]
         return context
+

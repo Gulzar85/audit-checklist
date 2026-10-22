@@ -1,4 +1,4 @@
-﻿# Assignment security and scope
+# Assignment security and scope
 
 Assignments follow the layered model of [authorization.md](authorization.md): organization isolation, then RBAC permission,
 then **location scope**. One decision service (`apps.permissions.authorization`) is used by the UI, the API, the admin, bulk

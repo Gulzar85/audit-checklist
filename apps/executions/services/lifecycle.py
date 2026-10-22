@@ -1,4 +1,4 @@
-﻿"""Execution lifecycle: start/resume and cancel.  Submission lives in ``submission.py``; saving in ``responses.py``.
+"""Execution lifecycle: start/resume and cancel.  Submission lives in ``submission.py``; saving in ``responses.py``.
 
 Lock order (always): organization (numbering only) -> assignment -> execution.  Saves lock only the execution.
 """

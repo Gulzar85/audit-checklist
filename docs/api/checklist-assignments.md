@@ -1,4 +1,4 @@
-﻿# Checklist assignments API
+# Checklist assignments API
 
 Base path `/api/v1/assignments/`. Session or token authentication as the rest of v1; responses use the standard envelope
 (`{"data": ..., "meta": ...}` / `{"error": {"code", "message", "details"}}`). The OpenAPI schema lists every endpoint.

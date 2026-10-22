@@ -1,5 +1,6 @@
-﻿{% load ui %}{% comment %}Row action of the worklist: Start (POST, idempotent), Continue, or View. Authorization is re-checked by the destination.{% endcomment %}
+{% load ui %}{% comment %}Row action of the worklist: Start (POST, idempotent), Continue, or View. Authorization is re-checked by the destination.{% endcomment %}
 <div class="flex justify-end">
+  {% if not record.live or record.live.status == "in_progress" %}<a class="btn btn-ghost btn-sm" href="{% url 'core:offline-app' %}#/prepare/{{ record.pk }}" title="Download this checklist to use it without a connection">{% icon "download" %} Offline</a>{% endif %}
   {% if record.live and record.live.status == "in_progress" %}
     <a class="btn btn-primary btn-sm" href="{% url 'executions:workspace' record.live.pk %}">{% icon "play" %} Continue</a>
   {% elif record.live %}
@@ -8,3 +9,4 @@
     <form method="post" action="{% url 'executions:start' record.pk %}">{% csrf_token %}<button type="submit" class="btn btn-primary btn-sm">{% icon "play" %} Start</button></form>
   {% endif %}
 </div>
+

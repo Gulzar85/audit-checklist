@@ -1,4 +1,4 @@
-﻿"""API v1 URL configuration."""
+"""API v1 URL configuration."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from django.urls import include, path
 from rest_framework.routers import SimpleRouter
 
 from .assignments import AssignmentViewSet
+from .offline import OfflineAssignmentListView, OfflineManifestView, OfflinePackageView, OfflineSessionView, OfflineSyncView, ResolveConflictView
 from .executions import AssignmentExecutionView, ExecutionViewSet, MyAssignmentsView, StartExecutionView
 from .checklists import AnswerTypeDetailView, AnswerTypeListView, ChecklistVersionViewSet, ChecklistViewSet, RuleMetadataView
 from .access import MemberViewSet, MyAccessView, PermissionListView, RoleViewSet
@@ -35,6 +36,12 @@ urlpatterns = [
     path("", APIRootView.as_view(), name="root"),
     path("health/", HealthCheckView.as_view(), name="health"),
     path("my-assignments/", MyAssignmentsView.as_view(), name="my-assignments"),
+    path("offline/session/", OfflineSessionView.as_view(), name="offline-session"),
+    path("offline/manifest/", OfflineManifestView.as_view(), name="offline-manifest"),
+    path("offline/assignments/", OfflineAssignmentListView.as_view(), name="offline-assignments"),
+    path("offline/assignments/<uuid:pk>/package/", OfflinePackageView.as_view(), name="offline-package"),
+    path("offline/sync/", OfflineSyncView.as_view(), name="offline-sync"),
+    path("offline/resolve-conflict/", ResolveConflictView.as_view(), name="offline-resolve-conflict"),
     path("assignments/<uuid:pk>/execution/", AssignmentExecutionView.as_view(), name="assignment-execution"),
     path("assignments/<uuid:pk>/start-execution/", StartExecutionView.as_view(), name="assignment-start-execution"),
     path("me/", MeView.as_view(), name="me"),
@@ -48,5 +55,7 @@ urlpatterns = [
     path("preferences/appearance/", AppearancePreferenceView.as_view(), name="appearance"),
     path("", include(router.urls)),
 ]
+
+
 
 

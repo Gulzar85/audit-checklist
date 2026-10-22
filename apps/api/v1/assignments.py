@@ -1,4 +1,4 @@
-﻿"""``/api/v1/assignments/`` - checklist assignments.
+"""``/api/v1/assignments/`` - checklist assignments.
 
 A thin adapter like every v1 resource: the queryset is ``selectors.assignments_visible_to`` (organization isolation + location
 scope, so an invisible assignment is a 404), authorization is ``apps.assignments.policies`` (403) and every write goes through

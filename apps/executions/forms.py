@@ -1,4 +1,4 @@
-﻿"""Parsing of the workspace form into ``AnswerInput`` objects, and the worklist filter.
+"""Parsing of the workspace form into ``AnswerInput`` objects, and the worklist filter.
 
 The form carries, per rendered item: ``p__<id>`` (presence marker - only items that were on the page are touched), ``r__<id>``
 (the response revision the client last saw), ``v__<id>`` (value; several for multiple choice), ``m__<id>__<row>`` (matrix

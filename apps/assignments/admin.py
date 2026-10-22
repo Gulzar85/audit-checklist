@@ -1,4 +1,4 @@
-﻿"""Django admin for assignments: a *read-only* inspection tool.
+"""Django admin for assignments: a *read-only* inspection tool.
 
 There is deliberately no add / change / delete: a write here would skip the lifecycle service (transitions, version
 eligibility, duplicate policy, scope checks, audit).  Platform staff create, issue, cancel and reopen through the application

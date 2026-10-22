@@ -1,4 +1,4 @@
-﻿"""Application configuration for executions."""
+"""Application configuration for executions."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% load django_tables2 ui %}
 {% block title %}My work &middot; {{ APP_NAME }}{% endblock %}
 {% block page_width %}page-wide{% endblock %}
@@ -6,6 +6,7 @@
 
 {% block page_header %}
 {% page_header title="My work" subtitle="Checklists assigned to you or to your locations. Each one is completed against the exact version it was issued with." icon="play" %}
+  <a href="{% url 'core:offline-app' %}" class="btn btn-secondary">{% icon "wifi-off" %} Offline checklists</a>
   <a href="{% url 'executions:history' %}" class="btn btn-secondary">{% icon "history" %} Execution history</a>
 {% endpage_header %}
 {% endblock %}
@@ -29,3 +30,4 @@
   {% endif %}
 </div>
 {% endblock %}
+

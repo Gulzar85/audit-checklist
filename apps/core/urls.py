@@ -10,6 +10,7 @@ from .views import (
     HealthWidgetView,
     HomeView,
     ManifestView,
+    OfflineAppView,
     OfflineView,
     ServiceWorkerView,
     UIShowcaseView,
@@ -24,6 +25,8 @@ urlpatterns = [
     path("manifest.webmanifest", ManifestView.as_view(), name="manifest"),
     path("service-worker.js", ServiceWorkerView.as_view(), name="service-worker"),
     path("offline/", OfflineView.as_view(), name="offline"),
+    path("offline/app/", OfflineAppView.as_view(), name="offline-app"),
     path("search/", GlobalSearchView.as_view(), name="search"),
     path("ui/", UIShowcaseView.as_view(), name="ui"),
 ]
+

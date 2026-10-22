@@ -1,4 +1,4 @@
-﻿"""Evaluate an execution: its stored responses through the Phase 5 validators and the Phase 6 rules engine (server-authoritative).
+"""Evaluate an execution: its stored responses through the Phase 5 validators and the Phase 6 rules engine (server-authoritative).
 
 The response rows hold the *serialized* normalized value, which re-validates unchanged (the answer contract is idempotent), so
 the evaluation of a saved execution always reflects what the version's rules say about exactly those answers.  Hidden answers

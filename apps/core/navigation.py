@@ -1,4 +1,4 @@
-﻿"""Configuration-driven application navigation (sidebar, mobile drawer, command palette).
+"""Configuration-driven application navigation (sidebar, mobile drawer, command palette).
 
 The navigation is *data*: a list of :class:`NavItem` grouped into sections.  Adding a module
 to the menu is one entry here - never template edits.  Rules:

@@ -1,4 +1,4 @@
-﻿# 0053. Assignment authorization: scope in the selector, 404 for invisible, 403 for forbidden
+# 0053. Assignment authorization: scope in the selector, 404 for invisible, 403 for forbidden
 
 - **Status:** Accepted
 - **Date:** 2026-10-16

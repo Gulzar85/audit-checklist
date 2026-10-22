@@ -1,4 +1,4 @@
-﻿"""Response validation (``ResponseValidationService``): the answer rules shared by the HTML forms and the REST API.
+"""Response validation (``ResponseValidationService``): the answer rules shared by the HTML forms and the REST API.
 
 There is no validation logic anywhere else - not in templates, serializers or JavaScript.  The Phase 5 answer-type validators
 run inside the Phase 6 evaluation, so an answer is judged against the *exact version's* item configuration **as tightened by

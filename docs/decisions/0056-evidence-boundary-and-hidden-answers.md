@@ -1,4 +1,4 @@
-﻿# 0056. Evidence boundary and hidden-answer retention
+# 0056. Evidence boundary and hidden-answer retention
 
 - **Status:** Accepted
 - **Date:** 2026-10-22

@@ -1,4 +1,4 @@
-﻿"""The runtime side of the platform: executions and their responses (Phase 9).
+"""The runtime side of the platform: executions and their responses (Phase 9).
 
 ``Organization -> ChecklistAssignment -> ChecklistVersion -> ChecklistExecution -> ChecklistResponse``
 
@@ -116,3 +116,37 @@ class ChecklistResponse(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.execution.reference}: {self.item_id}"
+
+
+class SyncReceipt(BaseModel):
+    """The durable record of one processed offline synchronization operation (idempotency; ADR 0057).
+
+    ``(user, operation_id)`` is unique: a retry of the same logical operation finds its receipt and gets the original outcome
+    back instead of being applied again.  ``fingerprint`` (SHA-256 of the canonical payload) lets the server refuse an operation id
+    that is reused with a different payload.  Only *terminal* outcomes are stored (applied, conflict, rejected): a transient server
+    failure leaves no receipt, so a retry is processed normally.  The ``result`` holds exactly what was answered, including the
+    server's value for a conflict; it never holds secrets.  Receipts are operational data: pruned by ``prune_sync_receipts``.
+    """
+
+    STATUSES = (("applied", "Applied"), ("conflict", "Conflict"), ("rejected", "Rejected"))
+
+    organization = models.ForeignKey("organizations.Organization", on_delete=models.PROTECT, related_name="sync_receipts")
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="+")
+    operation_id = models.UUIDField()
+    op_type = models.CharField(max_length=24)
+    assignment = models.ForeignKey("assignments.ChecklistAssignment", on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    execution = models.ForeignKey(ChecklistExecution, on_delete=models.SET_NULL, null=True, blank=True, related_name="sync_receipts")
+    fingerprint = models.CharField(max_length=64)
+    status = models.CharField(max_length=10, choices=STATUSES)
+    result = models.JSONField(default=dict)
+
+    class Meta:
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(fields=["user", "operation_id"], name="one_receipt_per_user_operation"),
+            models.CheckConstraint(condition=models.Q(status__in=["applied", "conflict", "rejected"]), name="sync_receipt_status_valid"),
+        ]
+        indexes = [models.Index(fields=["organization", "created_at"]), models.Index(fields=["execution", "created_at"])]
+
+    def __str__(self) -> str:
+        return f"{self.op_type} {self.operation_id} ({self.status})"

@@ -1,4 +1,4 @@
-﻿"""PostgreSQL integrity triggers for executions and responses - what CHECK constraints cannot express (ADR 0054).
+"""PostgreSQL integrity triggers for executions and responses - what CHECK constraints cannot express (ADR 0054).
 
 * an execution's organization and version equal its assignment's; organization, assignment and version never change;
 * a submitted or cancelled execution keeps its status and is never deleted (history);

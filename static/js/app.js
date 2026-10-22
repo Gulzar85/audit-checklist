@@ -206,5 +206,29 @@
     initSwatches(event.target);
   });
 
+  /* Offline workspace identity hints (Phase 10): two opaque ids in localStorage - no token, no data.  An authenticated page
+   * records who is signed in; signing out marks the session ended so the offline workspace stops opening that account's data. */
+  function initOfflineAccount() {
+    try {
+      var root = document.documentElement;
+      var user = root.getAttribute("data-account-user");
+      var org = root.getAttribute("data-account-org");
+      if (user && org) {
+        window.localStorage.setItem("cp-offline-account", JSON.stringify({ userId: user, organizationId: org }));
+        window.localStorage.removeItem("cp-offline-session-ended");
+      }
+      document.addEventListener("submit", function (event) {
+        var action = event.target && event.target.getAttribute && event.target.getAttribute("action");
+        if (action && action.indexOf("/auth/logout") !== -1) {
+          window.localStorage.setItem("cp-offline-session-ended", String(Date.now()));
+        }
+      });
+    } catch (err) {
+      /* storage unavailable: the offline workspace then asks for a fresh sign-in */
+    }
+  }
+
+  initOfflineAccount();
   initServiceWorker();
 })();
+

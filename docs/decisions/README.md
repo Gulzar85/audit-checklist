@@ -61,3 +61,6 @@ consequences. New records are appended; existing ones are superseded, not edited
 | [0054](0054-executions-and-responses.md) | Executions and responses: one live execution per assignment, relational answers, frozen once submitted | Accepted |
 | [0055](0055-save-concurrency-and-submission.md) | Saving and submission: revisions, locks and one transaction | Accepted |
 | [0056](0056-evidence-boundary-and-hidden-answers.md) | Evidence boundary and hidden-answer retention | Accepted |
+| [0057](0057-offline-sync-protocol-and-idempotency.md) | Offline synchronization: per-operation atomic, ordered, idempotent by durable receipts | Accepted |
+| [0058](0058-offline-client-evaluator-and-compatibility-policy.md) | A small, versioned client evaluator and a refuse-don't-degrade compatibility policy | Accepted |
+| [0059](0059-offline-storage-service-worker-and-privacy.md) | Offline storage, service-worker allowlist and privacy | Accepted |

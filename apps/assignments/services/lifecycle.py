@@ -1,4 +1,4 @@
-﻿"""The assignment lifecycle: the *only* place status changes (ADR 0051).
+"""The assignment lifecycle: the *only* place status changes (ADR 0051).
 
 Persisted transitions (``constants.TRANSITIONS``)::
 

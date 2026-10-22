@@ -1,4 +1,4 @@
-﻿"""View-models for the execution workspace: the version's sections and items joined with the server's evaluation.
+"""View-models for the execution workspace: the version's sections and items joined with the server's evaluation.
 
 The template never decides anything: visibility, requiredness, available options and constraints come from the Phase 6
 evaluation of the stored answers (the server is the source of truth); this module only arranges them for rendering.

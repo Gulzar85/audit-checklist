@@ -1,4 +1,4 @@
-﻿"""django-tables2 tables for the worklist and the execution history (badges use semantic tokens through the ``ui`` tags)."""
+"""django-tables2 tables for the worklist and the execution history (badges use semantic tokens through the ``ui`` tags)."""
 
 from __future__ import annotations
 

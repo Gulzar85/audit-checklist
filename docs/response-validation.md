@@ -1,4 +1,4 @@
-﻿# Response validation
+# Response validation
 
 One service layer validates answers for the HTML workspace and the REST API; client-side checks are for usability only.
 

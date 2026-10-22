@@ -1,4 +1,4 @@
-﻿"""Demonstrate checklist assignment end to end on generic data (idempotent, development data only).
+"""Demonstrate checklist assignment end to end on generic data (idempotent, development data only).
 
 Builds a small hierarchy (Region > Area > Restaurant, plus a Warehouse - a restaurant is just a location), publishes the
 *Restaurant Daily Safety Checklist* version 1 under its own demo code, then - through the same lifecycle services the UI and

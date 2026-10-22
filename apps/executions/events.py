@@ -1,4 +1,4 @@
-﻿"""Extension points for later phases (offline sync, notifications, findings): signals sent *after commit*.
+"""Extension points for later phases (offline sync, notifications, findings): signals sent *after commit*.
 
 Phase 9 delivers nothing: there are no receivers.  Each signal is sent with ``sender=ChecklistExecution``, ``execution`` and
 ``actor``, only once the causing transaction has committed.

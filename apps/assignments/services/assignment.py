@@ -1,4 +1,4 @@
-﻿"""Creating and editing assignments.  Authorization, validation, locking, history and audit all happen here, once."""
+"""Creating and editing assignments.  Authorization, validation, locking, history and audit all happen here, once."""
 
 from __future__ import annotations
 

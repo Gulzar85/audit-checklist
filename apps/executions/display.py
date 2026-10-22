@@ -1,4 +1,4 @@
-﻿"""Human-readable rendering of stored answers (read-only views): option labels, Yes/No, matrix rows, dates."""
+"""Human-readable rendering of stored answers (read-only views): option labels, Yes/No, matrix rows, dates."""
 
 from __future__ import annotations
 

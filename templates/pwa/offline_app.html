@@ -1,0 +1,33 @@
+{% load static %}<!DOCTYPE html>
+{% comment %}
+  The offline application shell (Phase 10).  PUBLIC and DATA-FREE on purpose: it contains no user, organization, checklist or CSRF
+  token, so it can be precached by the service worker and served to anyone without leaking a previous session.  All data comes
+  from IndexedDB (per account namespace) or from authenticated API calls made by the page itself.
+{% endcomment %}
+<html lang="en" class="h-full" data-theme="{{ ui_theme.mode }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Offline checklists &middot; {{ APP_NAME }}</title>
+  <meta name="theme-color" content="{{ ui_theme.theme_color_light }}">
+  <meta name="color-scheme" content="{{ ui_theme.color_scheme }}">
+  <link rel="manifest" href="{% url 'core:manifest' %}" crossorigin="use-credentials" {% csp_nonce_attr %}>
+  <link rel="icon" type="image/png" href="{% static 'icons/icon-192.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'icons/apple-touch-icon.png' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}" {% csp_nonce_attr %}>
+  <link rel="stylesheet" href="{{ ui_theme.css_url }}" {% csp_nonce_attr %}>
+  <script type="module" src="{% static 'js/offline/offline-app.js' %}" {% csp_nonce_attr %}></script>
+</head>
+<body class="min-h-full bg-background text-foreground">
+  <header class="border-b border-border px-4 py-3">
+    <div class="mx-auto flex max-w-5xl items-center justify-between gap-3">
+      <h1 class="text-lg font-semibold">{{ APP_NAME }} <span class="text-sm font-normal text-muted-foreground">· offline checklists</span></h1>
+      <a class="btn btn-ghost btn-sm" href="/">Open the full application</a>
+    </div>
+  </header>
+  <main id="main" class="mx-auto max-w-5xl px-4 py-6">
+    <div id="offline-app" aria-live="polite"><p class="text-sm text-muted-foreground">Loading…</p></div>
+    <noscript><div class="alert alert-warning">JavaScript is required for offline checklists.</div></noscript>
+  </main>
+</body>
+</html>

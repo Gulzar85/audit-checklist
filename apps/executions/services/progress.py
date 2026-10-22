@@ -1,4 +1,4 @@
-﻿"""Operational progress of an execution (not a score).
+"""Operational progress of an execution (not a score).
 
 Denominator: the **visible, required** items (hidden conditional questions never count as unanswered).  An execution with no
 visible required item falls back to the visible items; with none at all progress is 0 (nothing to do is not "done").

@@ -1,4 +1,4 @@
-﻿# Checklist execution API
+# Checklist execution API
 
 Base `/api/v1/`. Same authentication and response envelope (`{"data", "meta"}` / `{"error": {"code", "message", "details"}}`) as the
 rest of v1. Everything is filtered by the caller's organization and location scope: invisible -> **404**, forbidden -> **403**.

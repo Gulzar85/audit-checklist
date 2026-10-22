@@ -1,4 +1,4 @@
-﻿"""Execution services: the only write path.  See each module for its rules."""
+"""Execution services: the only write path.  See each module for its rules."""
 
 from __future__ import annotations
 

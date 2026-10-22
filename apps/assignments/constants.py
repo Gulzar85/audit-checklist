@@ -1,4 +1,4 @@
-﻿"""Vocabulary of checklist assignments (ADR 0051).
+"""Vocabulary of checklist assignments (ADR 0051).
 
 Persisted statuses: ``draft``, ``assigned``, ``cancelled`` (set by Phase 8) and ``in_progress``, ``completed`` (reserved:
 only Phase 9's execution integration may set them - no Phase 8 code path does).  ``overdue`` is *derived*, never stored:

@@ -1,4 +1,4 @@
-﻿# 0052. One open assignment per version and location; bulk assignment is all-or-nothing
+# 0052. One open assignment per version and location; bulk assignment is all-or-nothing
 
 - **Status:** Accepted
 - **Date:** 2026-10-16

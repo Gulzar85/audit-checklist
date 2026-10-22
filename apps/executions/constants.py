@@ -1,4 +1,4 @@
-﻿"""Vocabulary of checklist executions (ADR 0054).
+"""Vocabulary of checklist executions (ADR 0054).
 
 Persisted statuses: ``in_progress`` (editable), ``submitted`` (final, read-only), ``cancelled`` (kept for history).  There is no
 ``draft`` (it would equal ``in_progress``), and no ``verified`` / ``closed`` - review belongs to later phases.

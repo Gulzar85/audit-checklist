@@ -1,4 +1,4 @@
-"""Base settings shared by every environment.
+﻿"""Base settings shared by every environment.
 
 Nothing in this file contains a secret.  All sensitive or environment-specific
 values are read from environment variables (see ``.env.example``) via
@@ -231,7 +231,7 @@ AUTH_PROVISIONING_MODE = env("AUTH_PROVISIONING_MODE", "pending")
 #: Whether a first-time Entra sign-in may be linked to an existing local account
 #: by matching email.  "non_staff" (default) never links a privileged account, so
 #: a matching email can never inherit administrator rights; "all" opts in;
-#: "disabled" refuses (spec §13 / §32).
+#: "disabled" refuses (spec Â§13 / Â§32).
 AUTH_EMAIL_LINKING = env("AUTH_EMAIL_LINKING", "non_staff")
 
 #: Whether logout also signs the browser out of Microsoft (federated sign-out).
@@ -246,7 +246,7 @@ MICROSOFT_AUTH_CONFIGURED = bool(
     MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET and MICROSOFT_TENANT_ID
 )
 
-#: Sign-in throttling (spec §31).  Failed attempts per client address per window;
+#: Sign-in throttling (spec Â§31).  Failed attempts per client address per window;
 #: the counters live in the configured cache (no new infrastructure).
 AUTH_THROTTLE_MAX_ATTEMPTS = env_int("AUTH_THROTTLE_MAX_ATTEMPTS", 10)
 AUTH_THROTTLE_WINDOW_SECONDS = env_int("AUTH_THROTTLE_WINDOW_SECONDS", 300)
@@ -400,6 +400,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "anon": env("API_THROTTLE_ANON", "60/min"),
         "user": env("API_THROTTLE_USER", "1000/hour"),
+        "offline_sync": env("API_THROTTLE_OFFLINE_SYNC", "120/min"),
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_RENDERER_CLASSES": [
@@ -575,6 +576,7 @@ JAZZMIN_SETTINGS = {
         "assignments.ChecklistAssignment": "fas fa-user-check",
         "executions.ChecklistExecution": "fas fa-play-circle",
         "executions.ChecklistResponse": "fas fa-reply",
+        "executions.SyncReceipt": "fas fa-sync",
         "executions": "fas fa-play-circle",
         "findings": "fas fa-triangle-exclamation",
         "corrective_actions": "fas fa-screwdriver-wrench",
@@ -700,3 +702,4 @@ LOGGING = {
         },
     },
 }
+

@@ -1,4 +1,4 @@
-﻿# Checklist execution lifecycle
+# Checklist execution lifecycle
 
 ```mermaid
 stateDiagram-v2

@@ -1,4 +1,4 @@
-﻿# 0054. Executions and responses: one live execution per assignment, relational answers, frozen once submitted
+# 0054. Executions and responses: one live execution per assignment, relational answers, frozen once submitted
 
 - **Status:** Accepted
 - **Date:** 2026-10-22

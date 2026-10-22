@@ -1,4 +1,4 @@
-﻿"""The permission registry: the single list of every permission the platform knows.
+"""The permission registry: the single list of every permission the platform knows.
 
 A permission code is ``<resource>.<action>`` (``location.update``).  Code never writes the
 string: it imports the constant from :class:`P`, so a typo is an ``AttributeError`` at import

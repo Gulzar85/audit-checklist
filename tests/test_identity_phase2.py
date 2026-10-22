@@ -1,4 +1,4 @@
-"""Phase 2 identity foundation: membership lifecycle, scope foundation, preferences, unlink,
+﻿"""Phase 2 identity foundation: membership lifecycle, scope foundation, preferences, unlink,
 session lifetime / PWA behaviour, hardening, cross-organization security and theme integration."""
 
 from __future__ import annotations
@@ -423,7 +423,7 @@ class TestSessionLifetime:
 
     def test_service_worker_never_caches_authentication_routes(self, client, db):
         source = client.get("/service-worker.js").content.decode()
-        assert '"/auth/"' in source and 'cp-static-v5' in source
+        assert '"/auth/"' in source and 'cp-static-v6' in source
 
 
 # ---------------------------------------------------------------------------
@@ -651,3 +651,4 @@ class TestAccountPagesRender:
         source = Path("apps/accounts/views.py").read_text(encoding="utf-8")
         for name in set(re.findall(r'template_name = "([^"]+)"', source)):
             get_template(name)
+

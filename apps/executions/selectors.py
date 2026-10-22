@@ -1,4 +1,4 @@
-﻿"""Read-only query helpers for executions; every result is authorized before it is returned."""
+"""Read-only query helpers for executions; every result is authorized before it is returned."""
 
 from __future__ import annotations
 

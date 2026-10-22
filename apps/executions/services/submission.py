@@ -1,4 +1,4 @@
-﻿"""Submission (``ExecutionSubmissionService``): one transaction, concurrency-safe and idempotent.
+"""Submission (``ExecutionSubmissionService``): one transaction, concurrency-safe and idempotent.
 
 Lock order: assignment -> execution (the same as the lifecycle), so a submission waits for an in-flight save and a later save sees
 a submitted execution.  Everything is revalidated from the stored responses - the client sends no answers, no counts, no state.

@@ -1,4 +1,4 @@
-﻿"""Demonstrate checklist execution end to end on generic data (idempotent, development data only).
+"""Demonstrate checklist execution end to end on generic data (idempotent, development data only).
 
 Publishes a *Daily Safety Checklist* (boolean, yes/no/N-A, single choice, numeric, text and date questions plus a conditional
 rule: "No" to the fire-exit question reveals and requires a follow-up), assigns it to a Restaurant and to a Warehouse - the same

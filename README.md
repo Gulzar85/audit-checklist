@@ -1,4 +1,4 @@
-﻿# Checklist Platform
+# Checklist Platform
 
 A generic, multi-organization **checklist & inspection platform** for enterprise use:
 QA audits, operations inspections, restaurant and safety checks, and compliance
@@ -91,6 +91,9 @@ recursive queries and row locks are part of what is under test). Point
 .\venv\Scripts\python manage.py seed_demo_versioning --organization <slug>   # versioning walkthrough (v1 -> v2, comparison)
 .\venv\Scripts\python manage.py seed_demo_assignments --organization <slug>  # assignments: hierarchy, v1 checklist, draft/issued/cancelled
 .\venv\Scripts\python manage.py seed_demo_executions --organization <slug>   # executions: v1 checklist, in-progress and submitted runs
+.\venv\Scripts\python manage.py seed_demo_offline --organization <slug>   # a fresh assignment for the offline walkthrough (docs/offline-execution.md)
+.\venv\Scripts\python manage.py prune_sync_receipts --days 90   # delete old offline idempotency receipts
+node --test static/js/offline/tests/   # JavaScript tests of the offline engine (also run by pytest)
 .\venv\Scripts\python manage.py seal_checklist_versions   # record integrity hashes of versions published before Phase 7
 .\venv\Scripts\python manage.py verify_checklist_integrity   # non-zero exit if a published definition was altered
 .\venv\Scripts\python manage.py spectacular --validate --fail-on-warn   # OpenAPI schema

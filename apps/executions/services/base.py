@@ -1,4 +1,4 @@
-﻿"""Shared plumbing of the execution services: audit verbs, locking, numbering, database-error mapping."""
+"""Shared plumbing of the execution services: audit verbs, locking, numbering, database-error mapping."""
 
 from __future__ import annotations
 

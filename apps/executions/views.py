@@ -1,4 +1,4 @@
-﻿"""Class-based views for executions: the worklist, start/resume, the workspace, review, submit, the read-only detail and history.
+"""Class-based views for executions: the worklist, start/resume, the workspace, review, submit, the read-only detail and history.
 
 Pattern (as everywhere): an object is fetched through the authorized selector (not visible -> 404), the action is authorized by
 the services (visible but forbidden -> 403), and every write is a service call whose ``ValidationError`` becomes a message.

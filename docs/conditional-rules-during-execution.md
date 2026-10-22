@@ -1,4 +1,4 @@
-﻿# Conditional rules during execution
+# Conditional rules during execution
 
 The server is the source of truth. Every render, save, review and submission evaluates the **exact version's** rules
 (`snapshot_for_version` + `evaluate`, Phase 6) against the stored answers. No user-supplied expression is ever evaluated.

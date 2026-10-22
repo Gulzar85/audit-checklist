@@ -1,4 +1,4 @@
-﻿# 0051. Checklist assignments: exact version, explicit lifecycle, derived overdue
+# 0051. Checklist assignments: exact version, explicit lifecycle, derived overdue
 
 - **Status:** Accepted
 - **Date:** 2026-10-16

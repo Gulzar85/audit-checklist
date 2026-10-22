@@ -1,4 +1,4 @@
-﻿"""``/api/v1/executions/`` and the assignment-side work endpoints.
+"""``/api/v1/executions/`` and the assignment-side work endpoints.
 
 A thin adapter like every v1 resource: querysets are selectors (an invisible execution is a 404), authorization is the execution
 policies applied by the services (a visible but forbidden operation is a 403), and every write is a service call - the same ones the

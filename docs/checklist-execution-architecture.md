@@ -1,4 +1,4 @@
-﻿# Checklist execution architecture (Phase 9)
+# Checklist execution architecture (Phase 9)
 
 An **execution** is one user's attempt at one issued assignment. It is the runtime counterpart of the definition (Phases 4-7) and
 the assignment (Phase 8). Nothing here is specific to restaurants: a restaurant, warehouse or office is just a `Location`.

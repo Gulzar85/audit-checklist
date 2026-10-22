@@ -1,4 +1,4 @@
-﻿"""Authorization for executions (ADR 0042/0043): membership, role permission, *location scope* and assignment eligibility.
+"""Authorization for executions (ADR 0042/0043): membership, role permission, *location scope* and assignment eligibility.
 
 Every decision calls the central ``apps.permissions.authorization`` service - no role name is tested here.  Running an
 assignment needs ``execution.create`` / ``execution.update`` / ``execution.submit`` at the assignment's location *and* the
