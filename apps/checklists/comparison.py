@@ -24,7 +24,7 @@ from typing import Any
 from .rules.actions import ACTIONS
 from .rules.operators import OPERATORS
 
-CATEGORIES = ("section", "item", "option", "rule")
+CATEGORIES = ("section", "item", "option", "rule", "scoring")
 KINDS = ("added", "removed", "modified", "reordered")
 IMPACTS = ("behavior", "wording", "structure")
 
@@ -316,4 +316,32 @@ def compare_manifests(old: dict[str, Any], new: dict[str, Any]) -> Comparison:
         add(Change("rule", "reordered", code, new_rules[code][1]["name"],
                    f"Rule {code} moved from position {old_rules[code][0]} to {new_rules[code][0]} (changes message order only).",
                    "structure", "position", old_rules[code][0], new_rules[code][0]))
+
+    # -- scoring (extra definition data owned by the scoring app; absent = not configured) ---------------------
+    old_scoring, new_scoring = old.get("scoring"), new.get("scoring")
+    if old_scoring != new_scoring:
+        if old_scoring is None:
+            add(Change("scoring", "added", "scoring", "Scoring", "Scoring was configured for this version.", "behavior"))
+        elif new_scoring is None:
+            add(Change("scoring", "removed", "scoring", "Scoring", "Scoring was removed from this version.", "behavior"))
+        else:
+            old_set, new_set = old_scoring.get("settings", {}), new_scoring.get("settings", {})
+            for key in sorted(set(old_set) | set(new_set)):
+                if old_set.get(key) != new_set.get(key):
+                    add(Change("scoring", "modified", f"settings.{key}", key.replace("_", " ").capitalize(),
+                               f"Scoring {key.replace('_', ' ')} changed: {_short(old_set.get(key))} → {_short(new_set.get(key))}.", "behavior", key,
+                               old_set.get(key), new_set.get(key)))
+            old_doc, new_doc = old_scoring.get("document") or {}, new_scoring.get("document") or {}
+            old_items, new_items_s = old_doc.get("items") or {}, new_doc.get("items") or {}
+            for code in sorted(set(old_items) | set(new_items_s)):
+                if code not in old_items:
+                    add(Change("scoring", "added", f"item.{code}", code, f"Question {code} is now scored.", "behavior"))
+                elif code not in new_items_s:
+                    add(Change("scoring", "removed", f"item.{code}", code, f"Question {code} is no longer scored.", "behavior"))
+                elif old_items[code] != new_items_s[code]:
+                    add(Change("scoring", "modified", f"item.{code}", code, f"The scoring rule of question {code} changed.", "behavior", "rule",
+                               old_items[code], new_items_s[code]))
+            for part, label in (("sections", "Section weights"), ("bands", "Grade bands"), ("critical", "Critical rules")):
+                if old_doc.get(part) != new_doc.get(part):
+                    add(Change("scoring", "modified", f"document.{part}", label, f"{label} changed.", "behavior", part, old_doc.get(part), new_doc.get(part)))
     return result

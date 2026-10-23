@@ -77,3 +77,6 @@ consequences. New records are appended; existing ones are superseded, not edited
 | [0070](0070-workflow-validation-and-phase6-conditions.md) | Publication validation and Phase 6 conditions | Accepted |
 | [0071](0071-target-and-action-registries-and-governance.md) | Target and business-action registries, transactions and domain governance | Accepted |
 | [0072](0072-tasks-assignment-approvals-and-concurrency.md) | Tasks, assignment, approvals, separation of duties and concurrency | Accepted |
+| [0073](0073-scoring-configuration-and-versioning.md) | Scoring configuration belongs to the checklist version: one sealed row, declarative document, lifecycle hooks | Accepted |
+| [0074](0074-scoring-calculation-decimals-and-policies.md) | One pure calculation: exact decimals, explicit N/A and missing policies | Accepted |
+| [0075](0075-score-snapshots-recalculation-and-execution-hook.md) | Score snapshots, controlled recalculation and the submission hook | Accepted |

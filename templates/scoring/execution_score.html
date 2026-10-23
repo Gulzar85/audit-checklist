@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Score · {{ execution.reference }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% url 'executions:detail' execution.pk as crumb %}{% breadcrumbs "Home" "core:home" "Execution history" "executions:history" execution.reference crumb "Score" %}{% endblock %}
+{% block page_header %}{% page_header title="Score" subtitle=execution.reference icon="calculator" %}<a class="btn btn-secondary" href="{% url 'executions:detail' execution.pk %}">{% icon "clipboard-check" %} Execution</a>{% endpage_header %}{% endblock %}
+
+{% block content %}
+{% if not view.applicable %}
+  {% include "components/states/empty.html" with icon="calculator" title="This checklist is not scored" message="Scoring is not configured for the checklist version this execution used, so there is no score. No score of zero is implied." %}
+{% else %}
+<div class="space-y-6">
+  <section class="card" aria-labelledby="sc-sum">
+    <div class="card-header"><h2 id="sc-sum" class="card-title">Result</h2></div>
+    <div class="card-body">
+      {% if result %}
+        {% include "scoring/_score_figures.html" with status=result.status percentage=result.percentage earned=result.earned available=result.available grade=result.grade label=result.display_label critical=result.critical %}
+        <p class="mt-3 text-xs text-muted-foreground">Calculated {{ result.created_at|date:"M d, Y H:i" }} ({{ result.get_kind_display|lower }}) · method {{ result.method }} · calculation version {{ result.algorithm }} · configuration <span class="font-mono">{{ result.config_hash|slice:":19" }}</span>.</p>
+      {% elif outcome %}
+        {% include "scoring/_score_figures.html" with status=outcome.status percentage=outcome.percentage earned=outcome.earned available=outcome.available grade=outcome.grade label=outcome.display_label critical=outcome.critical %}
+        <p class="mt-3 text-xs text-muted-foreground">Provisional: calculated now from the answers saved so far; it is not recorded.</p>
+      {% elif hidden_live %}
+        <p class="text-sm text-muted-foreground">This execution is still in progress. A provisional score is shown only to people allowed to preview it.</p>
+      {% else %}
+        <p class="text-sm text-muted-foreground">The final score is being recorded; reload in a moment.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  {% if breakdown %}
+  <section class="card" aria-labelledby="sc-expl">
+    <div class="card-header"><h2 id="sc-expl" class="card-title">How this score was calculated</h2></div>
+    <ul class="card-body list-disc space-y-1 pl-9 text-sm">{% for line in breakdown.explanation %}<li>{{ line }}</li>{% endfor %}</ul>
+    {% if breakdown.critical_hits %}<div class="alert alert-danger mx-5 mb-5" role="alert">{% icon "octagon-alert" %}<div><p class="font-medium">Critical failure</p><ul class="mt-1 list-disc pl-5">{% for hit in breakdown.critical_hits %}<li>{{ hit.label }} ({{ hit.item }})</li>{% endfor %}</ul></div></div>{% endif %}
+    {% if breakdown.warnings %}<div class="alert alert-warning mx-5 mb-5" role="status">{% icon "triangle-alert" %}<ul class="list-disc pl-5">{% for w in breakdown.warnings %}<li>{{ w }}</li>{% endfor %}</ul></div>{% endif %}
+  </section>
+
+  <section class="card" aria-labelledby="sc-sec">
+    <div class="card-header"><h2 id="sc-sec" class="card-title">Sections</h2></div>
+    <div class="table-wrap"><table class="table"><thead><tr><th>Section</th><th class="text-right">Points</th><th class="text-right">Percentage</th><th class="text-right">Weight</th><th class="text-right">Questions</th></tr></thead><tbody>
+      {% for s in breakdown.sections %}<tr><td>{{ s.name }}</td><td class="text-right tabular-nums">{{ s.earned }} / {{ s.available }}</td><td class="text-right tabular-nums">{% if s.percentage %}{{ s.percentage }}%{% else %}—{% endif %}</td><td class="text-right tabular-nums">{{ s.weight }}</td><td class="text-right tabular-nums">{{ s.included }} scored{% if s.excluded %}, {{ s.excluded }} excluded{% endif %}</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+
+  <section class="card" aria-labelledby="sc-items">
+    <div class="card-header"><h2 id="sc-items" class="card-title">Questions</h2></div>
+    <div class="table-wrap"><table class="table"><thead><tr><th>Question</th><th>Answer</th><th class="text-right">Earned</th><th class="text-right">Available</th><th>Treatment</th></tr></thead><tbody>
+      {% for i in breakdown.items %}<tr {% if not i.included %}class="text-muted-foreground"{% endif %}><td><span class="font-mono text-xs">{{ i.code }}</span> {{ i.question }}</td><td>{{ i.answer }}</td><td class="text-right tabular-nums">{{ i.earned }}</td><td class="text-right tabular-nums">{{ i.available }}</td><td class="text-sm">{{ i.explanation }}</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+  {% elif view.applicable %}
+  <p class="text-sm text-muted-foreground">The question-level breakdown needs the “view detailed score breakdown” permission.</p>
+  {% endif %}
+
+  {% if history|length > 1 %}
+  <section class="card" aria-labelledby="sc-hist">
+    <div class="card-header"><h2 id="sc-hist" class="card-title">History</h2></div>
+    <ul class="divide-y divide-border text-sm">{% for r in history %}<li class="px-5 py-3"><span class="font-medium">{{ r.percentage|floatformat:"-2" }}%</span> {% if r.grade %}· grade {{ r.grade }}{% endif %} · {{ r.get_kind_display }} · {{ r.created_at|date:"M d, Y H:i" }}{% if r.is_current %} {% tone_badge "Current" "info" %}{% endif %}{% if r.reason %}<br><span class="text-muted-foreground">Reason: {{ r.reason }}</span>{% endif %}</li>{% endfor %}</ul>
+  </section>
+  {% endif %}
+
+  {% if can_recalculate %}
+  <section class="card" aria-labelledby="sc-recalc">
+    <div class="card-header"><h2 id="sc-recalc" class="card-title">Recalculate</h2></div>
+    <form method="post" action="{% url 'scoring:recalculate' execution.pk %}" class="card-body space-y-3">{% csrf_token %}
+      <p class="text-sm text-muted-foreground">Recalculates this final score under the checklist version's frozen rules. If nothing differs, nothing changes; otherwise a new result is recorded and the previous one is kept. A reason is required and is audited.</p>
+      <label class="label" for="recalc-reason">Reason</label>
+      <input id="recalc-reason" name="reason" class="input" maxlength="500" required>
+      <div><button type="submit" class="btn btn-secondary">{% icon "refresh-cw" %} Recalculate</button></div>
+    </form>
+  </section>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

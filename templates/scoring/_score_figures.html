@@ -1,0 +1,15 @@
+{% load ui %}
+{% if status == "not_applicable" or percentage is None %}
+  <p class="flex flex-wrap items-center gap-2">{% tone_badge "Not applicable" "neutral" icon="minus-circle" %}<span class="text-sm text-muted-foreground">No scored question applies, so no score is shown.</span></p>
+{% else %}
+  <div class="flex flex-wrap items-end gap-x-8 gap-y-3">
+    <div><p class="text-xs uppercase tracking-wide text-muted-foreground">Result</p><p class="text-3xl font-semibold tabular-nums">{{ percentage|floatformat:"-2" }}%</p></div>
+    {% if earned is not None %}<div><p class="text-xs uppercase tracking-wide text-muted-foreground">Points</p><p class="text-lg font-medium tabular-nums">{{ earned|floatformat:"-2" }} / {{ available|floatformat:"-2" }}</p></div>{% endif %}
+    {% if grade %}<div><p class="text-xs uppercase tracking-wide text-muted-foreground">Grade</p><p class="text-lg font-medium">{{ grade }}{% if label %} <span class="text-sm font-normal text-muted-foreground">· {{ label }}</span>{% endif %}</p></div>
+    {% elif label %}<div><p class="text-xs uppercase tracking-wide text-muted-foreground">Outcome</p><p class="text-lg font-medium">{{ label }}</p></div>{% endif %}
+    <div class="flex flex-wrap items-center gap-2">
+      {% if status == "provisional" %}{% tone_badge "Provisional" "warning" icon="clock" %}{% elif status == "final" %}{% tone_badge "Final" "success" icon="circle-check" %}{% endif %}
+      {% if critical %}{% tone_badge "Critical failure" "danger" icon="octagon-alert" %}{% endif %}
+    </div>
+  </div>
+{% endif %}

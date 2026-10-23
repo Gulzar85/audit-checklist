@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load ui %}
+{% load ui scoring_tags %}
 {% block title %}Builder · {{ template.name }} &middot; {{ APP_NAME }}{% endblock %}
 {% block page_width %}page-wide{% endblock %}
 
@@ -10,6 +10,7 @@
 {% page_header title="Checklist builder" subtitle=sub icon="layout-list" status="draft" status_label="Draft" %}
   <a href="{% url 'checklists:detail' template.pk %}" class="btn btn-secondary">{% icon "eye" %} Overview</a>
   {% if draft %}<a href="{% url 'checklists:rules' template.pk %}" class="btn btn-secondary">{% icon "git-branch" %} Rules{% if rule_count %} <span class="badge badge-neutral">{{ rule_count }}</span>{% endif %}</a>{% endif %}
+  {% if draft %}{% scoring_summary draft request.user as sc %}{% if sc.can_view %}<a href="{% url 'scoring:editor' draft.pk %}" class="btn btn-secondary">{% icon "calculator" %} Scoring{% if sc.scored %} <span class="badge badge-neutral">{{ sc.scored }}</span>{% endif %}</a>{% endif %}{% endif %}
   {% if draft %}<a href="{% url 'checklists:version_preview' template.pk draft.version_number %}" class="btn btn-secondary">{% icon "eye" %} Preview</a>{% endif %}
   <a href="{% url 'checklists:versions' template.pk %}" class="btn btn-secondary">{% icon "history" %} Version history</a>
   {% if can_validate %}

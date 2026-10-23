@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Scoring · {{ template.name }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% url 'checklists:detail' template.pk as crumb_url %}{% breadcrumbs "Home" "core:home" "Checklist templates" "checklists:list" template.name crumb_url "Scoring" %}{% endblock %}
+
+{% block page_header %}
+{% page_header title="Scoring" subtitle=subtitle icon="calculator" status=version.status %}
+  {% if can_edit %}<a href="{% url 'checklists:builder' template.pk %}" class="btn btn-secondary">{% icon "layout-list" %} Builder</a>{% else %}<a href="{% url 'checklists:detail' template.pk %}" class="btn btn-secondary">{% icon "eye" %} Overview</a>{% endif %}
+{% endpage_header %}
+{% endblock %}
+
+{% block content %}
+<p class="mb-4 max-w-3xl text-sm text-muted-foreground">
+  Scoring turns the answers of a submitted checklist into points, a percentage, a grade and critical flags - always by the rules below, which belong to this version.
+  {% if can_edit %}Changes save immediately into draft version {{ version.version_number }} and take effect when it is published.{% else %}Version {{ version.version_number }} is {{ version.get_status_display|lower }}, so its scoring is read-only. Start a new draft to change it; recorded scores never change.{% endif %}
+</p>
+
+{% if errors %}<div class="alert alert-danger mb-4" role="alert">{% icon "octagon-alert" %}<div><p class="font-medium">This scoring cannot be published yet.</p><ul class="mt-1 list-disc pl-5">{% for i in errors %}<li>{{ i.message }}</li>{% endfor %}</ul></div></div>{% endif %}
+{% if warnings %}<div class="alert alert-warning mb-4" role="status">{% icon "triangle-alert" %}<div><p class="font-medium">Worth a look</p><ul class="mt-1 list-disc pl-5">{% for i in warnings %}<li>{{ i.message }}</li>{% endfor %}</ul></div></div>{% endif %}
+{% if row and not errors and settings.enabled %}<div class="alert alert-success mb-4" role="status">{% icon "circle-check" %}<p>The scoring is complete and valid ({{ scored_count }} scored question{{ scored_count|pluralize }}).</p></div>{% endif %}
+
+<div class="space-y-6">
+  <section class="card" aria-labelledby="sc-settings">
+    <div class="card-header"><h2 id="sc-settings" class="card-title">Settings</h2></div>
+    <form method="post" action="{% url 'scoring:settings' version.pk %}" novalidate>{% csrf_token %}
+      <fieldset class="card-body grid gap-4 sm:grid-cols-2" {% if not can_edit %}disabled{% endif %}>
+        <label class="inline-flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" class="checkbox" name="enabled" {% if settings.enabled %}checked{% endif %}> Scoring is on for this version (off: the version has no score - never a score of zero)</label>
+        <div><label class="label" for="s-method">Method</label><select id="s-method" name="method" class="select">{% for value, label in methods %}<option value="{{ value }}" {% if settings.method == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+          <p class="mt-1 text-xs text-muted-foreground">Percentage and raw total divide earned by available points; weighted sections average the section percentages by their weights.</p></div>
+        <div><label class="label" for="s-precision">Percentage decimals</label><input id="s-precision" name="precision" type="number" min="0" max="4" class="input" value="{{ settings.precision }}"></div>
+        <div><label class="label" for="s-na">Questions answered N/A</label><select id="s-na" name="na_policy" class="select">{% for value, label in na_policies %}<option value="{{ value }}" {% if settings.na_policy == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        <div><label class="label" for="s-missing">Unanswered optional questions at submission</label><select id="s-missing" name="missing_policy" class="select">{% for value, label in missing_policies %}<option value="{{ value }}" {% if settings.missing_policy == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+          <p class="mt-1 text-xs text-muted-foreground">Questions hidden by the checklist rules are never penalized.</p></div>
+        <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" class="checkbox" name="critical_overrides_grade" {% if settings.critical_overrides_grade %}checked{% endif %}> A critical failure replaces the displayed outcome</label>
+        <div><label class="label" for="s-critlabel">Outcome label on critical failure</label><input id="s-critlabel" name="critical_label" class="input" maxlength="100" value="{{ settings.critical_label }}" placeholder="e.g. Fail"></div>
+        <div class="sm:col-span-2"><label class="label" for="s-notes">Notes for designers</label><input id="s-notes" name="notes" class="input" maxlength="500" value="{{ row.notes }}"></div>
+      </fieldset>
+      {% if can_edit %}<div class="card-footer flex justify-end"><button type="submit" class="btn btn-primary">{% icon "save" %} Save settings</button></div>{% endif %}
+    </form>
+  </section>
+
+  <section class="card" aria-labelledby="sc-items">
+    <div class="card-header flex-wrap"><h2 id="sc-items" class="card-title">Questions <span class="font-normal text-muted-foreground">({{ scored_count }} scored)</span></h2>
+      <p class="text-xs text-muted-foreground">Text, dates, files, photos, signatures and matrices are never scored.</p></div>
+    <div class="table-wrap"><table class="table"><thead><tr><th>Question</th><th>Type</th><th>Scoring</th><th class="text-right">Max</th><th class="text-right">Weight</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody>
+      {% for q in items %}<tr {% if not q.active %}class="text-muted-foreground"{% endif %}>
+        <td><span class="font-mono text-xs">{{ q.code }}</span> {{ q.question }}<br><span class="text-xs text-muted-foreground">{{ q.section }}</span>
+          {% for i in q.issues %}<br><span class="text-xs {% if i.level == 'error' %}text-danger{% else %}text-warning{% endif %}">{{ i.message }}</span>{% endfor %}</td>
+        <td class="text-sm">{{ q.type }}</td>
+        <td class="text-sm">{% if q.scored %}{{ q.summary }}{% elif q.scorable %}<span class="text-muted-foreground">Not scored</span>{% else %}<span class="text-muted-foreground">Cannot be scored</span>{% endif %}</td>
+        <td class="text-right tabular-nums">{{ q.maximum }}</td><td class="text-right tabular-nums">{{ q.weight }}</td>
+        <td class="text-right">{% if q.scorable %}<a class="btn btn-ghost btn-sm" href="{% url 'scoring:item' version.pk q.code %}">{% if can_edit %}{% icon "pencil" %} {% if q.scored %}Edit{% else %}Score{% endif %}{% else %}{% icon "eye" %} View{% endif %}</a>{% endif %}</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+
+  <section class="card" aria-labelledby="sc-weights">
+    <div class="card-header flex-wrap"><h2 id="sc-weights" class="card-title">Section weights</h2><p class="text-xs text-muted-foreground">Used by the weighted-sections method. Empty = 1. Question weights apply only inside their section.</p></div>
+    <form method="post" action="{% url 'scoring:weights' version.pk %}" novalidate>{% csrf_token %}
+      <fieldset class="card-body grid gap-3 sm:grid-cols-2" {% if not can_edit %}disabled{% endif %}>
+        {% for s in sections %}<div><label class="label" for="w-{{ s.code }}">{{ s.name }} <span class="font-mono text-xs text-muted-foreground">{{ s.code }}</span></label><input id="w-{{ s.code }}" name="w_{{ s.code }}" class="input" inputmode="decimal" value="{{ s.weight }}" placeholder="1"></div>{% endfor %}
+      </fieldset>
+      {% if can_edit %}<div class="card-footer flex justify-end"><button type="submit" class="btn btn-secondary">{% icon "save" %} Save weights</button></div>{% endif %}
+    </form>
+  </section>
+
+  <section class="card" aria-labelledby="sc-bands">
+    <div class="card-header flex-wrap"><h2 id="sc-bands" class="card-title">Grade bands</h2><p class="text-xs text-muted-foreground">A band starts at its minimum percentage (inclusive) and runs to the next band. The lowest band must start at 0.</p></div>
+    <form method="post" action="{% url 'scoring:bands' version.pk %}" novalidate>{% csrf_token %}
+      <fieldset class="card-body space-y-2" {% if not can_edit %}disabled{% endif %}>
+        {% for b in bands %}<div class="grid gap-2 sm:grid-cols-[8rem_8rem_1fr]">
+          <input name="band_min" class="input" inputmode="decimal" value="{{ b.min }}" placeholder="From %" aria-label="Band {{ forloop.counter }} minimum percentage">
+          <input name="band_grade" class="input" maxlength="20" value="{{ b.grade }}" placeholder="Grade" aria-label="Band {{ forloop.counter }} grade">
+          <input name="band_label" class="input" maxlength="100" value="{{ b.label }}" placeholder="Label (e.g. Excellent)" aria-label="Band {{ forloop.counter }} label"></div>{% endfor %}
+      </fieldset>
+      {% if can_edit %}<div class="card-footer flex justify-end"><button type="submit" class="btn btn-secondary">{% icon "save" %} Save bands</button></div>{% endif %}
+    </form>
+  </section>
+
+  <section class="card" aria-labelledby="sc-crit">
+    <div class="card-header flex-wrap"><h2 id="sc-crit" class="card-title">Critical failures</h2><p class="text-xs text-muted-foreground">A critical failure is a flag beside the score; it never changes the numbers. Only scored questions can be critical.</p></div>
+    <form method="post" action="{% url 'scoring:critical' version.pk %}" novalidate>{% csrf_token %}
+      <fieldset class="card-body space-y-2" {% if not can_edit %}disabled{% endif %}>
+        {% for c in critical %}<div class="grid gap-2 lg:grid-cols-[1fr_10rem_10rem_1fr]">
+          <select name="crit_item" class="select" aria-label="Critical rule {{ forloop.counter }} question"><option value="">— question —</option>{% for q in critical_items %}<option value="{{ q.code }}" {% if c.item == q.code %}selected{% endif %}>{{ q.code }}</option>{% endfor %}</select>
+          <select name="crit_op" class="select" aria-label="Critical rule {{ forloop.counter }} condition"><option value="">— when —</option>{% for value, label in critical_ops %}<option value="{{ value }}" {% if c.op == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+          <input name="crit_value" class="input" maxlength="100" value="{{ c.value }}" placeholder="Value" aria-label="Critical rule {{ forloop.counter }} value">
+          <input name="crit_label" class="input" maxlength="100" value="{{ c.label }}" placeholder="Label (e.g. Fire exit blocked)" aria-label="Critical rule {{ forloop.counter }} label"></div>{% endfor %}
+      </fieldset>
+      {% if can_edit %}<div class="card-footer flex justify-end"><button type="submit" class="btn btn-secondary">{% icon "save" %} Save critical rules</button></div>{% endif %}
+    </form>
+  </section>
+
+  <section class="card" aria-labelledby="sc-preview">
+    <div class="card-header flex-wrap"><h2 id="sc-preview" class="card-title">Try it</h2><p class="text-xs text-muted-foreground">Enter sample answers and see the score the saved configuration would give. Nothing is stored.</p></div>
+    {% if can_try and sample_fields %}
+    <form method="post" action="{% url 'scoring:preview' version.pk %}" hx-post="{% url 'scoring:preview' version.pk %}" hx-target="#preview-result" hx-swap="outerHTML" novalidate>{% csrf_token %}
+      <div class="card-body grid gap-4 sm:grid-cols-2">
+        {% for f in sample_fields %}<div><label class="label" for="a-{{ f.code }}"><span class="font-mono text-xs">{{ f.code }}</span> {{ f.question }}</label>
+          {% if f.multi %}<div class="flex flex-wrap gap-3">{% for value, label in f.choices %}<label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" class="checkbox" name="a_{{ f.code }}" value="{{ value }}"> {{ label }}</label>{% endfor %}</div>
+          {% elif f.choices %}<select id="a-{{ f.code }}" name="a_{{ f.code }}" class="select"><option value="">— not answered —</option>{% for value, label in f.choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
+          {% else %}<input id="a-{{ f.code }}" name="a_{{ f.code }}" class="input" inputmode="decimal" placeholder="{% if f.min is not None %}{{ f.min }} to {{ f.max }}{% endif %}">{% endif %}
+          <label class="mt-1 inline-flex items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" class="checkbox" name="na_{{ f.code }}"> Answer N/A</label></div>{% endfor %}
+      </div>
+      <div class="card-footer flex flex-wrap items-center justify-between gap-2"><label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" class="checkbox" name="final" checked> As if submitted (missing answers follow the policy)</label><button type="submit" class="btn btn-primary">{% icon "calculator" %} Calculate</button></div>
+    </form>
+    {% include "scoring/_preview_result.html" with result=None error="" outcome=None %}
+    {% else %}<div class="card-body"><p class="text-sm text-muted-foreground">{% if not sample_fields %}Score at least one question to try the calculation.{% else %}Previews are available to people who can configure scoring.{% endif %}</p></div>{% endif %}
+  </section>
+</div>
+{% endblock %}

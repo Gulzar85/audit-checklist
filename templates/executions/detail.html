@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load ui %}
+{% load ui scoring_tags %}
 {% block title %}{{ execution.reference }} &middot; {{ APP_NAME }}{% endblock %}
 {% block page_width %}page-wide{% endblock %}
 {% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Execution history" "executions:history" execution.reference %}{% endblock %}
@@ -27,6 +27,7 @@
         <div><dt class="text-muted-foreground">Progress</dt><dd>{{ progress.percent }}%</dd></div>
       </dl>
     </section>
+    {% score_card execution %}
     {% for block in blocks %}
       <section class="card" aria-labelledby="sec-{{ block.section.pk }}">
         <div class="card-header"><h2 id="sec-{{ block.section.pk }}" class="card-title">{{ block.section.name }}</h2></div>

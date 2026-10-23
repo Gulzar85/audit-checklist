@@ -1,0 +1,20 @@
+{% load ui %}{% if show %}
+<section class="card" aria-labelledby="score-title">
+  <div class="card-header flex-wrap"><h2 id="score-title" class="card-title">Score</h2>
+    {% if can_breakdown %}<a class="btn btn-ghost btn-sm" href="{% url 'scoring:execution' execution.pk %}">{% icon "list-checks" %} How it was calculated</a>{% endif %}
+  </div>
+  <div class="card-body">
+    {% if result %}
+      {% include "scoring/_score_figures.html" with status=result.status percentage=result.percentage earned=result.earned available=result.available grade=result.grade label=result.display_label critical=result.critical %}
+      <p class="mt-3 text-xs text-muted-foreground">Calculated {{ result.created_at|date:"M d, Y H:i" }} under the rules of this checklist version. A recorded score does not change when the checklist is later edited.</p>
+    {% elif outcome %}
+      {% include "scoring/_score_figures.html" with status=outcome.status percentage=outcome.percentage earned=outcome.earned available=outcome.available grade=outcome.grade label=outcome.display_label critical=outcome.critical %}
+      <p class="mt-3 text-xs text-muted-foreground">Provisional: calculated now from the answers saved so far. It is final only after submission.</p>
+    {% elif pending %}
+      <p class="text-sm text-muted-foreground">The final score is being recorded. Reload in a moment.</p>
+    {% else %}
+      <p class="text-sm text-muted-foreground">The score appears here once the checklist is submitted.</p>
+    {% endif %}
+  </div>
+</section>
+{% endif %}

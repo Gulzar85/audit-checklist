@@ -1,0 +1,17 @@
+{% load ui %}
+<div id="preview-result" class="mt-4" aria-live="polite">
+  {% if error %}<div class="alert alert-danger" role="alert">{% icon "octagon-alert" %}<p>{{ error }}</p></div>
+  {% elif result and not result.valid %}
+    <div class="alert alert-danger" role="alert">{% icon "octagon-alert" %}<div><p class="font-medium">The configuration cannot be scored yet</p><ul class="mt-1 list-disc pl-5">{% for i in result.issues %}{% if i.level == "error" %}<li>{{ i.message }}</li>{% endif %}{% endfor %}</ul></div></div>
+  {% elif result.disabled %}
+    <div class="alert alert-info" role="status">{% icon "info" %}<p>Scoring is switched off for this version, so there is no score.</p></div>
+  {% elif outcome %}
+    {% include "scoring/_score_figures.html" with status=outcome.status percentage=outcome.percentage earned=outcome.earned available=outcome.available grade=outcome.grade label=outcome.display_label critical=outcome.critical %}
+    <ul class="mt-3 list-disc space-y-1 pl-6 text-sm">{% for line in outcome.explanation %}<li>{{ line }}</li>{% endfor %}</ul>
+    {% if outcome.critical_hits %}<p class="mt-2 text-sm font-medium text-danger">Critical: {% for h in outcome.critical_hits %}{{ h.label }}{% if not forloop.last %}; {% endif %}{% endfor %}</p>{% endif %}
+    <div class="table-wrap mt-4"><table class="table"><thead><tr><th>Question</th><th>Answer</th><th class="text-right">Earned</th><th class="text-right">Available</th><th>Treatment</th></tr></thead><tbody>
+      {% for i in outcome.items %}<tr {% if not i.included %}class="text-muted-foreground"{% endif %}><td><span class="font-mono text-xs">{{ i.code }}</span></td><td>{{ i.answer }}</td><td class="text-right tabular-nums">{{ i.earned|floatformat:"-4" }}</td><td class="text-right tabular-nums">{{ i.available|floatformat:"-4" }}</td><td class="text-sm">{{ i.explanation }}</td></tr>{% endfor %}
+    </tbody></table></div>
+    <p class="mt-2 text-xs text-muted-foreground">A preview uses the same calculation as a real execution. Nothing is stored and no execution is created.</p>
+  {% endif %}
+</div>

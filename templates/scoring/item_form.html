@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Score {{ spec.code }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% url 'checklists:detail' template.pk as crumb_url %}{% url 'scoring:editor' version.pk as editor_url %}{% breadcrumbs "Home" "core:home" "Checklist templates" "checklists:list" template.name crumb_url "Scoring" editor_url spec.code %}{% endblock %}
+{% block page_header %}{% page_header title="Score this question" subtitle=spec.code icon="calculator" %}<a class="btn btn-secondary" href="{% url 'scoring:editor' version.pk %}">{% icon "arrow-left" %} Scoring</a>{% endpage_header %}{% endblock %}
+
+{% block content %}
+<section class="card max-w-3xl" aria-labelledby="q-title">
+  <div class="card-header"><h2 id="q-title" class="card-title">{{ spec.question }}</h2></div>
+  {% if not scorable %}
+    <div class="card-body"><p class="text-sm text-muted-foreground">A “{{ spec.answer_type }}” question is never scored: its answer is not a measurable result, and no score is ever inferred from it.</p></div>
+  {% else %}
+  <form method="post" novalidate>{% csrf_token %}
+    <fieldset class="card-body space-y-4" {% if not can_edit %}disabled{% endif %}>
+      <p class="text-sm text-muted-foreground">Answer type: <strong>{{ spec.answer_type }}</strong>. Points are never negative.</p>
+      <div class="max-w-xs"><label class="label" for="i-weight">Weight</label><input id="i-weight" name="weight" class="input" inputmode="decimal" value="{{ weight }}"><p class="mt-1 text-xs text-muted-foreground">How much this question counts relative to others in its section. 0 lists it without counting it.</p></div>
+      {% if fields %}
+        <div class="space-y-2"><p class="label">Points per answer</p>
+          {% for f in fields %}<div class="grid items-center gap-2 sm:grid-cols-[1fr_8rem]"><label for="p-{{ f.key }}" class="text-sm">{{ f.label }}</label><input id="p-{{ f.key }}" name="p_{{ f.key }}" class="input" inputmode="decimal" value="{{ f.value }}"></div>{% endfor %}
+          {% if spec.answer_type == "yes_no_na" %}<p class="text-xs text-muted-foreground">N/A is not scored with points: the “questions answered N/A” setting decides whether it is excluded or counts as zero.</p>{% endif %}
+        </div>
+      {% endif %}
+      {% if spec.answer_type == "multiple_choice" %}
+        <div class="max-w-xs"><label class="label" for="i-agg">When several options are selected</label><select id="i-agg" name="aggregate" class="select"><option value="sum" {% if aggregate == "sum" %}selected{% endif %}>Add their points</option><option value="max" {% if aggregate == "max" %}selected{% endif %}>Use the highest</option></select></div>
+      {% endif %}
+      {% if spec.answer_type == "numeric" %}
+        <div class="space-y-2"><p class="label">Ranges <span class="font-normal text-muted-foreground">(leave unused rows empty; every possible value should fall in a range)</span></p>
+          {% for r in ranges %}<div class="grid items-center gap-2 sm:grid-cols-[7rem_7rem_auto_auto_7rem]">
+            <input name="r{{ r.n }}_min" class="input" inputmode="decimal" value="{{ r.min|default_if_none:'' }}" placeholder="From" aria-label="Range {{ forloop.counter }} from">
+            <input name="r{{ r.n }}_max" class="input" inputmode="decimal" value="{{ r.max|default_if_none:'' }}" placeholder="To" aria-label="Range {{ forloop.counter }} to">
+            <label class="inline-flex items-center gap-1 text-xs"><input type="checkbox" class="checkbox" name="r{{ r.n }}_mininc" {% if r.min_inclusive is None or r.min_inclusive %}checked{% endif %}> from included</label>
+            <label class="inline-flex items-center gap-1 text-xs"><input type="checkbox" class="checkbox" name="r{{ r.n }}_maxinc" {% if r.max_inclusive is None or r.max_inclusive %}checked{% endif %}> to included</label>
+            <input name="r{{ r.n }}_points" class="input" inputmode="decimal" value="{{ r.points|default_if_none:'' }}" placeholder="Points" aria-label="Range {{ forloop.counter }} points"></div>{% endfor %}
+          {% if spec.config.min is not None %}<p class="text-xs text-muted-foreground">This question accepts {{ spec.config.min }} to {{ spec.config.max }}.</p>{% endif %}
+        </div>
+      {% endif %}
+      {% if spec.answer_type == "score" %}<p class="text-sm">The answer itself is the score (out of {{ spec.config.max }}); there is nothing else to map.</p>{% endif %}
+    </fieldset>
+    {% if can_edit %}<div class="card-footer flex flex-wrap justify-between gap-2">
+      <button type="submit" name="remove" value="1" class="btn btn-ghost" {% if not rule %}disabled{% endif %}>{% icon "trash-2" %} Stop scoring this question</button>
+      <button type="submit" class="btn btn-primary">{% icon "save" %} Save</button></div>{% endif %}
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

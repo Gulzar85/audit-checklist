@@ -38,6 +38,7 @@ from apps.locations.models import validate_code
 from django.core.exceptions import ValidationError
 
 from . import constants as c
+from . import hooks
 from .answer_types import ConfigurationError, registry
 from .manifest import hash_manifest, manifest_from_rows
 from .metadata import clean_metadata
@@ -200,7 +201,10 @@ def validate_for_publication(version: Any) -> PublicationReport:
         warn("all_optional", "This checklist contains only optional items.", "version")
     if inactive_total:
         warn("inactive_items", f"{inactive_total} inactive item{'s are' if inactive_total != 1 else ' is'} included (kept for history, never asked).", "version")
-    manifest = manifest_from_rows(sections, rules)
+    for validator in hooks.publication_validators:
+        for level, code, message, subject in validator(version):
+            (error if level == "error" else warn)(code, message, subject)
+    manifest = manifest_from_rows(sections, rules, hooks.manifest_extras(version))
     report.draft_hash = hash_manifest(manifest)
     current = version.template.versions.filter(status=c.VersionStatus.PUBLISHED).order_by("-version_number").first()
     if current is not None and version.status == c.VersionStatus.DRAFT:

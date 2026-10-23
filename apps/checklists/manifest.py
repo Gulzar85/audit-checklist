@@ -40,7 +40,7 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-from . import selectors
+from . import hooks, selectors
 
 CURRENT_SCHEMA = 1
 ALGORITHM = "sha256"
@@ -56,8 +56,12 @@ def _pick(obj: Any, fields: tuple[str, ...]) -> dict[str, Any]:
     return {f: getattr(obj, f) for f in fields}
 
 
-def manifest_from_rows(sections: Any, rules: Any) -> dict[str, Any]:
-    """The schema-1 manifest of already-loaded rows (``sections`` with ``items`` and ``options`` prefetched, in order)."""
+def manifest_from_rows(sections: Any, rules: Any, extras: dict[str, Any] | None = None) -> dict[str, Any]:
+    """The schema-1 manifest of already-loaded rows (``sections`` with ``items`` and ``options`` prefetched, in order).
+
+    ``extras`` are the canonical sections other apps own for the version (``hooks.manifest_extras``, e.g. scoring); they are
+    added only when present, so a version without them hashes exactly as it did before they existed.
+    """
     out_sections = []
     for section in sections:
         out = _pick(section, _SECTION_FIELDS)
@@ -67,12 +71,14 @@ def manifest_from_rows(sections: Any, rules: Any) -> dict[str, Any]:
             entry["options"] = [_pick(o, _OPTION_FIELDS) for o in item.options.all()]
             out["items"].append(entry)
         out_sections.append(out)
-    return {"schema": 1, "sections": out_sections, "rules": [_pick(r, _RULE_FIELDS) for r in rules]}
+    manifest: dict[str, Any] = {"schema": 1, "sections": out_sections, "rules": [_pick(r, _RULE_FIELDS) for r in rules]}
+    manifest.update(extras or {})
+    return manifest
 
 
 def build_manifest(version: Any) -> dict[str, Any]:
     """The current manifest of ``version`` (four queries, whatever its size)."""
-    return manifest_from_rows(selectors.get_sections_for_version(version), version.rules.order_by("sort_order"))
+    return manifest_from_rows(selectors.get_sections_for_version(version), version.rules.order_by("sort_order"), hooks.manifest_extras(version))
 
 
 def canonical_json(manifest: dict[str, Any]) -> str:

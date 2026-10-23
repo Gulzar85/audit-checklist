@@ -21,7 +21,7 @@ from apps.assignments.constants import AssignmentStatus
 from apps.assignments.services import lifecycle as assignment_lifecycle
 from apps.core.services import stamp_history
 
-from .. import events, policies
+from .. import events, hooks, policies
 from ..constants import ExecutionStatus
 from ..models import ChecklistExecution, ChecklistResponse
 from .base import VERBS, integrity_error, lock_execution, log
@@ -90,6 +90,8 @@ def _submit(execution: ChecklistExecution, actor: Any) -> SubmissionResult:
     findings = detect_after_submission(locked, actor)  # Phase 12: raises the findings the rules call for, inside this transaction
     log(VERBS["submitted"], locked, actor, f"Submitted {locked.reference}", answers=len(state.responses) - len(hidden_ids), hidden=len(hidden_ids),
         version=locked.version.version_number, findings_raised=len(findings.created) if findings else 0)
+    for hook in hooks.after_submit:  # Phase 15: the final score snapshot (a hook never fails the submission)
+        hook(locked, actor, state)
     events.send_on_commit(events.execution_submitted, locked, actor)
     return SubmissionResult(locked)
 

@@ -625,6 +625,8 @@ JAZZMIN_SETTINGS = {
         "findings.FindingCategory": "fas fa-tags",
         "findings.FindingSeverity": "fas fa-sort-amount-up",
         "evidence": "fas fa-paperclip",
+        "scoring.ScoringConfig": "fas fa-calculator",
+        "scoring.ScoreResult": "fas fa-percentage",
         "workflows.WorkflowDefinition": "fas fa-project-diagram",
         "workflows.WorkflowVersion": "fas fa-code-branch",
         "workflows.WorkflowState": "fas fa-circle",

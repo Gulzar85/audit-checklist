@@ -11,6 +11,11 @@ from .evidence import (
     AssetFileView, AssetPreviewView, AssetStatusView, AssetView, AttachmentDetailView, AttachmentListView, EvidenceLimitsView, TargetAttachmentsView, UploadView,
 )
 from .corrective_actions import ActionViewSet
+from .scoring import (
+    ExecutionScoreBreakdownView, ExecutionScoreHistoryView, ExecutionScoreRecalculateView, ExecutionScoreView, VersionScoringPreviewView, VersionScoringValidateView,
+    VersionScoringView,
+)
+from .scoring import MetadataView as ScoringMetadataView
 from .workflows import MetadataView, WorkflowInstanceViewSet, WorkflowTaskViewSet, WorkflowVersionViewSet, WorkflowViewSet
 from .findings import CategoryViewSet, FindingViewSet, SeverityViewSet
 from .executions import AssignmentExecutionView, ExecutionViewSet, MyAssignmentsView, StartExecutionView
@@ -51,6 +56,14 @@ urlpatterns = [
     path("health/", HealthCheckView.as_view(), name="health"),
     path("my-assignments/", MyAssignmentsView.as_view(), name="my-assignments"),
     path("workflows/metadata/", MetadataView.as_view(), name="workflow-metadata"),
+    path("scoring/metadata/", ScoringMetadataView.as_view(), name="scoring-metadata"),
+    path("checklist-versions/<uuid:pk>/scoring/", VersionScoringView.as_view(), name="version-scoring"),
+    path("checklist-versions/<uuid:pk>/scoring/validate/", VersionScoringValidateView.as_view(), name="version-scoring-validate"),
+    path("checklist-versions/<uuid:pk>/scoring/preview/", VersionScoringPreviewView.as_view(), name="version-scoring-preview"),
+    path("executions/<uuid:pk>/score/", ExecutionScoreView.as_view(), name="execution-score"),
+    path("executions/<uuid:pk>/score/breakdown/", ExecutionScoreBreakdownView.as_view(), name="execution-score-breakdown"),
+    path("executions/<uuid:pk>/score/history/", ExecutionScoreHistoryView.as_view(), name="execution-score-history"),
+    path("executions/<uuid:pk>/score/recalculate/", ExecutionScoreRecalculateView.as_view(), name="execution-score-recalculate"),
     path("my-workflow-tasks/", WorkflowTaskViewSet.as_view({"get": "mine"}), name="my-workflow-tasks"),
     path("my-corrective-actions/", ActionViewSet.as_view({"get": "mine"}), name="my-corrective-actions"),
     path("evidence/limits/", EvidenceLimitsView.as_view(), name="evidence-limits"),

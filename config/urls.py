@@ -42,6 +42,7 @@ urlpatterns += [
     path("findings/", include("apps.findings.urls", namespace="findings")),
     path("corrective-actions/", include("apps.corrective_actions.urls", namespace="corrective_actions")),
     path("workflows/", include("apps.workflows.urls", namespace="workflows")),
+    path("scoring/", include("apps.scoring.urls", namespace="scoring")),
     path("evidence/", include("apps.evidence.urls", namespace="evidence")),
     # Versioned REST API.
     path("api/v1/", include(("apps.api.v1.urls", "v1"), namespace="v1")),

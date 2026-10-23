@@ -35,6 +35,7 @@ from simple_history.utils import bulk_create_with_history
 from apps.core.services import stamp_history
 
 from . import constants as c
+from . import hooks
 from .comparison import Comparison, compare_manifests
 from .guards import allow_definition_changes
 from .manifest import build_manifest, manifest_hash
@@ -125,7 +126,10 @@ def clone_definition(source: ChecklistVersion, target: ChecklistVersion, *, acto
     for model, objs in ((ChecklistSection, new_sections), (ChecklistItem, new_items), (ChecklistOption, new_options), (ChecklistRule, new_rules)):
         if objs:
             bulk_create_with_history(objs, model, default_user=user, default_change_reason=reason)
-    return {"sections": len(new_sections), "items": len(new_items), "options": len(new_options), "rules": len(new_rules)}
+    counts = {"sections": len(new_sections), "items": len(new_items), "options": len(new_options), "rules": len(new_rules)}
+    for hook in hooks.clone_hooks:  # extra definition data owned by other apps (e.g. scoring) follows the version
+        counts.update(hook(source, target, actor))
+    return counts
 
 
 # ---------------------------------------------------------------------------
