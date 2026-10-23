@@ -73,3 +73,7 @@ consequences. New records are appended; existing ones are superseded, not edited
 | [0066](0066-corrective-action-model-and-lifecycle.md) | Corrective actions: relational model, append-only history, derived overdue | Accepted |
 | [0067](0067-verification-and-separation-of-duties.md) | Verification and separation of duties | Accepted |
 | [0068](0068-finding-eligibility-hooks-and-evidence-target.md) | Parent-finding eligibility through hooks; the corrective-action evidence target | Accepted |
+| [0069](0069-workflow-model-states-and-versions.md) | Workflow model: states carry the approval stage, versions are sealed, instances bind a version | Accepted |
+| [0070](0070-workflow-validation-and-phase6-conditions.md) | Publication validation and Phase 6 conditions | Accepted |
+| [0071](0071-target-and-action-registries-and-governance.md) | Target and business-action registries, transactions and domain governance | Accepted |
+| [0072](0072-tasks-assignment-approvals-and-concurrency.md) | Tasks, assignment, approvals, separation of duties and concurrency | Accepted |

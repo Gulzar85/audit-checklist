@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Workflow tasks &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Workflow tasks" %}{% endblock %}
+
+{% block page_header %}
+{% page_header title="Workflow tasks" subtitle="Work waiting for you in running workflows. A task lets you act on that step only; the record is still protected by its own permissions." icon="list-todo" %}
+  <a href="{% url 'workflows:instances' %}" class="btn btn-secondary">Running workflows</a>
+{% endpage_header %}
+{% endblock %}
+
+{% block content %}
+<section class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Summary">
+  <div class="card card-body"><p class="text-xs text-muted-foreground">Assigned to me</p><p class="text-2xl font-semibold">{{ summary.mine }}</p></div>
+  <div class="card card-body"><p class="text-xs text-muted-foreground">{% icon "alarm-clock" %} Overdue</p><p class="text-2xl font-semibold {% if summary.mine_overdue %}text-danger-text{% endif %}">{{ summary.mine_overdue }}</p></div>
+  <div class="card card-body"><p class="text-xs text-muted-foreground">Available to claim</p><p class="text-2xl font-semibold">{{ summary.claimable }}</p></div>
+  <div class="card card-body"><p class="text-xs text-muted-foreground">Needs attention</p><p class="text-2xl font-semibold {% if summary.needs_attention %}text-warning-text{% endif %}">{{ summary.needs_attention }}</p></div>
+</section>
+
+{% include "workflows/_task_table.html" with title="Assigned to me" tasks=mine empty="Nothing is assigned to you." %}
+{% include "workflows/_task_table.html" with title="Available to claim" tasks=claimable empty="No unassigned tasks match your role." %}
+{% include "workflows/_task_table.html" with title="Other open tasks in your scope" tasks=others empty="No other open tasks." %}
+{% include "workflows/_task_table.html" with title="Recently completed" tasks=done empty="Nothing completed yet." %}
+{% endblock %}

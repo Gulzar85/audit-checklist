@@ -19,7 +19,7 @@ from django.utils.translation import gettext_lazy as _
 from apps.core.services import apply_changes, stamp_history
 from apps.permissions.registry import P
 
-from .. import events, policies, selectors
+from .. import events, hooks, policies, selectors
 from ..constants import PLANNING_STATUSES, TRANSITIONS, ActionStatus, Decision, Priority, UpdateKind
 from ..models import CorrectiveAction, CorrectiveActionUpdate, CorrectiveActionVerification
 from .base import VERBS, integrity_error, lock_action, lock_organization, log, next_number
@@ -227,6 +227,10 @@ def _transition(action: CorrectiveAction, name: str, actor: Any, reason: str) ->
     locked = lock_action(action.pk)
     if not policies.can_view(actor, locked) or not policies.can_act(actor, locked, name):
         raise PermissionDenied
+    for guard in hooks.transition_guards:  # e.g. a workflow governs this decision: it may only be taken through the workflow
+        message = guard(locked, name, actor)
+        if message:
+            raise ActionError(message, "governed_by_workflow")
     if locked.status == spec.target and name != "reopen":
         raise ActionConflict(_("%(ref)s is already %(status)s; nothing was changed.") % {"ref": locked.reference, "status": locked.get_status_display().lower()}, "already_" + spec.target)
     if locked.status not in spec.sources:

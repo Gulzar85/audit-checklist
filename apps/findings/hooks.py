@@ -10,12 +10,19 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+#: ``guard(finding, transition_name, actor) -> str | None``: a message refuses a lifecycle transition (Phase 14 refuses a direct call while a workflow governs it).
+transition_guards: list[Callable[[Any, str, Any], str | None]] = []
 closure_blockers: list[Callable[[Any], str | None]] = []
 #: Same contract for ``resolve`` and ``cancel`` (Phase 13 registers the corrective-action policy: nothing is resolved or cancelled out from under live work).
 resolve_blockers: list[Callable[[Any], str | None]] = []
 cancel_blockers: list[Callable[[Any], str | None]] = []
 #: ``gate(finding) -> bool``: has an independent verification accepted this finding?  Registered by the verification phase.
 verification_gate: list[Callable[[Any], bool]] = []
+
+
+def register_transition_guard(guard: Callable[[Any, str, Any], str | None]) -> None:
+    if guard not in transition_guards:
+        transition_guards.append(guard)
 
 
 def register_closure_blocker(blocker: Callable[[Any], str | None]) -> None:

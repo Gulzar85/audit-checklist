@@ -108,6 +108,9 @@ NAVIGATION: tuple[NavItem, ...] = (
     NavItem("corrective_actions", "Corrective Actions", "wrench", "quality", url_name="corrective_actions:list",
             visible=can_see("corrective_action.view"), active=("corrective_actions:*",)),
     NavItem("verifications", "Verifications", "badge-check", "quality"),
+    NavItem("workflow_tasks", "Workflow tasks", "list-todo", "quality", url_name="workflows:tasks", visible=can_see("workflow.task_view"), active=("workflows:tasks", "workflows:instance*")),
+    NavItem("workflows", "Workflows", "git-branch", "quality", url_name="workflows:list", visible=can_see("workflow.view"),
+            active=("workflows:list", "workflows:create", "workflows:detail", "workflows:edit", "workflows:version")),
     # --- Analytics (planned) ----------------------------------------------------------------
     NavItem("reports", "Reports", "chart-column", "analytics"),
     NavItem("dashboards", "Dashboards", "chart-no-axes-combined", "analytics"),

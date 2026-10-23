@@ -5,12 +5,11 @@ QA audits, operations inspections, restaurant and safety checks, and compliance
 programmes all run on one configurable engine with scoring, findings, corrective
 actions, workflow, and offline execution.
 
-> **Phase 2 â€” Identity, Profile & Organization Membership.** On top of the Phase 1 backbone, the
-> platform now has its identity boundary: **Microsoft Entra ID sign-in** (MSAL), a single
-> authoritative user lifecycle (`pending` / `active` / `suspended` / `inactive`), account and
-> preference pages, organization switching, an identity API, and sign-in throttling. No
-> checklist, scoring, finding or corrective-action functionality exists yet, and full
-> authorization (roles/scopes) is a later phase (see [Scope](#scope)).
+> **Status: Phases 0-14 delivered.** Organizations and locations, identity (Microsoft Entra ID),
+> RBAC, themes, checklist authoring/versioning/publishing with a conditional rules engine,
+> assignments, execution, PWA offline execution and sync, evidence and attachments, findings,
+> corrective actions, and a **configurable workflow engine** (Phase 14). Scoring, reporting and
+> notification delivery are not built yet (see [Scope](#scope)).
 
 ---
 
@@ -28,7 +27,7 @@ actions, workflow, and offline execution.
 | History / I/O  | django-simple-history, django-import-export                  |
 | PWA            | Web app manifest + service worker (offline shell)            |
 | Identity       | Custom user model and Microsoft Entra ID sign-in (MSAL)     |
-| Authz          | Policies over membership + model permissions (roles/scopes in Phase 4) |
+| Authz          | RBAC: roles, scoped grants and policies over organization/location scope |
 
 ---
 
@@ -72,7 +71,7 @@ Then open <http://localhost:8000/> (landing page), `/organizations/`, `/location
 ## Testing
 
 ```powershell
-.\venv\Scripts\python -m pytest              # full suite (~1495 tests)
+.\venv\Scripts\python -m pytest              # full suite (~3,900 tests; the full run takes about 45 minutes)
 .\venv\Scripts\python -m pytest --cov=apps   # with coverage
 ```
 
@@ -95,6 +94,8 @@ recursive queries and row locks are part of what is under test). Point
 .\venv\Scripts\python manage.py seed_demo_evidence --organization <slug>   # a checklist with photo/file/signature questions and a fresh assignment
 .\venv\Scripts\python manage.py seed_demo_findings --organization <slug>   # a rule-driven inspection, findings in several states (docs/findings-operations.md)
 .\venv\Scripts\python manage.py seed_demo_corrective_actions --organization <slug>   # actions in several states against a demo finding (docs/corrective-actions-architecture.md)
+.\venv\Scripts\python manage.py seed_workflows --organization <slug>   # corrective action verification + critical finding review workflows (docs/workflow-administration.md)
+.\venv\Scripts\python manage.py release_workflow_orphans          # release workflow tasks of inactive assignees
 .\venv\Scripts\python manage.py detect_findings --dry-run                  # idempotently (re)raise findings of submitted executions
 .\venv\Scripts\python manage.py prune_sync_receipts --days 90   # delete old offline idempotency receipts
 .\venv\Scripts\python manage.py scan_evidence                   # scan files awaiting the malware check (docs/evidence-malware-scanning.md)
@@ -126,8 +127,15 @@ apps/
   permissions/     RBAC foundation (Role / RoleScope / UserRole) + authorization
   notifications/   Provider-agnostic notification seam (SMTP now, M365 later)
   api/             DRF envelope renderer, exception handler, v1 (organizations, locations, identity) + OpenAPI
-  checklists/ executions/ findings/ corrective_actions/
-  workflows/ scoring/ reporting/            (Phase 0 skeletons - intentionally empty)
+  themes/          Theme engine (design tokens, appearance)
+  checklists/      Authoring, versions, publishing, answer types, Phase 6 rules engine
+  assignments/     Issuing checklists to people/locations, bulk assignment, lifecycle
+  executions/      Running a checklist: responses, validation, submission
+  evidence/        Files, photos, signatures: upload pipeline, scanning, attachment targets
+  findings/        Findings engine: detection from submitted executions, lifecycle
+  corrective_actions/  Corrective actions raised from findings: lifecycle, verification
+  workflows/       Configurable workflow engine: definitions, versions, tasks, approvals
+  scoring/ reporting/                       (skeletons - intentionally empty)
 templates/         base shell, partials, components, tailwind/ crispy overrides, pages
 static/            compiled css, vendored JS (+ components.js), generated icons
 tailwind/          design-system source (input.css)
@@ -135,9 +143,9 @@ tests/             pytest suite
 docs/              architecture notes (docs/architecture/) and ADRs (docs/decisions/)
 ```
 
-Each domain app follows the same layering - **models** (persistence + invariants) â†’
-**selectors** (scoped reads) â†’ **policies** (may this user?) â†’ **services** (writes: validated,
-locked, logged) â†’ thin **views / API viewsets / admin / imports** that only adapt.
+Each domain app follows the same layering - **models** (persistence + invariants) ->
+**selectors** (scoped reads) -> **policies** (may this user?) -> **services** (writes: validated,
+locked, logged) -> thin **views / API viewsets / admin / imports** that only adapt.
 
 ---
 
@@ -159,8 +167,8 @@ locked, logged) â†’ thin **views / API viewsets / admin / imports** that on
 Two very different hierarchies run on the same schema:
 
 ```
-Org A:  Country â†’ Region â†’ Area â†’ Branch â†’ Location
-Org B:  Business Unit â†’ Division â†’ Facility â†’ Department
+Org A:  Country -> Region -> Area -> Branch -> Location
+Org B:  Business Unit -> Division -> Facility -> Department
 ```
 
 ## What Phase 2 provides
@@ -181,24 +189,37 @@ Org B:  Business Unit â†’ Division â†’ Facility â†’ Department
 * **Operational hardening** - sign-in throttling, mid-session lifecycle enforcement, safe
   `next` handling, and federated sign-out (`MICROSOFT_FEDERATED_LOGOUT`).
 
+## What Phases 3-14 add
+
+* **Phase 3-4 - Themes and RBAC:** a theme engine, and roles with organization/location scope; every read and write is scoped ([docs/rbac.md](docs/rbac.md)).
+* **Phase 5-8 - Checklists:** authoring, answer types, the Phase 6 conditional rules engine (three-valued logic), immutable published versions with integrity hashes, and assignments with bulk issue.
+* **Phase 9 - Execution:** start/resume against the exact published version, server-side validation and rule evaluation, optimistic concurrency, transactional submission.
+* **Phase 10 - PWA offline:** IndexedDB execution, a versioned sync protocol with idempotency receipts and conflict resolution.
+* **Phase 11 - Evidence:** upload pipeline, storage, malware-scan seam, attachment targets, offline evidence sync.
+* **Phase 12 - Findings:** rule-driven detection from submitted executions, severities and categories, lifecycle.
+* **Phase 13 - Corrective actions:** owners, due dates, completion evidence, independent verification.
+* **Phase 14 - Workflow engine:** versioned definitions (draft -> published, sealed by DB triggers), states/transitions with Phase 6 conditions, assignee policies, approvals (one/all/min), separation of duties, deadlines, a registry of business actions that call the Findings and Corrective Action services, designer and runtime UI, REST API and read-only admin. Start with `seed_workflows` ([docs/workflow-administration.md](docs/workflow-administration.md)).
+
+The REST API root `/api/v1/` lists every endpoint; the OpenAPI schema is at `/api/docs/`.
+
 ## Scope
 
-**Phase 2 deliberately excludes** (later phases): checklist authoring, executions, responses,
-scoring, findings, corrective actions, workflow screens, email notification workflows, offline
-synchronisation, and the full role/scope authorization engine (Phase 4 - this phase establishes
-the identity boundary, not the authorization model). Also excluded by design: Redis, Celery,
-microservices, AI.
+**Not built yet:** scoring, reporting/dashboards, notification delivery (email/Teams), schedulers and recurring jobs, reopening submitted executions. Also excluded by design: Redis, Celery, microservices, a SPA, a second rules engine, arbitrary user code in workflows.
 
 ## Documentation
 
 * [`docs/identity/`](docs/identity/) - sign-in (Entra/MSAL), user lifecycle, organization context, identity API
-* [`docs/architecture/organizations-and-locations.md`](docs/architecture/organizations-and-locations.md) - domain model, hierarchy, indexes
-* [`docs/architecture/security-and-permissions.md`](docs/architecture/security-and-permissions.md) - isolation, policies, uploads, audit
-* [`docs/architecture/api.md`](docs/architecture/api.md) - endpoints, filters, errors
-* [`docs/architecture/admin.md`](docs/architecture/admin.md) - the Jazzmin admin: branding, navigation, CSP posture, upgrades
-* [`docs/architecture/operations.md`](docs/architecture/operations.md) - migrations, commands, demo data, verification, tests
-* [`docs/architecture.md`](docs/architecture.md) - Phase 0 layering and conventions
-* [`docs/decisions/`](docs/decisions/) - ADRs 0001-0034
+* [`docs/architecture/`](docs/architecture/) - organizations and locations, security, API, admin, operations; [`docs/architecture.md`](docs/architecture.md) - layering and conventions
+* [`docs/rbac.md`](docs/rbac.md), [`docs/authorization.md`](docs/authorization.md), [`docs/access-control-matrix.md`](docs/access-control-matrix.md) - authorization
+* Checklists: [`docs/checklists.md`](docs/checklists.md), [`docs/conditional-rules.md`](docs/conditional-rules.md), [`docs/checklist-versioning.md`](docs/checklist-versioning.md), [`docs/answer-types.md`](docs/answer-types.md)
+* Assignments and execution: [`docs/checklist-assignment-architecture.md`](docs/checklist-assignment-architecture.md), [`docs/checklist-execution-architecture.md`](docs/checklist-execution-architecture.md)
+* Offline: [`docs/offline-execution.md`](docs/offline-execution.md), [`docs/offline-sync-protocol.md`](docs/offline-sync-protocol.md), [`docs/pwa-architecture.md`](docs/pwa-architecture.md)
+* Evidence: [`docs/evidence-architecture.md`](docs/evidence-architecture.md), [`docs/evidence-operations.md`](docs/evidence-operations.md)
+* Findings: [`docs/findings-architecture.md`](docs/findings-architecture.md), [`docs/findings-operations.md`](docs/findings-operations.md)
+* Corrective actions: [`docs/corrective-actions-architecture.md`](docs/corrective-actions-architecture.md), [`docs/corrective-action-lifecycle.md`](docs/corrective-action-lifecycle.md)
+* Workflows: [`docs/workflow-architecture.md`](docs/workflow-architecture.md), [`docs/workflow-runtime.md`](docs/workflow-runtime.md), [`docs/workflow-versioning-and-validation.md`](docs/workflow-versioning-and-validation.md), [`docs/workflow-administration.md`](docs/workflow-administration.md)
+* API: [`docs/api/`](docs/api/) (one file per module, including [workflows](docs/api/workflows.md))
+* [`docs/decisions/`](docs/decisions/) - ADRs 0001-0072
 
 ---
 

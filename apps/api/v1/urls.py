@@ -11,6 +11,7 @@ from .evidence import (
     AssetFileView, AssetPreviewView, AssetStatusView, AssetView, AttachmentDetailView, AttachmentListView, EvidenceLimitsView, TargetAttachmentsView, UploadView,
 )
 from .corrective_actions import ActionViewSet
+from .workflows import MetadataView, WorkflowInstanceViewSet, WorkflowTaskViewSet, WorkflowVersionViewSet, WorkflowViewSet
 from .findings import CategoryViewSet, FindingViewSet, SeverityViewSet
 from .executions import AssignmentExecutionView, ExecutionViewSet, MyAssignmentsView, StartExecutionView
 from .checklists import AnswerTypeDetailView, AnswerTypeListView, ChecklistVersionViewSet, ChecklistViewSet, RuleMetadataView
@@ -38,6 +39,10 @@ router.register("executions", ExecutionViewSet, basename="execution")
 router.register("members", MemberViewSet, basename="member")
 router.register("findings", FindingViewSet, basename="finding")
 router.register("corrective-actions", ActionViewSet, basename="corrective-action")
+router.register("workflow-versions", WorkflowVersionViewSet, basename="workflow-version")
+router.register("workflow-instances", WorkflowInstanceViewSet, basename="workflow-instance")
+router.register("workflow-tasks", WorkflowTaskViewSet, basename="workflow-task")
+router.register("workflows", WorkflowViewSet, basename="workflow")
 router.register("finding-categories", CategoryViewSet, basename="finding-category")
 router.register("finding-severities", SeverityViewSet, basename="finding-severity")
 
@@ -45,6 +50,8 @@ urlpatterns = [
     path("", APIRootView.as_view(), name="root"),
     path("health/", HealthCheckView.as_view(), name="health"),
     path("my-assignments/", MyAssignmentsView.as_view(), name="my-assignments"),
+    path("workflows/metadata/", MetadataView.as_view(), name="workflow-metadata"),
+    path("my-workflow-tasks/", WorkflowTaskViewSet.as_view({"get": "mine"}), name="my-workflow-tasks"),
     path("my-corrective-actions/", ActionViewSet.as_view({"get": "mine"}), name="my-corrective-actions"),
     path("evidence/limits/", EvidenceLimitsView.as_view(), name="evidence-limits"),
     path("evidence/uploads/", UploadView.as_view(), name="evidence-upload"),

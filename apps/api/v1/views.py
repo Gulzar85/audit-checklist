@@ -15,6 +15,35 @@ from rest_framework.views import APIView
 from .serializers import APIRootSerializer, HealthSerializer
 
 
+#: Every collection / entry endpoint of the API (relative to ``/api/v1/``).  Per-object routes (``{id}/...``) are documented in the schema.
+ENDPOINTS: dict[str, str] = {
+    "health": "health/", "schema": "/api/schema/", "docs": "/api/docs/",
+    # identity and access
+    "me": "me/", "me_preferences": "me/preferences/", "appearance": "preferences/appearance/", "my_access": "access/me/", "permissions": "permissions/",
+    "users": "users/", "roles": "roles/", "members": "members/",
+    # organizations, locations, themes
+    "organizations": "organizations/", "location_types": "location-types/", "locations": "locations/", "location_tree": "locations/tree/",
+    "themes": "themes/", "active_theme": "themes/active/",
+    # checklists
+    "checklists": "checklists/", "answer_types": "checklists/answer-types/", "rule_metadata": "checklists/rules/metadata/",
+    # assignments and executions
+    "assignments": "assignments/", "my_assignments": "my-assignments/", "executions": "executions/",
+    # offline
+    "offline_session": "offline/session/", "offline_manifest": "offline/manifest/", "offline_assignments": "offline/assignments/", "offline_sync": "offline/sync/",
+    "offline_resolve_conflict": "offline/resolve-conflict/",
+    # evidence
+    "evidence_limits": "evidence/limits/", "evidence_uploads": "evidence/uploads/", "attachments": "attachments/",
+    # findings
+    "findings": "findings/", "findings_summary": "findings/summary/", "finding_categories": "finding-categories/", "finding_severities": "finding-severities/",
+    # corrective actions
+    "corrective_actions": "corrective-actions/", "my_corrective_actions": "my-corrective-actions/", "corrective_actions_verification_queue": "corrective-actions/verification-queue/",
+    "corrective_actions_summary": "corrective-actions/summary/",
+    # workflows
+    "workflows": "workflows/", "workflow_metadata": "workflows/metadata/", "workflow_instances": "workflow-instances/",
+    "workflow_tasks": "workflow-tasks/", "my_workflow_tasks": "my-workflow-tasks/", "workflow_tasks_summary": "workflow-tasks/summary/",
+}
+
+
 class APIRootView(APIView):
     """Discovery endpoint listing the API version and available routes."""
 
@@ -24,24 +53,7 @@ class APIRootView(APIView):
 
     @extend_schema(responses=APIRootSerializer)
     def get(self, request: Request) -> Response:
-        return Response(
-            {
-                "version": "v1",
-                "endpoints": {
-                    "health": str(request.build_absolute_uri("health/")),
-                    "me": str(request.build_absolute_uri("me/")),
-                    "users": str(request.build_absolute_uri("users/")),
-                    "organizations": str(request.build_absolute_uri("organizations/")),
-                    "location_types": str(request.build_absolute_uri("location-types/")),
-                    "locations": str(request.build_absolute_uri("locations/")),
-                    "location_tree": str(request.build_absolute_uri("locations/tree/")),
-                    "themes": str(request.build_absolute_uri("themes/")),
-                    "active_theme": str(request.build_absolute_uri("themes/active/")),
-                    "appearance": str(request.build_absolute_uri("preferences/appearance/")),
-                    "schema": str(request.build_absolute_uri("/api/schema/")),
-                },
-            }
-        )
+        return Response({"version": "v1", "endpoints": {name: str(request.build_absolute_uri(path)) for name, path in ENDPOINTS.items()}})
 
 
 class HealthCheckView(APIView):

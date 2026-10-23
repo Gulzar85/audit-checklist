@@ -1,0 +1,14 @@
+{% load ui %}
+<section class="card mb-6" aria-label="{{ title }}">
+  <div class="card-header"><h2 class="card-title">{{ title }}</h2></div>
+  {% if tasks %}
+  <table class="table table-stack" aria-label="{{ title }}">
+    <thead><tr><th>Workflow</th><th>Step</th><th>Status</th><th>Due</th><th></th></tr></thead>
+    <tbody>{% for t in tasks %}
+      <tr><td><a class="font-mono font-medium" href="{{ t.instance.get_absolute_url }}">{{ t.instance.reference }}</a> {{ t.instance.definition.name }}</td><td>{{ t.state.name }}</td>
+        <td>{% status_badge t.status %}{% if t.assignee %} <span class="text-xs text-muted-foreground">{{ t.assignee.get_short_name }}</span>{% endif %}</td>
+        <td>{% if t.due_at %}{{ t.due_at|date:"M d, Y H:i" }}{% if t.is_overdue %} {% tone_badge "Overdue" "danger" icon="alarm-clock" %}{% endif %}{% else %}—{% endif %}</td>
+        <td class="text-right"><a class="btn btn-secondary btn-sm" href="{{ t.instance.get_absolute_url }}">Open</a></td></tr>
+    {% endfor %}</tbody></table>
+  {% else %}<p class="card-body text-sm text-muted-foreground">{{ empty }}</p>{% endif %}
+</section>

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ instance.reference }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Workflow tasks" "workflows:tasks" instance.reference %}{% endblock %}
+
+{% block page_header %}
+{% with sub=instance.definition.name|add:" · version "|add:instance.version.number|stringformat:"s" %}
+{% page_header title=instance.reference subtitle=sub icon="git-branch" status=instance.status %}
+  {% if can_cancel %}
+    <div x-data="confirmDialog"><button type="button" class="btn btn-danger" @click="show">{% icon "circle-x" %} Cancel workflow</button>
+      <dialog x-ref="dialog" class="modal-dialog" @click="onBackdrop" @close="onClose" aria-labelledby="wc-title">
+        <form method="post" action="{% url 'workflows:instance_cancel' instance.pk %}" class="p-6">{% csrf_token %}
+          <h2 id="wc-title" class="text-lg font-semibold">Cancel {{ instance.reference }}?</h2>
+          <p class="mt-2 text-sm text-muted-foreground">Open tasks are cancelled. The {{ target_label|lower }} itself is <strong>not</strong> changed.</p>
+          <label class="label mt-4" for="wc-reason">Reason</label><textarea id="wc-reason" name="reason" class="textarea" rows="2" maxlength="300" required></textarea>
+          <div class="mt-6 flex justify-end gap-2"><button type="button" class="btn btn-secondary" @click="hide">Back</button><button type="submit" class="btn btn-danger">Cancel workflow</button></div>
+        </form></dialog></div>
+  {% endif %}
+{% endpage_header %}
+{% endwith %}
+{% endblock %}
+
+{% block content %}
+{% if instance.needs_attention %}<div class="alert alert-warning mb-6" role="status">{% icon "triangle-alert" %}<p>No eligible person could take the current step. An administrator needs to assign it.</p></div>{% endif %}
+{% if instance.status == "completed" %}<div class="alert {% if instance.outcome == 'success' %}alert-success{% else %}alert-warning{% endif %} mb-6" role="status">{% icon "circle-check" %}<p>Finished: {{ instance.get_outcome_display|lower }} ({{ instance.state.name }}), {{ instance.completed_at|date:"M d, Y H:i" }}.</p></div>{% endif %}
+{% if instance.status == "cancelled" %}<div class="alert alert-warning mb-6" role="status">{% icon "circle-x" %}<p>Cancelled {{ instance.cancelled_at|date:"M d, Y H:i" }}: {{ instance.cancel_reason }}</p></div>{% endif %}
+
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="min-w-0 space-y-6 lg:col-span-2">
+    <section class="card" aria-labelledby="i-info"><div class="card-header"><h2 id="i-info" class="card-title">Workflow</h2>{% status_badge instance.status %}</div>
+      <dl class="card-body grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+        <div><dt class="text-muted-foreground">Current step</dt><dd class="font-medium">{{ instance.state.name }} <span class="text-xs text-muted-foreground">({{ instance.state.get_kind_display }})</span></dd></div>
+        <div><dt class="text-muted-foreground">Location</dt><dd>{{ instance.location.name }}</dd></div>
+        <div class="sm:col-span-2"><dt class="text-muted-foreground">Business record</dt><dd>{% if target %}<a href="{{ target_url }}">{{ target_label }} {{ target_reference }}</a> · {{ target_title }}{% else %}{{ target_label }} (you do not have access to the record itself){% endif %}</dd></div>
+        <div><dt class="text-muted-foreground">Started</dt><dd>{{ instance.started_at|date:"M d, Y H:i" }}{% if instance.started_by %} by {{ instance.started_by.get_short_name }}{% elif instance.system_started %} automatically{% endif %}</dd></div>
+        <div><dt class="text-muted-foreground">Version</dt><dd>{{ instance.version.number }} <span class="font-mono text-xs">{{ instance.version.config_hash|slice:":10" }}</span></dd></div>
+      </dl></section>
+
+    {% if instance.is_active %}
+    <section class="card" aria-labelledby="i-act"><div class="card-header"><h2 id="i-act" class="card-title">Your decision</h2></div>
+      <div class="card-body">
+        {% if available %}
+          <form method="post" action="{% url 'workflows:instance_transition' instance.pk %}" x-data="formGuard" @submit="onSubmit" class="space-y-3">{% csrf_token %}
+            <input type="hidden" name="idempotency_key" value="{{ key }}"><input type="hidden" name="expected_revision" value="{{ instance.revision }}">
+            <label class="label" for="wf-comment">Comment (a reason is required where marked)</label>
+            <textarea id="wf-comment" name="comment" class="textarea" rows="3" maxlength="1000"></textarea>
+            <div class="flex flex-wrap gap-2">
+              {% for t in available %}<button type="submit" name="action" value="{{ t.action }}" class="btn {% if t.decision == 'reject' %}btn-danger{% elif t.decision == 'approve' %}btn-primary{% else %}btn-secondary{% endif %}">{{ t.label }}{% if t.reason_required %} <span class="text-xs">(reason required)</span>{% endif %}</button>{% endfor %}
+            </div>
+            <p class="help-text">The server checks everything again when you submit and performs the business action itself; nothing is shown as done until it is.</p>
+          </form>
+        {% else %}<p class="text-sm text-muted-foreground">There is nothing for you to decide at this step.</p>{% endif %}
+      </div></section>
+    {% endif %}
+
+    <section class="card" aria-labelledby="i-tasks"><div class="card-header"><h2 id="i-tasks" class="card-title">Tasks of this step</h2></div>
+      <ul class="divide-y divide-border">
+        {% for t in tasks %}
+          <li class="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm"><div>{% status_badge t.status %} {% if t.assignee %}{{ t.assignee.display_name|default:t.assignee.email }}{% else %}Unassigned (anyone eligible may claim){% endif %}{% if t.due_at %} · due {{ t.due_at|date:"M d, H:i" }}{% if t.is_overdue %} {% tone_badge "Overdue" "danger" icon="alarm-clock" %}{% endif %}{% endif %}</div>
+            <div class="flex gap-2">
+              {% if t.can_claim %}<form method="post" action="{% url 'workflows:task_claim' t.pk %}">{% csrf_token %}<button class="btn btn-secondary btn-sm" type="submit">Claim</button></form>{% endif %}
+              {% if t.can_release %}<form method="post" action="{% url 'workflows:task_release' t.pk %}">{% csrf_token %}<button class="btn btn-ghost btn-sm" type="submit">Release</button></form>{% endif %}
+              {% if t.candidates %}<form method="post" action="{% url 'workflows:task_reassign' t.pk %}" class="flex gap-1">{% csrf_token %}<label class="sr-only" for="ra-{{ t.pk }}">Reassign to</label><select id="ra-{{ t.pk }}" name="assignee" class="select">{% for u in t.candidates %}<option value="{{ u.pk }}">{{ u.display_name|default:u.email }}</option>{% endfor %}</select><button class="btn btn-secondary btn-sm" type="submit">Reassign</button></form>{% endif %}
+            </div></li>
+        {% empty %}<li class="px-5 py-3 text-sm text-muted-foreground">No open tasks.</li>{% endfor %}
+      </ul></section>
+  </div>
+
+  <aside class="min-w-0 space-y-6">
+    <section class="card" aria-labelledby="i-hist"><div class="card-header"><h2 id="i-hist" class="card-title">Decisions and events</h2></div>
+      <ol class="divide-y divide-border">
+        {% for e in history %}
+          <li class="px-5 py-3 text-sm"><p><span class="font-medium">{{ e.get_kind_display }}</span>{% if e.action %}: {{ e.action }}{% endif %}{% if e.from_state %} · {{ e.from_state.name }} → {{ e.to_state.name }}{% endif %}</p>
+            {% if e.comment %}<p class="text-muted-foreground">“{{ e.comment }}”</p>{% endif %}<p class="text-xs text-muted-foreground">{{ e.created_at|date:"M d, Y H:i" }}{% if e.actor %} · {{ e.actor.get_short_name }}{% endif %}</p></li>
+        {% endfor %}
+      </ol></section>
+  </aside>
+</div>
+{% endblock %}

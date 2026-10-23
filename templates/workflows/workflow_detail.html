@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ definition.name }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Workflows" "workflows:list" definition.name %}{% endblock %}
+
+{% block page_header %}
+{% page_header title=definition.name subtitle=definition.code icon="git-branch" status=definition.status %}
+  {% if can_edit %}<a href="{% url 'workflows:edit' definition.pk %}" class="btn btn-secondary">{% icon "pencil" %} Edit</a>{% endif %}
+  {% if can_version %}<form method="post" action="{% url 'workflows:draft' definition.pk %}">{% csrf_token %}<button class="btn btn-secondary" type="submit">{% icon "copy" %} New draft version</button></form>{% endif %}
+  {% if can_archive and definition.status == "active" %}
+    <div x-data="confirmDialog"><button type="button" class="btn btn-danger" @click="show">{% icon "archive" %} Archive</button>
+      <dialog x-ref="dialog" class="modal-dialog" @click="onBackdrop" @close="onClose" aria-labelledby="arch-title">
+        <form method="post" action="{% url 'workflows:archive' definition.pk %}" class="p-6">{% csrf_token %}
+          <h2 id="arch-title" class="text-lg font-semibold">Archive {{ definition.name }}?</h2>
+          <p class="mt-2 text-sm text-muted-foreground">No new workflows start. {% if active_instances %}{{ active_instances }} workflow(s) are still running; finish or cancel them first.{% else %}Nothing is running.{% endif %}</p>
+          <div class="mt-6 flex justify-end gap-2"><button type="button" class="btn btn-secondary" @click="hide">Back</button><button type="submit" class="btn btn-danger">Archive</button></div>
+        </form></dialog></div>
+  {% endif %}
+{% endpage_header %}
+{% endblock %}
+
+{% block content %}
+<div class="grid gap-6 lg:grid-cols-3">
+  <section class="card lg:col-span-1" aria-labelledby="w-info"><div class="card-header"><h2 id="w-info" class="card-title">Definition</h2></div>
+    <dl class="card-body space-y-3 text-sm">
+      <div><dt class="text-muted-foreground">Applies to</dt><dd>{{ spec.label }}</dd></div>
+      <div><dt class="text-muted-foreground">Scope</dt><dd>{% if definition.is_system %}System workflow (read-only for organizations){% else %}{{ definition.organization.name }}{% endif %}</dd></div>
+      <div><dt class="text-muted-foreground">Default</dt><dd>{% if definition.is_default %}Yes - used when a record enters a workflow without naming one{% else %}No{% endif %}</dd></div>
+      <div><dt class="text-muted-foreground">Starts automatically</dt><dd>{% if definition.auto_start_event %}{{ definition.auto_start_event }}{% else %}Never{% endif %}</dd></div>
+      {% if definition.description %}<div><dt class="text-muted-foreground">Description</dt><dd>{{ definition.description }}</dd></div>{% endif %}
+    </dl></section>
+  <section class="card lg:col-span-2" aria-labelledby="w-versions"><div class="card-header"><h2 id="w-versions" class="card-title">Versions</h2></div>
+    <table class="table table-stack" aria-label="Versions">
+      <thead><tr><th>Version</th><th>Status</th><th>Summary</th><th>Published</th><th>Fingerprint</th></tr></thead>
+      <tbody>{% for v in versions %}
+        <tr><td><a href="{{ v.get_absolute_url }}" class="font-medium">Version {{ v.number }}</a></td><td>{% status_badge v.status %}</td><td>{{ v.change_summary }}</td>
+          <td>{% if v.published_at %}{{ v.published_at|date:"M d, Y H:i" }}{% else %}—{% endif %}</td><td class="font-mono text-xs">{{ v.config_hash|slice:":10" }}</td></tr>
+      {% endfor %}</tbody></table></section>
+</div>
+{% endblock %}

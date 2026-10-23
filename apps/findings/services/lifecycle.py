@@ -229,6 +229,10 @@ def _transition(finding: Finding, action: str, actor: Any, reason: str) -> Findi
     locked = lock_finding(finding.pk)
     if not policies.can_act(actor, locked, action):
         raise PermissionDenied
+    for guard in hooks.transition_guards:  # e.g. a workflow governs this decision: it may only be taken through the workflow
+        message = guard(locked, action, actor)
+        if message:
+            raise FindingError(message, "governed_by_workflow")
     if locked.status == spec.target:
         raise FindingConflict(_("%(ref)s is already %(status)s; nothing was changed.") % {"ref": locked.reference, "status": locked.get_status_display().lower()},
                               "already_" + spec.target)

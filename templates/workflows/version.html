@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags ui %}
+{% block title %}{{ definition.name }} v{{ version.number }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% url 'workflows:detail' definition.pk as d1 %}{% breadcrumbs "Home" "core:home" "Workflows" "workflows:list" definition.name d1 "Version" %}{% endblock %}
+
+{% block page_header %}
+{% with sub=definition.code|add:" · "|add:spec.label %}
+{% page_header title=definition.name subtitle=sub icon="git-branch" status=version.status %}
+  {% if can_validate and editable %}<form method="post" action="{% url 'workflows:version_validate' version.pk %}">{% csrf_token %}<button class="btn btn-secondary" type="submit">{% icon "list-checks" %} Validate</button></form>{% endif %}
+  {% if can_clone %}<form method="post" action="{% url 'workflows:version_clone' version.pk %}">{% csrf_token %}<button class="btn btn-secondary" type="submit">{% icon "copy" %} Clone as draft</button></form>{% endif %}
+  {% if can_publish %}
+    <div x-data="confirmDialog"><button type="button" class="btn btn-primary" @click="show"{% if not report.ok %} aria-describedby="not-valid"{% endif %}>{% icon "send" %} Publish</button>
+      <dialog x-ref="dialog" class="modal-dialog" @click="onBackdrop" @close="onClose" aria-labelledby="pub-title">
+        <form method="post" action="{% url 'workflows:version_publish' version.pk %}" class="p-6">{% csrf_token %}
+          <h2 id="pub-title" class="text-lg font-semibold">Publish version {{ version.number }}?</h2>
+          <p class="mt-2 text-sm text-muted-foreground">It is validated again. A published version can never be edited; new workflows start on it and running ones keep their own version.{% if not report.ok %} <strong>It currently has {{ report.errors|length }} error(s) and will be refused.</strong>{% endif %}</p>
+          <div class="mt-6 flex justify-end gap-2"><button type="button" class="btn btn-secondary" @click="hide">Back</button><button type="submit" class="btn btn-primary">Publish</button></div>
+        </form></dialog></div>
+  {% endif %}
+{% endpage_header %}
+{% endwith %}
+{% endblock %}
+
+{% block content %}
+{% if not editable %}<div class="alert alert-info mb-6" role="status">{% icon "lock" %}<p>This version is {{ version.get_status_display|lower }} and cannot be changed. Clone it to make a new draft.{% if version.config_hash %} Fingerprint <span class="font-mono">{{ version.config_hash|slice:":16" }}</span>.{% endif %}</p></div>{% endif %}
+
+<section class="card mb-6" aria-labelledby="v-report">
+  <div class="card-header"><h2 id="v-report" class="card-title">Validation</h2>{% if report.ok %}{% tone_badge "Ready to publish" "success" icon="circle-check" %}{% else %}{% tone_badge "Not publishable" "danger" icon="circle-x" %}{% endif %}</div>
+  <div class="card-body text-sm" id="not-valid">
+    {% if report.errors %}<ul class="space-y-1">{% for e in report.errors %}<li class="flex gap-2 text-danger-text">{% icon "circle-x" %} <span><span class="font-medium">Error:</span> {{ e }}</span></li>{% endfor %}</ul>{% endif %}
+    {% if report.warnings %}<ul class="mt-2 space-y-1">{% for e in report.warnings %}<li class="flex gap-2 text-warning-text">{% icon "triangle-alert" %} <span><span class="font-medium">Warning:</span> {{ e }}</span></li>{% endfor %}</ul>{% endif %}
+    {% if not report.errors and not report.warnings %}<p class="text-muted-foreground">No problems found.</p>{% endif %}
+  </div>
+</section>
+
+<section class="card mb-6" aria-labelledby="v-map">
+  <div class="card-header"><h2 id="v-map" class="card-title">Workflow map</h2></div>
+  <div class="card-body">
+    <p class="mb-3 text-sm text-muted-foreground">Start condition: {{ start_text }}. States are listed in order; each shows what can happen next (text, not colour, carries the meaning).</p>
+    <ol class="space-y-3">
+      {% for s, outs in map %}
+      <li class="rounded-md border border-border p-3">
+        <p class="font-medium">{{ s.name }} <span class="font-mono text-xs text-muted-foreground">{{ s.code }}</span>
+          {% if s.kind == "initial" %}{% tone_badge "Start" "info" icon="play" %}{% elif s.kind == "success" %}{% tone_badge "Ends: success" "success" icon="circle-check" %}{% elif s.kind == "failure" %}{% tone_badge "Ends: unsuccessful" "danger" icon="circle-x" %}{% endif %}</p>
+        {% if s.assignee_policy %}<p class="text-xs text-muted-foreground">Task for: {{ s.assignee_policy.type }}{% if s.assignee_policy.permission %} {{ s.assignee_policy.permission }}{% endif %}{% if s.assignee_policy.role %} {{ s.assignee_policy.role }}{% endif %} · approvals: {{ s.get_approval_mode_display }}{% if s.separation %} · separation: {{ s.separation|join:", " }}{% endif %}{% if s.due_hours %} · due in {{ s.due_hours }} h{% endif %}</p>{% endif %}
+        {% if outs %}<ul class="mt-2 space-y-1 text-sm">{% for t in outs %}<li class="flex flex-wrap items-center gap-2">{% icon "arrow-right" %} <span class="font-medium">{{ t.label }}</span> <span class="font-mono text-xs">{{ t.action }}</span> → {{ t.target.name }}{% if not t.enabled %} <span class="text-xs text-muted-foreground">(disabled)</span>{% endif %}{% if t.condition %} <span class="text-xs text-muted-foreground">if {{ t.condition_text }}</span>{% endif %}{% if t.handler %} <span class="text-xs text-muted-foreground">runs {{ t.handler }}</span>{% endif %}</li>{% endfor %}</ul>
+        {% elif not s.is_terminal %}<p class="mt-2 text-sm text-danger-text">No way out of this state.</p>{% endif %}
+      </li>
+      {% empty %}<li class="text-sm text-muted-foreground">No states yet.</li>{% endfor %}
+    </ol>
+  </div>
+</section>
+
+<div class="grid gap-6 lg:grid-cols-2">
+  <section class="card" aria-labelledby="v-states">
+    <div class="card-header"><h2 id="v-states" class="card-title">States</h2></div>
+    <table class="table table-stack" aria-label="States"><thead><tr><th>State</th><th>Kind</th><th>Task</th>{% if editable %}<th></th>{% endif %}</tr></thead><tbody>
+      {% for s in states %}<tr><td>{{ s.name }} <span class="font-mono text-xs text-muted-foreground">{{ s.code }}</span></td><td>{{ s.get_kind_display }}</td><td>{% if s.assignee_policy %}{{ s.assignee_policy.type }}{% else %}—{% endif %}</td>
+        {% if editable %}<td class="text-right"><a class="btn btn-ghost btn-sm" href="?edit_state={{ s.code }}#state-form">Edit</a>
+          <form method="post" action="{% url 'workflows:state_delete' version.pk %}" class="inline">{% csrf_token %}<input type="hidden" name="code" value="{{ s.code }}"><button class="btn btn-ghost btn-sm text-danger-text" type="submit">Remove</button></form></td>{% endif %}</tr>
+      {% empty %}<tr><td colspan="4" class="text-muted-foreground">No states.</td></tr>{% endfor %}</tbody></table>
+    {% if editable %}
+    <form method="post" action="{% url 'workflows:state_save' version.pk %}" id="state-form" class="card-body border-t border-border" novalidate>{% csrf_token %}
+      <h3 class="mb-2 font-medium">{% if edit_state %}Edit {{ edit_state.name }}{% else %}Add a state{% endif %}</h3>
+      {% if edit_state %}<input type="hidden" name="editing" value="1"><input type="hidden" name="code" value="{{ edit_state.code }}">{% endif %}
+      {{ state_form|crispy }}
+      <button type="submit" class="btn btn-primary btn-sm">{% icon "save" %} {% if edit_state %}Save state{% else %}Add state{% endif %}</button>
+      {% if edit_state %}<a href="{% url 'workflows:version' version.pk %}" class="btn btn-ghost btn-sm">Cancel</a>{% endif %}
+    </form>
+    {% endif %}
+  </section>
+
+  <section class="card" aria-labelledby="v-trans">
+    <div class="card-header"><h2 id="v-trans" class="card-title">Transitions</h2></div>
+    <table class="table table-stack" aria-label="Transitions"><thead><tr><th>Action</th><th>From → To</th><th>Condition</th>{% if editable %}<th></th>{% endif %}</tr></thead><tbody>
+      {% for t in transitions %}<tr><td>{{ t.label }} <span class="font-mono text-xs text-muted-foreground">{{ t.action }}</span></td><td>{{ t.source.code }} → {{ t.target.code }}</td><td class="text-xs">{{ t.condition_text }}</td>
+        {% if editable %}<td class="text-right"><a class="btn btn-ghost btn-sm" href="?edit_transition={{ t.pk }}#transition-form">Edit</a>
+          <form method="post" action="{% url 'workflows:transition_delete' version.pk %}" class="inline">{% csrf_token %}<input type="hidden" name="transition_id" value="{{ t.pk }}"><button class="btn btn-ghost btn-sm text-danger-text" type="submit">Remove</button></form></td>{% endif %}</tr>
+      {% empty %}<tr><td colspan="4" class="text-muted-foreground">No transitions.</td></tr>{% endfor %}</tbody></table>
+    {% if editable %}
+    <form method="post" action="{% url 'workflows:transition_save' version.pk %}" id="transition-form" class="card-body border-t border-border" novalidate>{% csrf_token %}
+      <h3 class="mb-2 font-medium">{% if edit_transition %}Edit {{ edit_transition.label }}{% else %}Add a transition{% endif %}</h3>
+      {% if edit_transition %}<input type="hidden" name="transition_id" value="{{ edit_transition.pk }}">{% endif %}
+      {{ transition_form|crispy }}
+      <button type="submit" class="btn btn-primary btn-sm">{% icon "save" %} {% if edit_transition %}Save transition{% else %}Add transition{% endif %}</button>
+      {% if edit_transition %}<a href="{% url 'workflows:version' version.pk %}" class="btn btn-ghost btn-sm">Cancel</a>{% endif %}
+    </form>
+    {% endif %}
+  </section>
+</div>
+
+{% if editable %}
+<section class="card mt-6" aria-labelledby="v-settings"><div class="card-header"><h2 id="v-settings" class="card-title">Version settings</h2></div>
+  <form method="post" action="{% url 'workflows:version_save' version.pk %}" class="card-body max-w-2xl" novalidate>{% csrf_token %}{{ version_form|crispy }}<button type="submit" class="btn btn-secondary">{% icon "save" %} Save settings</button></form>
+</section>
+{% endif %}
+{% endblock %}

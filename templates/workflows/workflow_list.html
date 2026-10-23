@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Workflows &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Workflows" %}{% endblock %}
+
+{% block page_header %}
+{% page_header title="Workflows" subtitle="Configurable approval processes. A published version never changes; running workflows keep the version they started with." icon="git-branch" %}
+  <a href="{% url 'workflows:tasks' %}" class="btn btn-secondary">{% icon "list-todo" %} My tasks</a>
+  <a href="{% url 'workflows:instances' %}" class="btn btn-secondary">Running workflows</a>
+  {% if can_create %}<a href="{% url 'workflows:create' %}" class="btn btn-primary">{% icon "plus" %} New workflow</a>{% endif %}
+{% endpage_header %}
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  {% if definitions %}
+  <table class="table table-stack" aria-label="Workflow definitions">
+    <thead><tr><th>Workflow</th><th>Applies to</th><th>Scope</th><th>Published</th><th>Draft</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for d in definitions %}
+      <tr>
+        <td><a class="font-medium" href="{{ d.get_absolute_url }}">{{ d.name }}</a> <span class="font-mono text-xs text-muted-foreground">{{ d.code }}</span>{% if d.is_default %} {% tone_badge "Default" "info" icon="star" %}{% endif %}</td>
+        <td>{{ d.target_type|cut:"_"|title }}</td>
+        <td>{% if d.is_system %}System{% else %}{{ d.organization.name }}{% endif %}</td>
+        <td>{% if d.published %}v{{ d.published.number }}{% else %}—{% endif %}</td>
+        <td>{% if d.draft %}<a href="{{ d.draft.get_absolute_url }}">v{{ d.draft.number }}</a>{% else %}—{% endif %}</td>
+        <td>{% status_badge d.status %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}{% include "components/states/empty.html" with icon="git-branch" title="No workflows yet" message="Create a workflow to route business records through configurable approval steps." %}{% endif %}
+</div>
+{% endblock %}

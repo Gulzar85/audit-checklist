@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags ui %}
+{% block title %}{% if definition %}Edit {{ definition.name }}{% else %}New workflow{% endif %} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Workflows" "workflows:list" "Workflow" %}{% endblock %}
+{% block page_header %}{% page_header title="Workflow" subtitle="The identity of a workflow. States and transitions are configured in its versions." icon="git-branch" %}{% endpage_header %}{% endblock %}
+
+{% block content %}
+<form method="post" novalidate x-data="formGuard" @submit="onSubmit" class="card max-w-2xl">
+  <div class="card-body">{% csrf_token %}{% include "tailwind/errors.html" %}{{ form|crispy }}</div>
+  <div class="card-footer flex justify-end gap-2"><a href="{% if definition %}{{ definition.get_absolute_url }}{% else %}{% url 'workflows:list' %}{% endif %}" class="btn btn-secondary">Cancel</a><button type="submit" class="btn btn-primary">{% icon "save" %} Save</button></div>
+</form>
+{% endblock %}

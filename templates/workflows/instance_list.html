@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Running workflows &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Workflow tasks" "workflows:tasks" "Workflows" %}{% endblock %}
+{% block page_header %}{% page_header title="Workflows" subtitle="Workflows running on business records you can see." icon="git-branch" %}
+  <a href="{% url 'workflows:tasks' %}" class="btn btn-secondary">My tasks</a>{% endpage_header %}{% endblock %}
+
+{% block content %}
+<nav class="mb-4 flex flex-wrap gap-2" aria-label="Filter by status">
+  <a class="btn btn-sm {% if not status %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'workflows:instances' %}">All</a>
+  {% for value, label in statuses %}<a class="btn btn-sm {% if status == value %}btn-primary{% else %}btn-secondary{% endif %}" href="?status={{ value }}">{{ label }}</a>{% endfor %}
+</nav>
+<div class="card">
+  {% if instances %}
+  <table class="table table-stack" aria-label="Workflow instances"><thead><tr><th>Reference</th><th>Workflow</th><th>Record</th><th>Step</th><th>Status</th><th>Started</th></tr></thead>
+    <tbody>{% for i in instances %}
+      <tr><td><a class="font-mono font-medium" href="{{ i.get_absolute_url }}">{{ i.reference }}</a></td><td>{{ i.definition.name }} <span class="text-xs text-muted-foreground">v{{ i.version.number }}</span></td>
+        <td>{{ i.target_type|cut:"_"|title }} · {{ i.location.name }}</td><td>{{ i.state.name }}{% if i.needs_attention %} {% tone_badge "Needs attention" "warning" icon="triangle-alert" %}{% endif %}</td>
+        <td>{% status_badge i.status %}{% if i.outcome %} <span class="text-xs text-muted-foreground">{{ i.get_outcome_display }}</span>{% endif %}</td><td>{{ i.started_at|date:"M d, Y H:i" }}</td></tr>
+    {% endfor %}</tbody></table>
+  {% else %}{% include "components/states/empty.html" with icon="git-branch" title="No workflows" message="Nothing is running on records you can see." %}{% endif %}
+</div>
+{% endblock %}
