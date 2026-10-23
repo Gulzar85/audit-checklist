@@ -94,6 +94,19 @@
       </div>
     </section>
 
+    <section class="card" aria-labelledby="f-actions">
+      <div class="card-header"><h2 id="f-actions" class="card-title">Corrective actions</h2>{% if can_add_action %}<a class="btn btn-secondary btn-sm" href="{% url 'corrective_actions:create' %}?finding={{ finding.pk }}">{% icon "plus" %} Add action</a>{% endif %}</div>
+      <div class="card-body text-sm">
+        {% if corrective_actions %}
+          <ul class="divide-y divide-border">
+            {% for a in corrective_actions %}<li class="flex items-center justify-between gap-3 py-2"><div class="min-w-0"><a class="font-mono" href="{{ a.get_absolute_url }}">{{ a.reference }}</a> {{ a.title }}<p class="text-xs text-muted-foreground">{% if a.assigned_to %}{{ a.assigned_to.get_short_name }}{% else %}Unassigned{% endif %}{% if a.due_at %} · due {{ a.due_at|date:"M d, Y" }}{% endif %}</p></div>{% status_badge a.effective_status %}</li>{% endfor %}
+          </ul>
+        {% else %}<p class="text-muted-foreground">No corrective actions yet.</p>{% endif %}
+        <p class="mt-3">{% if ca_eligibility.eligible %}{% tone_badge "No outstanding actions" "success" icon="circle-check" %}{% else %}{% tone_badge "Actions still outstanding" "warning" icon="hourglass" %} <span class="text-xs text-muted-foreground">{% for r in ca_eligibility.reasons %}{{ r }}{% endfor %}</span>{% endif %}
+          <span class="text-xs text-muted-foreground">Verifying an action never resolves or closes the finding by itself.</span></p>
+      </div>
+    </section>
+
     {% if can_assign %}
     <section class="card" aria-labelledby="f-assign">
       <div class="card-header"><h2 id="f-assign" class="card-title">Responsibility and due date</h2></div>

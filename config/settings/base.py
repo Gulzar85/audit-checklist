@@ -319,6 +319,18 @@ EVIDENCE_ALLOW_VIEW_PENDING = env_bool("EVIDENCE_ALLOW_VIEW_PENDING", False)
 #: closing is refused rather than pretending the finding was verified.  Off by default: closing is then an authorized human decision.
 FINDINGS_REQUIRE_VERIFICATION = env_bool("FINDINGS_REQUIRE_VERIFICATION", False)
 
+# --- Corrective actions (Phase 13) ----------------------------------------------------------------
+#: New actions require independent verification: the verifier is neither the owner nor the submitter (snapshotted on each action).
+CORRECTIVE_ACTION_INDEPENDENT_VERIFICATION = env_bool("CORRECTIVE_ACTION_INDEPENDENT_VERIFICATION", True)
+#: Additionally forbid the *creator* of an action from verifying it.
+CORRECTIVE_ACTION_VERIFIER_NOT_CREATOR = env_bool("CORRECTIVE_ACTION_VERIFIER_NOT_CREATOR", False)
+#: Verified completion files a new action needs before it can be submitted (0 = none; overridable per action).
+CORRECTIVE_ACTION_DEFAULT_REQUIRED_EVIDENCE = env_int("CORRECTIVE_ACTION_DEFAULT_REQUIRED_EVIDENCE", 0)
+#: A finding cannot be resolved while any of its corrective actions is outstanding (Phase 12 hook; see docs/corrective-action-finding-policy.md).
+CORRECTIVE_ACTIONS_BLOCK_FINDING_RESOLUTION = env_bool("CORRECTIVE_ACTIONS_BLOCK_FINDING_RESOLUTION", True)
+#: The finding-verification gate needs at least one verified/closed action (not merely "no outstanding actions").
+CORRECTIVE_ACTIONS_REQUIRED_FOR_VERIFICATION = env_bool("CORRECTIVE_ACTIONS_REQUIRED_FOR_VERIFICATION", True)
+
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {
@@ -613,6 +625,9 @@ JAZZMIN_SETTINGS = {
         "findings.FindingCategory": "fas fa-tags",
         "findings.FindingSeverity": "fas fa-sort-amount-up",
         "evidence": "fas fa-paperclip",
+        "corrective_actions.CorrectiveAction": "fas fa-wrench",
+        "corrective_actions.CorrectiveActionUpdate": "fas fa-clipboard-list",
+        "corrective_actions.CorrectiveActionVerification": "fas fa-check-double",
         "findings": "fas fa-triangle-exclamation",
         "corrective_actions": "fas fa-screwdriver-wrench",
         "workflows": "fas fa-diagram-project",

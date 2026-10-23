@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags ui %}
+{% block title %}{% if action %}Edit {{ action.reference }}{% else %}New corrective action{% endif %} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+
+{% block breadcrumbs %}{% if action %}{% url 'corrective_actions:detail' action.pk as c1 %}{% breadcrumbs "Home" "core:home" "Corrective actions" "corrective_actions:list" action.reference c1 "Edit" %}{% else %}{% breadcrumbs "Home" "core:home" "Corrective actions" "corrective_actions:list" "New action" %}{% endif %}{% endblock %}
+
+{% block page_header %}{% if action %}{% page_header title="Edit action" subtitle=action.reference icon="pencil" %}{% endpage_header %}{% else %}{% page_header title="New corrective action" subtitle="Plan the work that addresses a finding. You can issue it now or save a draft." icon="wrench" %}{% endpage_header %}{% endif %}{% endblock %}
+
+{% block content %}
+<form method="post" novalidate x-data="formGuard" @submit="onSubmit" id="action-form" class="card max-w-3xl">
+  <div class="card-body">
+    {% csrf_token %}
+    {% include "tailwind/errors.html" %}
+    {% if not action %}
+      <div hx-get="{% url 'corrective_actions:assignee_options' %}" hx-trigger="change" hx-target="#id_assigned_to" hx-swap="innerHTML" hx-include="this" hx-params="finding">{{ form.finding|as_crispy_field }}</div>
+    {% endif %}
+    {% if form.title %}{{ form.title|as_crispy_field }}{{ form.description|as_crispy_field }}{% endif %}
+    {{ form.plan|as_crispy_field }}
+    <div class="grid gap-x-6 sm:grid-cols-2"><div>{{ form.expected_outcome|as_crispy_field }}</div><div>{{ form.completion_criteria|as_crispy_field }}</div></div>
+    {% if not action %}{{ form.assigned_to|as_crispy_field }}{% endif %}
+    {% if form.priority %}<div class="grid gap-x-6 sm:grid-cols-3"><div>{{ form.priority|as_crispy_field }}</div><div>{{ form.due_at|as_crispy_field }}</div><div>{{ form.required_evidence|as_crispy_field }}</div></div>{% endif %}
+  </div>
+  <div class="card-footer flex flex-wrap justify-end gap-2">
+    <a href="{% if action %}{% url 'corrective_actions:detail' action.pk %}{% else %}{% url 'corrective_actions:list' %}{% endif %}" class="btn btn-secondary">Cancel</a>
+    {% if action %}<button type="submit" class="btn btn-primary">{% icon "save" %} Save changes</button>
+    {% else %}<button type="submit" class="btn btn-secondary">{% icon "save" %} Save as draft</button><button type="submit" name="issue" value="1" class="btn btn-primary">{% icon "send" %} Create and issue</button>{% endif %}
+  </div>
+</form>
+{% endblock %}

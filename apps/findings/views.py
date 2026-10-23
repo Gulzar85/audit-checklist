@@ -96,7 +96,15 @@ class FindingDetailView(FindingObjectMixin, TemplateView):
             evidence=[{"attachment": a, "servable": is_servable(a.asset), "image": a.asset.is_image} for a in evidence],
             related_execution=execution, item_question=f.item.question if f.item_id else "",
         )
+        context.update(self._corrective_actions(f, user))
         return context
+
+    def _corrective_actions(self, finding, user) -> dict[str, Any]:  # noqa: ANN001
+        """UI composition only: the finding's corrective actions (those the user may see) and its resolution eligibility (Phase 13)."""
+        from apps.corrective_actions import eligibility, policies as ca_policies, selectors as ca_selectors
+
+        return {"corrective_actions": list(ca_selectors.for_finding(user, finding).order_by("number")), "ca_eligibility": eligibility.finding_eligibility(finding),
+                "can_add_action": ca_policies.can_create_for(user, finding)}
 
 
 # ---------------------------------------------------------------------------

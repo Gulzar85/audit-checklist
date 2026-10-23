@@ -29,6 +29,7 @@ person accepted the resolution (and any policy below passed). There is no `verif
 * `FINDINGS_REQUIRE_VERIFICATION=true` makes closing require `hooks.register_verification_gate(fn)` to accept the finding. Until a
   verification phase registers a gate, closing is **refused** (`closure_blocked`) rather than pretending the finding was verified.
   The default is `false`: closing is then an authorized human decision.
+* `hooks.register_resolve_blocker(fn)` / `register_cancel_blocker(fn)` - same contract for `resolve` and `cancel` (Phase 13 uses them: no resolving or cancelling a finding while its corrective actions are outstanding - see [corrective-action-finding-policy.md](corrective-action-finding-policy.md)).
 * Signals after commit (`events.py`): `finding_raised`, `finding_status_changed`, `finding_assigned`, `finding_updated` - no receivers yet.
 
 ## Other rules

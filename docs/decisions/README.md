@@ -70,3 +70,6 @@ consequences. New records are appended; existing ones are superseded, not edited
 | [0063](0063-finding-model-lifecycle-and-source-registry.md) | Findings: explicit-key model, controlled sources, resolved is not verified | Accepted |
 | [0064](0064-finding-detection-on-submission-and-idempotency.md) | Finding detection: a Phase 6 action, raised on submission, idempotent | Accepted |
 | [0065](0065-finding-evidence-read-through.md) | Finding evidence is read through the triggering response | Accepted |
+| [0066](0066-corrective-action-model-and-lifecycle.md) | Corrective actions: relational model, append-only history, derived overdue | Accepted |
+| [0067](0067-verification-and-separation-of-duties.md) | Verification and separation of duties | Accepted |
+| [0068](0068-finding-eligibility-hooks-and-evidence-target.md) | Parent-finding eligibility through hooks; the corrective-action evidence target | Accepted |

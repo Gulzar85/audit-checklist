@@ -14,6 +14,7 @@ from django.db import connections
 
 
 def install_database_guard(using: str = "default") -> bool:
+    from apps.corrective_actions.models import CorrectiveAction
     from apps.executions.models import ChecklistExecution
 
     from .models import EvidenceAsset, EvidenceAttachment
@@ -21,9 +22,10 @@ def install_database_guard(using: str = "default") -> bool:
     connection = connections[using]
     if connection.vendor != "postgresql":
         return False
-    asset, att, ex = EvidenceAsset._meta.db_table, EvidenceAttachment._meta.db_table, ChecklistExecution._meta.db_table
+    asset, att, ex, ca = (EvidenceAsset._meta.db_table, EvidenceAttachment._meta.db_table, ChecklistExecution._meta.db_table,
+                          CorrectiveAction._meta.db_table)
     with connection.cursor() as cursor:
-        if not {asset, att, ex} <= set(connection.introspection.table_names(cursor)):
+        if not {asset, att, ex, ca} <= set(connection.introspection.table_names(cursor)):
             return False
         cursor.execute(f"""
 CREATE OR REPLACE FUNCTION evidence_asset_guard() RETURNS trigger AS $$
@@ -44,6 +46,7 @@ CREATE OR REPLACE FUNCTION evidence_attachment_guard() RETURNS trigger AS $$
 DECLARE
   a_org uuid;
   e_org uuid;
+  c_org uuid;
 BEGIN
   IF TG_OP = 'DELETE' THEN
     RAISE EXCEPTION 'Evidence is part of the record and cannot be deleted.' USING ERRCODE = 'check_violation', CONSTRAINT = 'evidence_never_deleted';
@@ -58,8 +61,15 @@ BEGIN
       RAISE EXCEPTION 'An attachment must belong to its target''s organization.' USING ERRCODE = 'check_violation', CONSTRAINT = 'attachment_org_consistent';
     END IF;
   END IF;
+  IF NEW.corrective_action_id IS NOT NULL THEN
+    SELECT organization_id INTO c_org FROM "{ca}" WHERE id = NEW.corrective_action_id;
+    IF c_org IS DISTINCT FROM NEW.organization_id THEN
+      RAISE EXCEPTION 'An attachment must belong to its target''s organization.' USING ERRCODE = 'check_violation', CONSTRAINT = 'attachment_org_consistent';
+    END IF;
+  END IF;
   IF TG_OP = 'UPDATE' AND (NEW.asset_id <> OLD.asset_id OR NEW.organization_id <> OLD.organization_id OR NEW.execution_id IS DISTINCT FROM OLD.execution_id
-       OR NEW.item_id IS DISTINCT FROM OLD.item_id OR NEW.target_type <> OLD.target_type) THEN
+       OR NEW.item_id IS DISTINCT FROM OLD.item_id OR NEW.target_type <> OLD.target_type
+       OR NEW.corrective_action_id IS DISTINCT FROM OLD.corrective_action_id OR NEW.purpose <> OLD.purpose) THEN
     RAISE EXCEPTION 'The file and target of an attachment never change.' USING ERRCODE = 'check_violation', CONSTRAINT = 'attachment_identity_immutable';
   END IF;
   IF TG_OP = 'UPDATE' AND OLD.detached_at IS NOT NULL AND NEW.detached_at IS NULL THEN

@@ -34,7 +34,8 @@ configuration, authorization/IDOR/isolation, database guards and constraints, AP
 |---|---|
 | A rule matched but no finding exists | the execution is not submitted yet (findings are raised on submission); or the item was hidden by rules; or see `finding.detection_failed` in the activity log and run `detect_findings` |
 | A finding has "needs review" | the rule asked for it, or named a category/severity code the organization does not have (fix the settings or the rule) |
-| "Closing requires an independent verification" | `FINDINGS_REQUIRE_VERIFICATION=true` and no verification phase is installed |
+| "Closing requires an independent verification" | `FINDINGS_REQUIRE_VERIFICATION=true` and the finding has no verified/closed corrective action (or has outstanding ones) - the Phase 13 gate |
+| "Corrective actions are still outstanding" on resolve/cancel | the finding has actions in draft/open/in progress/blocked/awaiting verification/rejected; finish or cancel them |
 | A user cannot be assigned | assignees must hold `finding.resolve` at the finding's location and be active members |
 | `403` on settings | `finding.manage` is organization-wide and applies to the *current* organization |
 

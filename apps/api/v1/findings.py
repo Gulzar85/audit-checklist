@@ -344,6 +344,25 @@ class FindingViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Cr
         self._run(lambda: services.assign(finding, actor=request.user, assigned_to=self._user(d["assigned_to"]), **extra))
         return self._out(finding)
 
+    # -- corrective actions of this finding (Phase 13) ------------------------------------------
+    @extend_schema(responses=None)
+    @action(detail=True, methods=["get", "post"], url_path="corrective-actions")
+    def corrective_actions(self, request: Request, pk=None) -> Response:  # noqa: ANN001
+        from apps.api.v1 import corrective_actions as ca_api
+        from apps.corrective_actions import eligibility
+        from apps.corrective_actions import selectors as ca_selectors
+
+        finding = self.get_object()
+        if request.method == "GET":
+            rows = ca_selectors.for_finding(request.user, finding)
+            body = ca_api.ActionSerializer(rows, many=True, context={"request": request}).data
+            return Response({"results": body, "eligibility": eligibility.finding_eligibility(finding).as_dict()})
+        payload = ca_api.NestedCreateSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        created = ca_api.create_for_finding(request, finding, payload.validated_data)
+        fresh = ca_selectors.actions_visible_to(request.user).get(pk=created.pk)
+        return Response(ca_api.ActionSerializer(fresh, context={"request": request, "detail": True}).data, status=status.HTTP_201_CREATED)
+
     # -- reads --------------------------------------------------------------------------------
     @extend_schema(responses=None)
     @action(detail=False, methods=["get"])

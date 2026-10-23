@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ action.reference }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Corrective actions" "corrective_actions:list" action.reference %}{% endblock %}
+
+{% block page_header %}
+{% page_header title=action.reference subtitle=action.title icon="wrench" status=action.effective_status %}
+  {% if can_edit %}<a href="{% url 'corrective_actions:edit' action.pk %}" class="btn btn-secondary">{% icon "pencil" %} Edit</a>{% endif %}
+  {% for t in actions %}
+    <div x-data="confirmDialog">
+      <button type="button" class="btn {% if t.action == 'cancel' or t.action == 'reject' %}btn-danger{% elif t.action == 'submit' or t.action == 'verify' or t.action == 'close' or t.action == 'issue' %}btn-primary{% else %}btn-secondary{% endif %}" @click="show">{{ t.label }}</button>
+      <dialog x-ref="dialog" class="modal-dialog" @click="onBackdrop" @close="onClose" aria-labelledby="act-{{ t.action }}-title">
+        {% with route='corrective_actions:'|add:t.action %}
+        <form method="post" action="{% url route action.pk %}" class="p-6">{% csrf_token %}
+          <h2 id="act-{{ t.action }}-title" class="text-lg font-semibold">{{ t.label }} {{ action.reference }}?</h2>
+          <p class="mt-2 text-sm text-muted-foreground">
+            {% if t.action == "submit" %}Submitting reports the work as done. It is <strong>not verified</strong> until someone else approves it.{% if action.required_evidence %} {{ action.required_evidence }} verified completion file{{ action.required_evidence|pluralize }} required ({{ verified_files }} available).{% endif %}
+            {% elif t.action == "verify" %}Approving records that you independently checked the work. This does not close the action or resolve the finding.
+            {% elif t.action == "reject" %}The action returns to its owner to be corrected and resubmitted.
+            {% elif t.action == "close" %}Closing the action is recorded; it does not close or resolve the finding.
+            {% elif t.action == "cancel" %}Use this only for an action that is no longer needed. It is kept for the record.
+            {% elif t.action == "reopen" %}The action returns to work; its earlier verification stays in the history.
+            {% elif t.action == "issue" %}The responsible user can start once it is issued.
+            {% else %}This is recorded in the action's history.{% endif %}
+          </p>
+          {% if t.reason_required or t.action == "verify" %}
+            <label class="label mt-4" for="reason-{{ t.action }}">{% if t.action == "submit" %}Completion summary{% elif t.action == "block" %}Describe the blocker{% elif t.action == "verify" %}Notes (optional){% else %}Reason{% endif %}</label>
+            <textarea id="reason-{{ t.action }}" name="reason" class="textarea" rows="3" maxlength="1000"{% if t.reason_required %} required{% endif %}></textarea>
+          {% endif %}
+          <div class="mt-6 flex justify-end gap-2"><button type="button" class="btn btn-secondary" @click="hide">Back</button><button type="submit" class="btn {% if t.action == 'cancel' or t.action == 'reject' %}btn-danger{% else %}btn-primary{% endif %}">{{ t.label }}</button></div>
+        </form>
+        {% endwith %}
+      </dialog>
+    </div>
+  {% endfor %}
+{% endpage_header %}
+{% endblock %}
+
+{% block content %}
+{% if action.is_overdue %}<div class="alert alert-danger mb-6" role="alert">{% icon "alarm-clock" %}<p>This action is overdue: it was due {{ action.due_at|date:"M d, Y H:i" }} and still needs work.</p></div>{% endif %}
+{% if action.status == "blocked" %}<div class="alert alert-warning mb-6" role="status">{% icon "octagon-alert" %}<p>Blocked since {{ action.blocked_at|date:"M d, Y H:i" }}: {{ action.blocker }}</p></div>{% endif %}
+{% if action.status == "submitted" %}<div class="alert alert-info mb-6" role="status">{% icon "hourglass" %}<p>Submitted {{ action.submitted_at|date:"M d, Y H:i" }}{% if action.submitted_by %} by {{ action.submitted_by.get_short_name }}{% endif %}: awaiting independent verification. Not verified yet.{% if action.independent_verification and not can_decide %} You cannot decide this one (separation of duties).{% endif %}</p></div>{% endif %}
+{% if action.status == "rejected" %}<div class="alert alert-warning mb-6" role="status">{% icon "rotate-ccw" %}<p>Rejected: “{{ verifications.0.reason }}” - address it, then resume work and submit again.</p></div>{% endif %}
+{% if action.status == "verified" %}<div class="alert alert-success mb-6" role="status">{% icon "badge-check" %}<p>Verified {{ action.verified_at|date:"M d, Y H:i" }}{% if action.verified_by %} by {{ action.verified_by.get_short_name }}{% endif %}. It is not closed yet, and the finding is unchanged.</p></div>{% endif %}
+{% if action.status == "cancelled" %}<div class="alert alert-warning mb-6" role="status">{% icon "circle-x" %}<p>Cancelled {{ action.cancelled_at|date:"M d, Y H:i" }}{% if action.cancelled_by %} by {{ action.cancelled_by.get_short_name }}{% endif %}: {{ action.cancel_reason }}</p></div>{% endif %}
+
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="min-w-0 space-y-6 lg:col-span-2">
+    <section class="card" aria-labelledby="a-info">
+      <div class="card-header"><h2 id="a-info" class="card-title">Action</h2>{% status_badge action.effective_status %}</div>
+      <dl class="card-body grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+        <div class="sm:col-span-2"><dt class="text-muted-foreground">Title</dt><dd class="font-medium">{{ action.title }}</dd></div>
+        {% if action.description %}<div class="sm:col-span-2"><dt class="text-muted-foreground">Description</dt><dd class="whitespace-pre-line">{{ action.description }}</dd></div>{% endif %}
+        {% if action.plan %}<div class="sm:col-span-2"><dt class="text-muted-foreground">Planned activities</dt><dd class="whitespace-pre-line">{{ action.plan }}</dd></div>{% endif %}
+        {% if action.expected_outcome %}<div><dt class="text-muted-foreground">Expected outcome</dt><dd>{{ action.expected_outcome }}</dd></div>{% endif %}
+        {% if action.completion_criteria %}<div><dt class="text-muted-foreground">Completion criteria</dt><dd>{{ action.completion_criteria }}</dd></div>{% endif %}
+        <div><dt class="text-muted-foreground">Priority</dt><dd>{{ action.get_priority_display }}</dd></div>
+        <div><dt class="text-muted-foreground">Due</dt><dd>{% if action.due_at %}{{ action.due_at|date:"M d, Y H:i" }}{% else %}No due date{% endif %}</dd></div>
+        <div><dt class="text-muted-foreground">Responsible</dt><dd>{% if action.assigned_to %}{{ action.assigned_to.display_name|default:action.assigned_to.email }}{% else %}Unassigned{% endif %}</dd></div>
+        <div><dt class="text-muted-foreground">Location</dt><dd>{{ path }}</dd></div>
+        <div><dt class="text-muted-foreground">Created</dt><dd>{{ action.created_at|date:"M d, Y H:i" }}{% if action.created_by %} by {{ action.created_by.get_short_name }}{% endif %}</dd></div>
+        <div><dt class="text-muted-foreground">Verification</dt><dd>{% if action.independent_verification %}Independent (not the owner or submitter){% else %}Not required to be independent{% endif %}</dd></div>
+        {% if action.required_evidence %}<div><dt class="text-muted-foreground">Completion files</dt><dd>{{ verified_files }} of {{ action.required_evidence }} verified</dd></div>{% endif %}
+        {% if action.completion_summary %}<div class="sm:col-span-2"><dt class="text-muted-foreground">Completion summary (submission {{ action.submission_count }})</dt><dd class="whitespace-pre-line">{{ action.completion_summary }}</dd></div>{% endif %}
+        {% if action.reopen_count %}<div><dt class="text-muted-foreground">Reopened</dt><dd>{{ action.reopen_count }} time{{ action.reopen_count|pluralize }}</dd></div>{% endif %}
+      </dl>
+    </section>
+
+    <section class="card" aria-labelledby="a-finding">
+      <div class="card-header"><h2 id="a-finding" class="card-title">Finding</h2>{% tone_badge action.finding.severity.name action.finding.severity.tone icon="triangle-alert" %}</div>
+      <div class="card-body text-sm">
+        <p class="font-medium">{% if finding_url %}<a href="{{ finding_url }}" class="font-mono">{{ action.finding.reference }}</a>{% else %}<span class="font-mono">{{ action.finding.reference }}</span>{% endif %} {{ action.finding.title }}</p>
+        <p class="text-muted-foreground">{{ action.finding.get_status_display }} · {{ action.finding.category.name }}</p>
+        <p class="mt-3">{% if eligibility.eligible %}{% tone_badge "No outstanding actions" "success" icon="circle-check" %}{% else %}{% tone_badge "Actions still outstanding" "warning" icon="hourglass" %}{% endif %}
+          <span class="text-xs text-muted-foreground">{% for r in eligibility.reasons %}{{ r }}{% endfor %} Verifying an action never closes the finding by itself.</span></p>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="a-evidence">
+      <div class="card-header"><h2 id="a-evidence" class="card-title">Evidence</h2></div>
+      <div class="card-body space-y-5">
+        {% for label, purpose, items, can_attach in evidence_groups %}
+          <div>
+            <h3 class="text-sm font-medium">{{ label }}</h3>
+            {% if items %}
+              <ul class="mt-2 grid gap-3 sm:grid-cols-2">
+                {% for e in items %}
+                  <li class="flex gap-3 text-sm">
+                    {% if e.servable and e.image %}<img src="{% url 'corrective_actions:evidence_preview' action.pk e.attachment.pk %}" alt="{{ e.attachment.asset.original_name }}" class="h-14 w-14 rounded-md object-cover" loading="lazy">{% endif %}
+                    <div class="min-w-0"><p class="truncate font-medium">{{ e.attachment.asset.original_name }}</p>
+                      <p class="text-xs text-muted-foreground">{% if e.servable %}Available and verified{% elif e.attachment.asset.status == "quarantined" %}Quarantined by the security check - does not count{% else %}Waiting for the security check - does not count yet{% endif %}</p>
+                      {% if e.servable %}<a class="text-xs" href="{% url 'corrective_actions:evidence_download' action.pk e.attachment.pk %}">Download</a>{% endif %}
+                      {% if can_attach %}<form method="post" action="{% url 'corrective_actions:evidence_detach' action.pk e.attachment.pk %}" class="inline">{% csrf_token %}<button type="submit" class="text-xs text-danger-text">Remove</button></form>{% endif %}</div>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}<p class="mt-1 text-sm text-muted-foreground">None.</p>{% endif %}
+            {% if can_attach %}
+              <form method="post" action="{% url 'corrective_actions:evidence_upload' action.pk %}" enctype="multipart/form-data" class="mt-2 flex flex-wrap items-end gap-2">{% csrf_token %}
+                <input type="hidden" name="purpose" value="{{ purpose }}">
+                <div><label class="label" for="file-{{ purpose }}">Add a file</label><input id="file-{{ purpose }}" type="file" name="file" class="file-input" required></div>
+                <button type="submit" class="btn btn-secondary btn-sm">{% icon "upload" %} Upload</button>
+              </form>
+            {% endif %}
+          </div>
+        {% endfor %}
+        <p class="text-xs text-muted-foreground">Files are checked and stored privately. Only files that passed the check count towards the requirement; access is re-checked for every file.</p>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="a-log">
+      <div class="card-header"><h2 id="a-log" class="card-title">Work log</h2></div>
+      <div class="card-body">
+        {% if update_form %}
+          <form method="post" action="{% url 'corrective_actions:progress' action.pk %}" class="mb-4 space-y-2">{% csrf_token %}
+            <label class="label" for="id_body">{{ update_form.body.label }}</label>{{ update_form.body }}
+            <div class="grid gap-2 sm:grid-cols-2"><div><label class="label" for="id_progress_percent">{{ update_form.progress_percent.label }}</label>{{ update_form.progress_percent }}</div>
+              <div><label class="label" for="id_corrects">{{ update_form.corrects.label }}</label>{{ update_form.corrects }}</div></div>
+            <p class="help-text">{{ update_form.progress_percent.help_text }}</p>
+            <button type="submit" class="btn btn-secondary btn-sm">{% icon "plus" %} Add entry</button>
+          </form>
+        {% endif %}
+        <ol class="divide-y divide-border">
+          {% for u in updates %}
+            <li class="py-3 text-sm"><p><span class="font-medium">{{ u.get_kind_display }}</span>{% if u.submission_number %} #{{ u.submission_number }}{% endif %}{% if u.progress_percent is not None %} · {{ u.progress_percent }}%{% endif %}{% if u.corrects %} · corrects an earlier entry{% endif %}</p>
+              <p class="whitespace-pre-line">{{ u.body }}</p><p class="text-xs text-muted-foreground">{{ u.created_at|date:"M d, Y H:i" }}{% if u.author %} · {{ u.author.get_short_name }}{% endif %}</p></li>
+          {% empty %}<li class="py-3 text-sm text-muted-foreground">No entries yet.</li>{% endfor %}
+        </ol>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="a-ver">
+      <div class="card-header"><h2 id="a-ver" class="card-title">Verification decisions</h2></div>
+      <ol class="divide-y divide-border">
+        {% for v in verifications %}
+          <li class="px-5 py-3 text-sm"><p>{% if v.decision == "approved" %}{% tone_badge "Approved" "success" icon="badge-check" %}{% else %}{% tone_badge "Rejected" "danger" icon="circle-x" %}{% endif %} submission {{ v.submission_number }}</p>
+            {% if v.reason %}<p>{{ v.reason }}</p>{% endif %}{% if v.notes %}<p>{{ v.notes }}</p>{% endif %}
+            <p class="text-xs text-muted-foreground">{{ v.decided_at|date:"M d, Y H:i" }}{% if v.verifier %} · {{ v.verifier.get_short_name }}{% endif %}</p></li>
+        {% empty %}<li class="px-5 py-3 text-sm text-muted-foreground">Not verified yet.</li>{% endfor %}
+      </ol>
+    </section>
+
+    {% if can_assign %}
+    <section class="card" aria-labelledby="a-assign">
+      <div class="card-header"><h2 id="a-assign" class="card-title">Responsibility</h2></div>
+      <form method="post" action="{% url 'corrective_actions:assign' action.pk %}" class="card-body grid gap-4 md:grid-cols-3">{% csrf_token %}
+        <div class="md:col-span-2"><label class="label" for="chg-owner">Responsible user</label>
+          <select id="chg-owner" name="assigned_to" class="select"><option value="">No one yet</option>{% for u in assignees %}<option value="{{ u.pk }}"{% if u.pk == action.assigned_to_id %} selected{% endif %}>{{ u.display_name|default:u.email }}</option>{% endfor %}</select></div>
+        <div class="flex items-end"><button type="submit" class="btn btn-secondary">Save</button></div>
+      </form>
+    </section>
+    {% endif %}
+  </div>
+
+  <aside class="min-w-0">
+    <section class="card" aria-labelledby="a-history">
+      <div class="card-header"><h2 id="a-history" class="card-title">History</h2></div>
+      <ol class="divide-y divide-border">
+        {% for event in timeline %}
+          <li class="px-5 py-3 text-sm"><p>{{ event.description }}</p><p class="text-xs text-muted-foreground">{{ event.created_at|date:"M d, Y H:i" }}{% if event.actor %} · {{ event.actor.get_short_name }}{% endif %}{% if event.metadata.reason %} · “{{ event.metadata.reason }}”{% endif %}</p></li>
+        {% empty %}<li class="px-5 py-3 text-sm text-muted-foreground">No activity yet.</li>{% endfor %}
+      </ol>
+    </section>
+  </aside>
+</div>
+{% endblock %}

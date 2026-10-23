@@ -11,6 +11,9 @@ from collections.abc import Callable
 from typing import Any
 
 closure_blockers: list[Callable[[Any], str | None]] = []
+#: Same contract for ``resolve`` and ``cancel`` (Phase 13 registers the corrective-action policy: nothing is resolved or cancelled out from under live work).
+resolve_blockers: list[Callable[[Any], str | None]] = []
+cancel_blockers: list[Callable[[Any], str | None]] = []
 #: ``gate(finding) -> bool``: has an independent verification accepted this finding?  Registered by the verification phase.
 verification_gate: list[Callable[[Any], bool]] = []
 
@@ -18,6 +21,16 @@ verification_gate: list[Callable[[Any], bool]] = []
 def register_closure_blocker(blocker: Callable[[Any], str | None]) -> None:
     if blocker not in closure_blockers:
         closure_blockers.append(blocker)
+
+
+def register_resolve_blocker(blocker: Callable[[Any], str | None]) -> None:
+    if blocker not in resolve_blockers:
+        resolve_blockers.append(blocker)
+
+
+def register_cancel_blocker(blocker: Callable[[Any], str | None]) -> None:
+    if blocker not in cancel_blockers:
+        cancel_blockers.append(blocker)
 
 
 def register_verification_gate(gate: Callable[[Any], bool]) -> None:

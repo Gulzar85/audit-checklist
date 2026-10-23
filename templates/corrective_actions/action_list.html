@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load django_tables2 ui %}
+{% block title %}{{ heading }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" heading %}{% endblock %}
+
+{% block page_header %}
+{% page_header title=heading subtitle=subtitle icon=icon %}
+  {% if mode != "mine" %}<a href="{% url 'corrective_actions:mine' %}" class="btn btn-secondary">{% icon "list-checks" %} Mine</a>{% endif %}
+  {% if mode != "queue" and can_verify_queue %}<a href="{% url 'corrective_actions:queue' %}" class="btn btn-secondary">{% icon "badge-check" %} Verification queue</a>{% endif %}
+  {% if mode != "all" %}<a href="{% url 'corrective_actions:list' %}" class="btn btn-secondary">All actions</a>{% endif %}
+  {% if can_create %}<a href="{% url 'corrective_actions:create' %}" class="btn btn-primary">{% icon "plus" %} New action</a>{% endif %}
+{% endpage_header %}
+{% endblock %}
+
+{% block content %}
+<section class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-6" aria-label="Summary">
+  <div class="card card-body"><p class="text-xs text-muted-foreground">Open</p><p class="text-2xl font-semibold">{{ summary.open }}</p></div>
+  <a class="card card-body block" href="?status=in_progress"><p class="text-xs text-muted-foreground">In progress</p><p class="text-2xl font-semibold">{{ summary.in_progress }}</p></a>
+  <a class="card card-body block" href="?status=blocked"><p class="text-xs text-muted-foreground">{% icon "octagon-alert" %} Blocked</p><p class="text-2xl font-semibold {% if summary.blocked %}text-warning-text{% endif %}">{{ summary.blocked }}</p></a>
+  <a class="card card-body block" href="?status=submitted"><p class="text-xs text-muted-foreground">Awaiting verification</p><p class="text-2xl font-semibold">{{ summary.awaiting_verification }}</p></a>
+  <a class="card card-body block" href="?status=overdue"><p class="text-xs text-muted-foreground">{% icon "alarm-clock" %} Overdue</p><p class="text-2xl font-semibold {% if summary.overdue %}text-danger-text{% endif %}">{{ summary.overdue }}</p></a>
+  <a class="card card-body block" href="?status=verified"><p class="text-xs text-muted-foreground">Verified</p><p class="text-2xl font-semibold">{{ summary.verified }}</p></a>
+</section>
+{% if mode == "mine" and summary.rejected %}<div class="alert alert-warning mb-6" role="status">{% icon "rotate-ccw" %}<p>{{ summary.rejected }} of your actions {{ summary.rejected|pluralize:"was,were" }} rejected and need{{ summary.rejected|pluralize:"s," }} your attention.</p></div>{% endif %}
+
+<div class="card mb-6">
+  {% include "components/filter_bar.html" with filter=filter reset_url=request.path hidden=hidden_filters %}
+</div>
+
+<div class="card">
+  {% if table.rows %}
+    {% render_table table %}
+  {% else %}
+    {% url "corrective_actions:create" as create_url %}
+    {% if can_create and mode == "all" %}{% include "components/states/empty.html" with icon="wrench" title="No corrective actions found" message="Create actions from a finding, or adjust the filters." action_url=create_url action_label="New action" %}{% elif mode == "queue" %}{% include "components/states/empty.html" with icon="badge-check" title="Nothing to verify" message="Submitted work you are allowed to decide will appear here. You cannot verify work you did or submitted yourself." %}{% else %}{% include "components/states/empty.html" with icon="wrench" title="No corrective actions found" message="Nothing matches the current filters." %}{% endif %}
+  {% endif %}
+</div>
+{% endblock %}

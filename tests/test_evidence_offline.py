@@ -60,12 +60,12 @@ class TestCapabilityAndProtocol:
         assert listing[str(a.pk)]["offline"] == {"capable": True, "reasons": []}
         package = c.get(f"{BASE}offline/assignments/{a.pk}/package/").json()
         photo = next(i for i in package["items"] if i["code"] == "PHOTO")
-        assert photo["answer_type"] == "photo" and photo["config"]["max_files"] == 2 and package["evaluator_version"] == 2
+        assert photo["answer_type"] == "photo" and photo["config"]["max_files"] == 2 and package["evaluator_version"] == 3
         assert package["rules"][0]["actions"][0]["type"] == "REQUIRE_EVIDENCE"
 
     def test_the_manifest_publishes_the_upload_contract(self, w):
         data = api(w["runner"]).get(BASE + "offline/manifest/").json()
-        assert data["evidence"] == "supported" and data["evidence_limits"]["extensions"] == ["jpeg", "jpg", "pdf", "png", "webp"] and data["evaluator_version"] == 2
+        assert data["evidence"] == "supported" and data["evidence_limits"]["extensions"] == ["jpeg", "jpg", "pdf", "png", "webp"] and data["evaluator_version"] == 3
 
     def test_media_answers_still_cannot_be_synced_as_values(self, w):
         a = vissued(w)

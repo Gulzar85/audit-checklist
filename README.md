@@ -94,6 +94,7 @@ recursive queries and row locks are part of what is under test). Point
 .\venv\Scripts\python manage.py seed_demo_offline --organization <slug>   # a fresh assignment for the offline walkthrough (docs/offline-execution.md)
 .\venv\Scripts\python manage.py seed_demo_evidence --organization <slug>   # a checklist with photo/file/signature questions and a fresh assignment
 .\venv\Scripts\python manage.py seed_demo_findings --organization <slug>   # a rule-driven inspection, findings in several states (docs/findings-operations.md)
+.\venv\Scripts\python manage.py seed_demo_corrective_actions --organization <slug>   # actions in several states against a demo finding (docs/corrective-actions-architecture.md)
 .\venv\Scripts\python manage.py detect_findings --dry-run                  # idempotently (re)raise findings of submitted executions
 .\venv\Scripts\python manage.py prune_sync_receipts --days 90   # delete old offline idempotency receipts
 .\venv\Scripts\python manage.py scan_evidence                   # scan files awaiting the malware check (docs/evidence-malware-scanning.md)

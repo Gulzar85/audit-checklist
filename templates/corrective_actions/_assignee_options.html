@@ -1,0 +1,2 @@
+<option value="">No one yet</option>
+{% for user in users %}<option value="{{ user.pk }}">{{ user.display_name|default:user.email }} ({{ user.email }})</option>{% endfor %}

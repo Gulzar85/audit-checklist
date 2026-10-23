@@ -48,10 +48,24 @@ class TargetContext:
     allowed_extensions: tuple[str, ...] | None = None
     max_files: int | None = None
     accepted_kinds: tuple[str, ...] = ()
+    #: Corrective-action targets (Phase 13): the action, and the stage the file belongs to (plan / progress / completion / verification / rejection).
+    corrective_action: Any = None
+    purpose: str = ""
 
     @property
     def key(self) -> dict[str, Any]:
+        """The explicit foreign keys that identify this target on ``EvidenceAttachment`` (also the filter for its live attachments)."""
+        if self.corrective_action is not None:
+            return {"corrective_action": self.corrective_action}
         return {"execution": self.execution, "item": self.item}
+
+    @property
+    def target_obj(self) -> Any:
+        return self.corrective_action if self.corrective_action is not None else self.execution
+
+    @property
+    def reference(self) -> str:
+        return getattr(self.target_obj, "reference", "")
 
 
 class TargetSpec:
@@ -68,6 +82,18 @@ class TargetSpec:
 
     def check_can_attach(self, user: Any, ctx: TargetContext) -> None:  # pragma: no cover - interface
         """Raise ``PermissionDenied`` (not allowed) or ``TargetLocked`` (wrong state)."""
+        raise NotImplementedError
+
+    def lock(self, ctx: TargetContext) -> Any:  # pragma: no cover - interface
+        """Lock the target row ``FOR UPDATE`` (serialises attach / detach / state changes), store it on ``ctx`` and return it."""
+        raise NotImplementedError
+
+    def touch(self, ctx: TargetContext, *, activity: bool = False) -> None:  # pragma: no cover - interface
+        """Record that the locked target changed (a revision bump for optimistic-concurrency tokens)."""
+        raise NotImplementedError
+
+    def audit_meta(self, ctx: TargetContext) -> dict[str, Any]:  # pragma: no cover - interface
+        """Identifiers added to the audit entries of an upload / attach / detach (never file contents)."""
         raise NotImplementedError
 
 
@@ -136,6 +162,26 @@ class ChecklistResponseTarget(TargetSpec):
         location = ctx.execution.assignment.location
         current = has_permission(user, P.EXECUTION_VIEW, location=location) or has_permission(user, P.EXECUTION_UPDATE, location=location)
         return bool(is_active_user(user) and current and policies.can_view(user, ctx.execution))
+
+    def lock(self, ctx: TargetContext) -> Any:
+        from apps.executions.services.base import lock_execution
+
+        ctx.execution = lock_execution(ctx.execution.pk)
+        return ctx.execution
+
+    def touch(self, ctx: TargetContext, *, activity: bool = False) -> None:
+        from django.utils import timezone
+
+        locked = ctx.execution
+        locked.revision += 1
+        if activity:
+            locked.last_activity_at = timezone.now()
+            locked.save(update_fields=["revision", "last_activity_at", "updated_at"])
+        else:
+            locked.save(update_fields=["revision", "updated_at"])
+
+    def audit_meta(self, ctx: TargetContext) -> dict[str, Any]:
+        return {"execution_id": str(ctx.execution.pk), "assignment_id": str(ctx.execution.assignment_id), "item": ctx.item.code}
 
     def check_can_attach(self, user: Any, ctx: TargetContext) -> None:
         from apps.executions import policies

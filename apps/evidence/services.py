@@ -63,14 +63,14 @@ def upload(actor: Any, *, target_type: str, ref: dict[str, Any], filename: str, 
     try:
         inspected = inspect_upload(filename, data, kind_hint=ctx.kind_hint, allowed_extensions=ctx.allowed_extensions)
     except Rejected as exc:
-        _audit("evidence.rejected", ctx.organization, actor, ctx.execution, f"Rejected an upload for {ctx.execution.reference}", code=exc.code)
+        _audit("evidence.rejected", ctx.organization, actor, ctx.target_obj, f"Rejected an upload for {ctx.reference}", code=exc.code)
         raise EvidenceError(exc.message, exc.code) from None
     if operation_id:
         prior = EvidenceAsset.objects.filter(uploaded_by=actor, client_operation_id=operation_id).first()
         if prior is not None:
             if prior.sha256 != inspected.sha256 or prior.organization_id != ctx.organization.pk:
                 raise EvidenceError("This operation id was already used for a different file.", "operation_id_reused", 409)
-            attachment = (EvidenceAttachment.objects.filter(asset=prior, execution=ctx.execution, item=ctx.item).order_by("detached_at", "-created_at").first())
+            attachment = (EvidenceAttachment.objects.filter(asset=prior, **ctx.key).order_by("detached_at", "-created_at").first())
             if attachment is not None:
                 return UploadResult(prior, attachment, duplicate=True)
     key = new_key()
@@ -81,12 +81,9 @@ def upload(actor: Any, *, target_type: str, ref: dict[str, Any], filename: str, 
         raise EvidenceError("The file could not be stored. Please try again.", "storage_failed", 503) from None
     try:
         with transaction.atomic():
-            from apps.executions.services.base import lock_execution
-
-            locked = lock_execution(ctx.execution.pk)  # serialise with saves/submission of this execution
-            ctx.execution = locked
+            spec.lock(ctx)  # serialise with saves / submission / state changes of the target
             spec.check_can_attach(actor, ctx)  # re-check under the lock: a submit may have won the race
-            live = EvidenceAttachment.objects.filter(execution=locked, item=ctx.item, detached_at__isnull=True).count()
+            live = EvidenceAttachment.objects.filter(**ctx.key, detached_at__isnull=True).count()
             limit = min(int(ctx.max_files or settings.EVIDENCE_MAX_PER_TARGET), int(settings.EVIDENCE_MAX_PER_TARGET))
             if live >= limit:
                 raise EvidenceError(f"At most {limit} files can be attached to one question.", "too_many_files")
@@ -97,20 +94,18 @@ def upload(actor: Any, *, target_type: str, ref: dict[str, Any], filename: str, 
             )
             stamp_history(asset, actor, "evidence.uploaded")
             asset.save()
-            attachment = EvidenceAttachment(asset=asset, organization=ctx.organization, target_type=ctx.target_type, execution=locked, item=ctx.item,
+            attachment = EvidenceAttachment(asset=asset, organization=ctx.organization, target_type=ctx.target_type, **ctx.key, purpose=ctx.purpose,
                                             caption=(caption or "")[:200], position=live, attached_by=actor)
             stamp_history(attachment, actor, "evidence.attached")
             attachment.save()
-            locked.revision += 1
-            locked.last_activity_at = timezone.now()
-            locked.save(update_fields=["revision", "last_activity_at", "updated_at"])
-            _audit("evidence.uploaded", ctx.organization, actor, asset, f"Uploaded {asset.original_name} to {locked.reference}",
-                   asset_id=str(asset.pk), execution_id=str(locked.pk), assignment_id=str(locked.assignment_id), item=ctx.item.code, kind=asset.kind, size=asset.size)
+            spec.touch(ctx, activity=True)
+            _audit("evidence.uploaded", ctx.organization, actor, asset, f"Uploaded {asset.original_name} to {ctx.reference}",
+                   asset_id=str(asset.pk), kind=asset.kind, size=asset.size, purpose=ctx.purpose or None, **spec.audit_meta(ctx))
     except IntegrityError as exc:  # a concurrent retry of the same operation id won: replay it
         storage.delete(key)
         winner = EvidenceAsset.objects.filter(uploaded_by=actor, client_operation_id=operation_id).first() if operation_id else None
         if winner is not None and winner.sha256 == inspected.sha256:
-            att = EvidenceAttachment.objects.filter(asset=winner, execution=ctx.execution, item=ctx.item).first()
+            att = EvidenceAttachment.objects.filter(asset=winner, **ctx.key).first()
             if att is not None:
                 return UploadResult(winner, att, duplicate=True)
         raise EvidenceError("The file could not be saved. Please try again.", "conflict", 409) from exc
@@ -140,24 +135,20 @@ def attach_existing(actor: Any, asset: EvidenceAsset, *, target_type: str, ref: 
     except TargetLocked as exc:
         raise EvidenceError(exc.message, exc.code, 409) from None
     with transaction.atomic():
-        from apps.executions.services.base import lock_execution
-
-        locked = lock_execution(ctx.execution.pk)
-        ctx.execution = locked
+        spec.lock(ctx)
         spec.check_can_attach(actor, ctx)
-        if EvidenceAttachment.objects.filter(asset=asset, execution=locked, item=ctx.item, detached_at__isnull=True).exists():
+        if EvidenceAttachment.objects.filter(asset=asset, **ctx.key, detached_at__isnull=True).exists():
             raise EvidenceError("That file is already attached here.", "already_attached", 409)
-        live = EvidenceAttachment.objects.filter(execution=locked, item=ctx.item, detached_at__isnull=True).count()
+        live = EvidenceAttachment.objects.filter(**ctx.key, detached_at__isnull=True).count()
         if live >= min(int(ctx.max_files or settings.EVIDENCE_MAX_PER_TARGET), int(settings.EVIDENCE_MAX_PER_TARGET)):
             raise EvidenceError("Too many files are attached to this question.", "too_many_files")
-        attachment = EvidenceAttachment(asset=asset, organization=ctx.organization, target_type=ctx.target_type, execution=locked, item=ctx.item,
+        attachment = EvidenceAttachment(asset=asset, organization=ctx.organization, target_type=ctx.target_type, **ctx.key, purpose=ctx.purpose,
                                         caption=(caption or "")[:200], position=live, attached_by=actor)
         stamp_history(attachment, actor, "evidence.attached")
         attachment.save()
-        locked.revision += 1
-        locked.save(update_fields=["revision", "updated_at"])
-        _audit("evidence.attached", ctx.organization, actor, asset, f"Attached {asset.original_name} to {locked.reference}",
-               asset_id=str(asset.pk), execution_id=str(locked.pk), assignment_id=str(locked.assignment_id), item=ctx.item.code)
+        spec.touch(ctx)
+        _audit("evidence.attached", ctx.organization, actor, asset, f"Attached {asset.original_name} to {ctx.reference}",
+               asset_id=str(asset.pk), purpose=ctx.purpose or None, **spec.audit_meta(ctx))
     return attachment
 
 
@@ -168,10 +159,7 @@ def detach(actor: Any, attachment: EvidenceAttachment, *, reason: str = "") -> E
     if not spec.can_view(actor, ctx):
         raise EvidenceError("That attachment was not found.", "attachment_not_found", 404)
     with transaction.atomic():
-        from apps.executions.services.base import lock_execution
-
-        locked = lock_execution(attachment.execution_id)
-        ctx.execution = locked
+        spec.lock(ctx)
         try:
             spec.check_can_attach(actor, ctx)
         except TargetLocked as exc:
@@ -184,10 +172,9 @@ def detach(actor: Any, attachment: EvidenceAttachment, *, reason: str = "") -> E
         row.detached_at, row.detached_by, row.detach_reason = timezone.now(), actor, (reason or "")[:200]
         stamp_history(row, actor, "evidence.detached")
         row.save()
-        locked.revision += 1
-        locked.save(update_fields=["revision", "updated_at"])
-        _audit("evidence.detached", row.organization, actor, row.asset, f"Detached {row.asset.original_name} from {locked.reference}",
-               asset_id=str(row.asset_id), execution_id=str(locked.pk), assignment_id=str(locked.assignment_id), item=row.item.code, reason=row.detach_reason)
+        spec.touch(ctx)
+        _audit("evidence.detached", row.organization, actor, row.asset, f"Detached {row.asset.original_name} from {ctx.reference}",
+               asset_id=str(row.asset_id), reason=row.detach_reason, **spec.audit_meta(ctx))
     return row
 
 

@@ -86,6 +86,10 @@ class EvidenceAttachment(BaseModel):
     # -- target: checklist response = (execution, item) ---------------------------------------------------------------------
     execution = models.ForeignKey("executions.ChecklistExecution", on_delete=models.PROTECT, null=True, blank=True, related_name="evidence_attachments")
     item = models.ForeignKey("checklists.ChecklistItem", on_delete=models.PROTECT, null=True, blank=True, related_name="evidence_attachments")
+    # -- target: corrective action (Phase 13) - the action, and the stage the file belongs to ---------------------------------
+    corrective_action = models.ForeignKey("corrective_actions.CorrectiveAction", on_delete=models.PROTECT, null=True, blank=True, related_name="evidence_attachments")
+    #: The stage of the target's workflow (plan / progress / completion / verification / rejection); validated by the target spec.
+    purpose = models.CharField(max_length=20, blank=True)
     caption = models.CharField(max_length=200, blank=True)
     position = models.PositiveIntegerField(default=0)
     attached_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
@@ -105,9 +109,16 @@ class EvidenceAttachment(BaseModel):
                 condition=~models.Q(target_type=TargetType.CHECKLIST_RESPONSE) | (models.Q(execution__isnull=False) & models.Q(item__isnull=False)),
                 name="attachment_response_target_complete",
             ),
+            models.UniqueConstraint(fields=["asset", "corrective_action"], condition=models.Q(detached_at__isnull=True, corrective_action__isnull=False),
+                                    name="one_live_attachment_per_action"),
+            models.CheckConstraint(
+                condition=~models.Q(target_type=TargetType.CORRECTIVE_ACTION)
+                | (models.Q(corrective_action__isnull=False) & models.Q(execution__isnull=True) & models.Q(item__isnull=True) & ~models.Q(purpose="")),
+                name="attachment_action_target_complete",
+            ),
             models.CheckConstraint(condition=models.Q(detached_at__isnull=True, detach_reason="") | models.Q(detached_at__isnull=False), name="attachment_detach_consistent"),
         ]
-        indexes = [models.Index(fields=["execution", "item", "detached_at"]), models.Index(fields=["organization", "target_type"]), models.Index(fields=["asset"])]
+        indexes = [models.Index(fields=["execution", "item", "detached_at"]), models.Index(fields=["corrective_action", "purpose", "detached_at"]), models.Index(fields=["organization", "target_type"]), models.Index(fields=["asset"])]
 
     def __str__(self) -> str:
         return f"{self.asset_id} -> {self.target_type}"

@@ -37,6 +37,7 @@ STATUSES: dict[str, StatusInfo] = {
     "open": StatusInfo("info", "circle-dot", "Open"),
     "closed": StatusInfo("neutral", "circle-slash", "Closed"),
     "acknowledged": StatusInfo("info", "eye", "Acknowledged"),
+    "blocked": StatusInfo("warning", "octagon-alert", "Blocked"),
     "reopened": StatusInfo("warning", "rotate-ccw", "Reopened"),
     "resolved": StatusInfo("success", "circle-check", "Resolved"),
     "verified": StatusInfo("success", "badge-check", "Verified"),

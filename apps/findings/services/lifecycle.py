@@ -204,6 +204,14 @@ def _closure_problem(finding: Finding) -> str | None:
     return None
 
 
+def _blocker_problem(finding: Finding, blockers: list) -> str | None:
+    for blocker in blockers:
+        message = blocker(finding)
+        if message:
+            return str(message)
+    return None
+
+
 def transition(finding: Finding, action: str, *, actor: Any, reason: str = "") -> Finding:
     try:
         return _transition(finding, action, actor, reason)
@@ -235,6 +243,10 @@ def _transition(finding: Finding, action: str, actor: Any, reason: str) -> Findi
     extra: dict[str, Any] = {}
     if action == "start" and locked.severity.requires_owner and locked.assigned_to_id is None:
         raise FindingError(_("Assign a responsible user before work starts on a %(severity)s finding.") % {"severity": locked.severity.name}, "owner_required")
+    if action in ("resolve", "cancel"):
+        problem = _blocker_problem(locked, hooks.resolve_blockers if action == "resolve" else hooks.cancel_blockers)
+        if problem:
+            raise FindingError(problem, "resolution_blocked" if action == "resolve" else "cancellation_blocked")
     if action == "resolve":
         locked.resolution_summary, locked.resolved_by, locked.resolved_at = reason, actor, now
     elif action == "close":

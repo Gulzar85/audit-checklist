@@ -4,6 +4,10 @@ A client never names a Django model, `content_type` or `object_id`. It names a *
 server code resolves them. Unknown types, malformed ids, records from another organization and records the caller cannot see all produce the
 same generic `404 target_not_found`.
 
+> **Update (Phase 13):** the `corrective_action` target was added following the recipe below (explicit key `EvidenceAttachment.corrective_action` + a `purpose` per stage). The
+> evidence services now call the target's `lock`, `touch` and `audit_meta` and filter on `ctx.key`, so a target no longer needs anything from the services. See ADR 0068 and
+> [corrective-action-lifecycle.md](corrective-action-lifecycle.md#evidence-stages-purpose).
+
 ## The contract (`apps/evidence/targets.py`)
 
 ```python

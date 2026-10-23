@@ -105,7 +105,8 @@ NAVIGATION: tuple[NavItem, ...] = (
     # --- Quality (planned) ------------------------------------------------------------------
     NavItem("findings", "Findings", "triangle-alert", "quality", url_name="findings:list",
             visible=can_see("finding.view"), active=("findings:*",)),
-    NavItem("corrective_actions", "Corrective Actions", "wrench", "quality"),
+    NavItem("corrective_actions", "Corrective Actions", "wrench", "quality", url_name="corrective_actions:list",
+            visible=can_see("corrective_action.view"), active=("corrective_actions:*",)),
     NavItem("verifications", "Verifications", "badge-check", "quality"),
     # --- Analytics (planned) ----------------------------------------------------------------
     NavItem("reports", "Reports", "chart-column", "analytics"),

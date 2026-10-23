@@ -34,6 +34,7 @@ class TargetType(models.TextChoices):
     """Approved attachment targets.  A new type is added deliberately: here, in ``targets.py`` and by a migration (see docs)."""
 
     CHECKLIST_RESPONSE = "checklist_response", _("Checklist response")
+    CORRECTIVE_ACTION = "corrective_action", _("Corrective action")
 
 
 #: Scan statuses under which an asset may be AVAILABLE.
