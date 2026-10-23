@@ -48,7 +48,7 @@ class TestRootAndMetadata:
 
     def test_metadata_exposes_only_the_controlled_vocabularies(self, w):
         j = api(w["designer"]).get(API + "workflows/metadata/").json()
-        assert {t["type"] for t in j["target_types"]} == {"corrective_action", "finding"} and "corrective_action.verify" in {h["code"] for h in j["handlers"]}
+        assert {t["type"] for t in j["target_types"]} == {"corrective_action", "finding", "execution"} and "corrective_action.verify" in {h["code"] for h in j["handlers"]}
         assert "EQUALS" in {o["code"] for o in j["operators"]} and set(j["separation_options"]) >= {"not_starter", "not_target_owner"}
 
 

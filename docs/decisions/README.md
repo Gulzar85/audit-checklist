@@ -80,3 +80,6 @@ consequences. New records are appended; existing ones are superseded, not edited
 | [0073](0073-scoring-configuration-and-versioning.md) | Scoring configuration belongs to the checklist version: one sealed row, declarative document, lifecycle hooks | Accepted |
 | [0074](0074-scoring-calculation-decimals-and-policies.md) | One pure calculation: exact decimals, explicit N/A and missing policies | Accepted |
 | [0075](0075-score-snapshots-recalculation-and-execution-hook.md) | Score snapshots, controlled recalculation and the submission hook | Accepted |
+| [0076](0076-evaluation-rule-sets-scope-and-reuse.md) | Evaluation rule sets belong to the checklist version; Phase 6 and Phase 15 are reused | Accepted |
+| [0077](0077-evaluation-semantics-and-conflict-resolution.md) | Evaluation semantics: UNKNOWN never acts, explicit order, severity precedence | Accepted |
+| [0078](0078-evaluation-runs-actions-and-idempotency.md) | Evaluation runs, controlled actions and idempotency | Accepted |

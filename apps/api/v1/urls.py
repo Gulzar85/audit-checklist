@@ -11,6 +11,11 @@ from .evidence import (
     AssetFileView, AssetPreviewView, AssetStatusView, AssetView, AttachmentDetailView, AttachmentListView, EvidenceLimitsView, TargetAttachmentsView, UploadView,
 )
 from .corrective_actions import ActionViewSet
+from .evaluation import (
+    EvaluationRunDetailView, ExecutionEvaluateView, ExecutionEvaluationDetailView, ExecutionEvaluationRunsView, ExecutionEvaluationView, VersionEvaluationPreviewView,
+    VersionEvaluationValidateView, VersionEvaluationView,
+)
+from .evaluation import MetadataView as EvaluationMetadataView
 from .scoring import (
     ExecutionScoreBreakdownView, ExecutionScoreHistoryView, ExecutionScoreRecalculateView, ExecutionScoreView, VersionScoringPreviewView, VersionScoringValidateView,
     VersionScoringView,
@@ -57,6 +62,15 @@ urlpatterns = [
     path("my-assignments/", MyAssignmentsView.as_view(), name="my-assignments"),
     path("workflows/metadata/", MetadataView.as_view(), name="workflow-metadata"),
     path("scoring/metadata/", ScoringMetadataView.as_view(), name="scoring-metadata"),
+    path("evaluation/metadata/", EvaluationMetadataView.as_view(), name="evaluation-metadata"),
+    path("checklist-versions/<uuid:pk>/evaluation/", VersionEvaluationView.as_view(), name="version-evaluation"),
+    path("checklist-versions/<uuid:pk>/evaluation/validate/", VersionEvaluationValidateView.as_view(), name="version-evaluation-validate"),
+    path("checklist-versions/<uuid:pk>/evaluation/preview/", VersionEvaluationPreviewView.as_view(), name="version-evaluation-preview"),
+    path("executions/<uuid:pk>/evaluation/", ExecutionEvaluationView.as_view(), name="execution-evaluation"),
+    path("executions/<uuid:pk>/evaluation/detail/", ExecutionEvaluationDetailView.as_view(), name="execution-evaluation-detail"),
+    path("executions/<uuid:pk>/evaluation/runs/", ExecutionEvaluationRunsView.as_view(), name="execution-evaluation-runs"),
+    path("executions/<uuid:pk>/evaluation/evaluate/", ExecutionEvaluateView.as_view(), name="execution-evaluation-evaluate"),
+    path("evaluation-runs/<uuid:pk>/", EvaluationRunDetailView.as_view(), name="evaluation-run"),
     path("checklist-versions/<uuid:pk>/scoring/", VersionScoringView.as_view(), name="version-scoring"),
     path("checklist-versions/<uuid:pk>/scoring/validate/", VersionScoringValidateView.as_view(), name="version-scoring-validate"),
     path("checklist-versions/<uuid:pk>/scoring/preview/", VersionScoringPreviewView.as_view(), name="version-scoring-preview"),

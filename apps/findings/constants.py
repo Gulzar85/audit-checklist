@@ -38,6 +38,7 @@ class SourceType(models.TextChoices):
 
     CHECKLIST_RULE = "checklist_rule", "Checklist rule"
     MANUAL = "manual", "Manual report"
+    EVALUATION = "evaluation", "Automated evaluation"  # Phase 16: a published evaluation rule requested it (idempotent on its detection key)
 
 
 @dataclass(frozen=True)

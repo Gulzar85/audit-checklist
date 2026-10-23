@@ -1,0 +1,22 @@
+{% load ui %}{% if show %}
+<section class="card" aria-labelledby="eval-title">
+  <div class="card-header flex-wrap"><h2 id="eval-title" class="card-title">Automated evaluation</h2>
+    <a class="btn btn-ghost btn-sm" href="{% url 'evaluation:execution' execution.pk %}">{% icon "list-checks" %} {% if can_explain %}Why{% else %}Details{% endif %}</a>
+  </div>
+  <div class="card-body">
+    {% if run %}
+      <p class="flex flex-wrap items-center gap-2">{% include "evaluation/_outcome.html" with outcome=run.outcome %}
+        <span class="text-sm text-muted-foreground">{{ run.detail.matched|length }} rule{{ run.detail.matched|length|pluralize }} matched{% if action_count %} · {{ action_count }} action{{ action_count|pluralize }} requested{% endif %}</span></p>
+      {% if run.detail.matched %}<ul class="mt-3 list-disc space-y-1 pl-6 text-sm">{% for r in run.detail.rules %}{% if r.status == "matched" %}<li>{{ r.name }}</li>{% endif %}{% endfor %}</ul>{% endif %}
+      <p class="mt-3 text-xs text-muted-foreground">Evaluated {{ run.created_at|date:"M d, Y H:i" }} by the rules of this checklist version. A recorded evaluation does not change when the checklist is later edited.</p>
+    {% elif evaluation %}
+      <p class="flex flex-wrap items-center gap-2">{% include "evaluation/_outcome.html" with outcome=evaluation.outcome %}{% tone_badge "Provisional" "warning" icon="clock" %}</p>
+      <p class="mt-3 text-xs text-muted-foreground">Provisional: evaluated now from the answers saved so far, with the score not yet available. Nothing is recorded and no action is requested until submission.</p>
+    {% elif pending %}
+      <p class="text-sm text-muted-foreground">The evaluation is being recorded. Reload in a moment.</p>
+    {% else %}
+      <p class="text-sm text-muted-foreground">The evaluation appears here once the checklist is submitted.</p>
+    {% endif %}
+  </div>
+</section>
+{% endif %}

@@ -31,7 +31,7 @@ from apps.executions.services.base import lock_execution
 
 from .. import config as cfg
 from .. import constants as k
-from .. import policies, selectors
+from .. import hooks, policies, selectors
 from ..engine import ItemFacts, ScoreOutcome, calculate, input_fingerprint
 from ..models import ScoreResult, ScoringConfig
 from .errors import ScoringConflict, ScoringError
@@ -193,4 +193,6 @@ def recalculate(execution: ChecklistExecution, *, actor: Any, reason: str) -> tu
         raise ScoringConflict("The score was recalculated at the same time; reload and try again.", "concurrent_recalculation") from exc
     _audit(VERBS["recalculated"], locked, actor, f"Score of {locked.reference} recalculated", reason=reason[:200], status=result.status,
            percentage=str(result.percentage) if result.percentage is not None else None, previous=str(current.pk) if current else None)
+    for hook in hooks.after_recalculate:  # e.g. Phase 16 re-evaluates with the new score (a hook never fails the recalculation)
+        hook(locked, actor, result)
     return result, True

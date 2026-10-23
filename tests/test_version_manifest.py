@@ -90,7 +90,10 @@ class TestCanonicalForm:
         assert (algorithm, schema) == ("sha256", "v1") and len(digest) == 64 and int(digest, 16) >= 0
 
     def test_four_queries_whatever_the_size(self, world, django_assert_max_num_queries):
-        with django_assert_max_num_queries(5):
+        from apps.checklists import hooks
+
+        # four reads of the definition, plus one read per registered extension (scoring, evaluation): constant whatever the size of the version
+        with django_assert_max_num_queries(4 + max(1, len(hooks.manifest_extensions))):
             manifest.build_manifest(world["v1"])
 
 

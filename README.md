@@ -5,11 +5,11 @@ QA audits, operations inspections, restaurant and safety checks, and compliance
 programmes all run on one configurable engine with scoring, findings, corrective
 actions, workflow, and offline execution.
 
-> **Status: Phases 0-15 delivered.** Organizations and locations, identity (Microsoft Entra ID),
+> **Status: Phases 0-16 delivered.** Organizations and locations, identity (Microsoft Entra ID),
 > RBAC, themes, checklist authoring/versioning/publishing with a conditional rules engine,
 > assignments, execution, PWA offline execution and sync, evidence and attachments, findings,
 > corrective actions, a **configurable workflow engine** (Phase 14) and a **configurable scoring engine**
-> (Phase 15). Reporting and notification delivery are not built yet (see [Scope](#scope)).
+> (Phase 15) and an **automated evaluation engine** (Phase 16). Reporting and notification delivery are not built yet (see [Scope](#scope)).
 
 ---
 
@@ -71,7 +71,7 @@ Then open <http://localhost:8000/> (landing page), `/organizations/`, `/location
 ## Testing
 
 ```powershell
-.\venv\Scripts\python -m pytest              # full suite (~4,100 tests; the full run takes about 45 minutes)
+.\venv\Scripts\python -m pytest              # full suite (~4,300 tests; the full run takes about 45 minutes)
 .\venv\Scripts\python -m pytest --cov=apps   # with coverage
 ```
 
@@ -96,6 +96,7 @@ recursive queries and row locks are part of what is under test). Point
 .\venv\Scripts\python manage.py seed_demo_corrective_actions --organization <slug>   # actions in several states against a demo finding (docs/corrective-actions-architecture.md)
 .\venv\Scripts\python manage.py seed_workflows --organization <slug>   # corrective action verification + critical finding review workflows (docs/workflow-administration.md)
 .\venv\Scripts\python manage.py release_workflow_orphans          # release workflow tasks of inactive assignees
+.\venv\Scripts\python manage.py evaluate_executions --dry-run       # submitted executions still without an evaluation (docs/evaluation-integrations-and-idempotency.md)
 .\venv\Scripts\python manage.py score_executions --dry-run          # submitted executions still missing their final score (docs/scoring-snapshots-and-offline.md)
 .\venv\Scripts\python manage.py detect_findings --dry-run                  # idempotently (re)raise findings of submitted executions
 .\venv\Scripts\python manage.py prune_sync_receipts --days 90   # delete old offline idempotency receipts
@@ -137,6 +138,7 @@ apps/
   corrective_actions/  Corrective actions raised from findings: lifecycle, verification
   workflows/       Configurable workflow engine: definitions, versions, tasks, approvals
   scoring/         Configurable scoring engine: per-version configuration, calculation, immutable score snapshots
+  evaluation/      Automated evaluation engine: versioned declarative rules, explainable runs, controlled actions (findings, workflows)
   reporting/                                (skeleton - intentionally empty)
 templates/         base shell, partials, components, tailwind/ crispy overrides, pages
 static/            compiled css, vendored JS (+ components.js), generated icons
@@ -203,12 +205,13 @@ Org B:  Business Unit -> Division -> Facility -> Department
 * **Phase 14 - Workflow engine:** versioned definitions (draft -> published, sealed by DB triggers), states/transitions with Phase 6 conditions, assignee policies, approvals (one/all/min), separation of duties, deadlines, a registry of business actions that call the Findings and Corrective Action services, designer and runtime UI, REST API and read-only admin. Start with `seed_workflows` ([docs/workflow-administration.md](docs/workflow-administration.md)).
 
 * **Phase 15 - Scoring engine:** scoring configured per checklist version (question points and weights, N/A and missing-answer policies, section weights, grade bands, critical failures) and sealed with it; one exact-decimal calculation used by the designer preview, the execution and offline sync; an append-only final score recorded at submission with a full explained breakdown; authorized recalculation. Configure it from the checklist builder ([docs/scoring-configuration.md](docs/scoring-configuration.md)).
+* **Phase 16 - Automated evaluation:** declarative rules per checklist version (answers, the stored score, execution facts; AND/OR/NOT with three-valued UNKNOWN semantics, explicit priority and severity precedence), sealed with the version; an append-only, explainable run recorded at submission; controlled actions that call the Findings and Workflow services once per rule and execution. Configure it from the checklist builder ([docs/evaluation-architecture.md](docs/evaluation-architecture.md)).
 
 The REST API root `/api/v1/` lists every endpoint; the OpenAPI schema is at `/api/docs/`.
 
 ## Scope
 
-**Not built yet:** reporting/dashboards, automated evaluation (Phase 16), notification delivery (email/Teams), schedulers and recurring jobs, reopening submitted executions. Also excluded by design: Redis, Celery, microservices, a SPA, a second rules engine, arbitrary user code in workflows.
+**Not built yet:** reporting/dashboards, notification delivery (email/Teams), schedulers and recurring jobs, reopening submitted executions. Also excluded by design: Redis, Celery, microservices, a SPA, a second rules engine, arbitrary user code in workflows.
 
 ## Documentation
 
@@ -221,10 +224,11 @@ The REST API root `/api/v1/` lists every endpoint; the OpenAPI schema is at `/ap
 * Evidence: [`docs/evidence-architecture.md`](docs/evidence-architecture.md), [`docs/evidence-operations.md`](docs/evidence-operations.md)
 * Findings: [`docs/findings-architecture.md`](docs/findings-architecture.md), [`docs/findings-operations.md`](docs/findings-operations.md)
 * Corrective actions: [`docs/corrective-actions-architecture.md`](docs/corrective-actions-architecture.md), [`docs/corrective-action-lifecycle.md`](docs/corrective-action-lifecycle.md)
+* Evaluation: [`docs/evaluation-architecture.md`](docs/evaluation-architecture.md), [`docs/evaluation-rule-sets-and-versioning.md`](docs/evaluation-rule-sets-and-versioning.md), [`docs/evaluation-conditions-and-semantics.md`](docs/evaluation-conditions-and-semantics.md), [`docs/evaluation-integrations-and-idempotency.md`](docs/evaluation-integrations-and-idempotency.md), [`docs/evaluation-example-rule-sets.md`](docs/evaluation-example-rule-sets.md)
 * Scoring: [`docs/scoring-architecture.md`](docs/scoring-architecture.md), [`docs/scoring-configuration.md`](docs/scoring-configuration.md), [`docs/scoring-snapshots-and-offline.md`](docs/scoring-snapshots-and-offline.md)
 * Workflows: [`docs/workflow-architecture.md`](docs/workflow-architecture.md), [`docs/workflow-runtime.md`](docs/workflow-runtime.md), [`docs/workflow-versioning-and-validation.md`](docs/workflow-versioning-and-validation.md), [`docs/workflow-administration.md`](docs/workflow-administration.md)
 * API: [`docs/api/`](docs/api/) (one file per module, including [workflows](docs/api/workflows.md))
-* [`docs/decisions/`](docs/decisions/) - ADRs 0001-0075
+* [`docs/decisions/`](docs/decisions/) - ADRs 0001-0078
 
 ---
 

@@ -10,6 +10,8 @@ rule's actions.
 rule      any FALSE -> FALSE; else any UNKNOWN ->      any TRUE -> TRUE; else any UNKNOWN ->
           UNKNOWN; else TRUE                           UNKNOWN; else FALSE
 ========  ==========================================  ==========================================
+
+``NOT`` (added for the evaluation engine, Phase 16) flips TRUE / FALSE and leaves UNKNOWN UNKNOWN: not knowing is not the opposite of knowing.
 """
 
 from __future__ import annotations
@@ -35,6 +37,10 @@ def tri_and(values: Iterable[Tri]) -> Tri:
             return Tri.FALSE
         seen_unknown |= value is Tri.UNKNOWN
     return Tri.UNKNOWN if seen_unknown else Tri.TRUE
+
+
+def tri_not(value: Tri) -> Tri:
+    return Tri.UNKNOWN if value is Tri.UNKNOWN else Tri.FALSE if value is Tri.TRUE else Tri.TRUE
 
 
 def tri_or(values: Iterable[Tri]) -> Tri:

@@ -1,0 +1,104 @@
+{% load ui %}
+<form id="rule-form" method="post" action="{{ form_url }}" novalidate class="space-y-6">{% csrf_token %}
+  <input type="hidden" name="rows" value="{{ row_count }}">
+  {% if keep_condition %}<input type="hidden" name="keep_condition" value="1">{% endif %}
+  <fieldset {% if not can_edit %}disabled{% endif %} class="space-y-6">
+  <section class="card" aria-labelledby="r-meta">
+    <div class="card-header"><h2 id="r-meta" class="card-title">Rule</h2></div>
+    <div class="card-body grid gap-4 sm:grid-cols-2">
+      <div><label class="label" for="r-code">Code</label>
+        {% if is_new %}<input id="r-code" name="code" class="input" maxlength="40" value="{{ values.code }}" placeholder="e.g. LOW-SCORE" required>
+        {% else %}<p class="input flex items-center bg-muted font-mono text-sm" id="r-code">{{ values.code }}</p>{% endif %}</div>
+      <div><label class="label" for="r-priority">Priority</label><input id="r-priority" name="priority" type="number" min="0" max="100000" class="input" value="{{ values.priority }}">
+        <p class="mt-1 text-xs text-muted-foreground">Rules run lowest first; every rule needs its own number.</p></div>
+      <div class="sm:col-span-2"><label class="label" for="r-name">Name</label><input id="r-name" name="name" class="input" maxlength="120" value="{{ values.name }}" required></div>
+      <div class="sm:col-span-2"><label class="label" for="r-desc">Description</label><input id="r-desc" name="description" class="input" maxlength="500" value="{{ values.description }}"></div>
+      <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" class="checkbox" name="enabled" {% if values.enabled %}checked{% endif %}> The rule is enabled</label>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="r-cond">
+    <div class="card-header flex-wrap"><h2 id="r-cond" class="card-title">When</h2><p class="text-xs text-muted-foreground">Pick what to compare, how, and the value. Unknown or missing inputs never count as “no” or zero: the rule can only be undecided.</p></div>
+    <div class="card-body space-y-3">
+      {% if keep_condition %}
+        <div class="alert alert-info" role="status">{% icon "info" %}<div><p class="font-medium">This condition keeps its current structure.</p><p class="mt-1 text-sm">It was created with the API in a shape the builder cannot show: “{{ keep_text }}”. Everything else on this rule can be edited here.</p></div></div>
+      {% else %}
+      <div class="flex flex-wrap items-center gap-2 text-sm"><label for="root-logic">The rule applies when</label>
+        <select id="root-logic" name="root_logic" class="select w-auto" hx-post="{{ form_url }}" hx-trigger="change" hx-target="#rule-form" hx-swap="outerHTML">
+          <option value="AND" {% if groups.root_logic == "AND" %}selected{% endif %}>all</option><option value="OR" {% if groups.root_logic == "OR" %}selected{% endif %}>any</option></select>
+        <span>of these conditions and groups hold:</span></div>
+      {% for row in rows %}
+      <div class="rounded-md border border-border p-3">
+        <div class="grid items-end gap-2 lg:grid-cols-[7rem_auto_10rem_1fr_12rem]">
+          <div><label class="label text-xs" for="grp-{{ row.i }}">Place in</label>
+            <select id="grp-{{ row.i }}" name="grp_{{ row.i }}" class="select"><option value="0" {% if row.group == "0" %}selected{% endif %}>Top level</option><option value="1" {% if row.group == "1" %}selected{% endif %}>Group 1</option><option value="2" {% if row.group == "2" %}selected{% endif %}>Group 2</option><option value="3" {% if row.group == "3" %}selected{% endif %}>Group 3</option></select></div>
+          <label class="inline-flex items-center gap-1 pb-2 text-xs"><input type="checkbox" class="checkbox" name="neg_{{ row.i }}" {% if row.neg %}checked{% endif %}> not</label>
+          <div><label class="label text-xs" for="src-{{ row.i }}">Compare</label>
+            <select id="src-{{ row.i }}" name="src_{{ row.i }}" class="select" hx-post="{{ form_url }}" hx-trigger="change" hx-target="#rule-form" hx-swap="outerHTML"><option value="">— choose —</option>{% for value, label in sources %}<option value="{{ value }}" {% if row.src == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+          {% if not row.blank %}
+          <div><label class="label text-xs" for="fld-{{ row.i }}">What</label>
+            <select id="fld-{{ row.i }}" name="fld_{{ row.i }}" class="select" hx-post="{{ form_url }}" hx-trigger="change" hx-target="#rule-form" hx-swap="outerHTML">{% for value, label in row.fields %}<option value="{{ value }}" {% if row.fld == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+          <div><label class="label text-xs" for="op-{{ row.i }}">How</label>
+            <select id="op-{{ row.i }}" name="op_{{ row.i }}" class="select" hx-post="{{ form_url }}" hx-trigger="change" hx-target="#rule-form" hx-swap="outerHTML">{% for op in row.ops %}<option value="{{ op.code }}" {% if row.op == op.code %}selected{% endif %}>{{ op.label }}</option>{% endfor %}</select></div>
+          {% endif %}
+        </div>
+        {% if not row.blank and row.widget.kind != "none" %}
+        <div class="mt-2 max-w-xl">
+          {% if row.widget.kind == "select" %}<select name="val_{{ row.i }}" class="select" aria-label="Value of condition {{ forloop.counter }}">{% for value, label in row.widget.choices %}<option value="{{ value }}" {% if row.val == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+          {% elif row.widget.kind == "bool" %}<select name="val_{{ row.i }}" class="select" aria-label="Value of condition {{ forloop.counter }}"><option value="true" {% if row.val == "true" %}selected{% endif %}>Yes</option><option value="false" {% if row.val == "false" %}selected{% endif %}>No</option></select>
+          {% elif row.widget.kind == "range" %}<div class="grid grid-cols-2 gap-2"><input name="val_{{ row.i }}" type="{{ row.widget.input }}" class="input" value="{{ row.val }}" placeholder="From" aria-label="From"><input name="val2_{{ row.i }}" type="{{ row.widget.input }}" class="input" value="{{ row.val2 }}" placeholder="To" aria-label="To"></div>
+          {% elif row.widget.kind == "multi" %}<div class="flex flex-wrap gap-3">{% for value, label in row.widget.choices %}<label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" class="checkbox" name="vals_{{ row.i }}" value="{{ value }}" {% if value in row.vals %}checked{% endif %}> {{ label }}</label>{% endfor %}</div>
+          {% else %}<input name="val_{{ row.i }}" type="{{ row.widget.kind }}" class="input" value="{{ row.val }}" maxlength="200" aria-label="Value of condition {{ forloop.counter }}" {% if row.widget.kind == "number" %}step="any"{% endif %}>{% endif %}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+      {% if row_count < limits.conditions %}<button type="button" class="btn btn-ghost btn-sm" hx-post="{{ form_url }}" hx-target="#rule-form" hx-swap="outerHTML" hx-vals='{"do": "add_row"}'>{% icon "plus" %} Add a condition</button>{% endif %}
+      <div class="grid gap-2 border-t border-border pt-3 text-sm sm:grid-cols-3">
+        {% for g in "123" %}<div class="flex flex-wrap items-center gap-2"><span class="font-medium">Group {{ g }}</span>
+          <select name="gl_{{ g }}" class="select w-auto" aria-label="Group {{ g }} logic"><option value="AND" {% if g == "1" and groups.gl.1 == "AND" or g == "2" and groups.gl.2 == "AND" or g == "3" and groups.gl.3 == "AND" %}selected{% endif %}>all</option><option value="OR" {% if g == "1" and groups.gl.1 == "OR" or g == "2" and groups.gl.2 == "OR" or g == "3" and groups.gl.3 == "OR" %}selected{% endif %}>any</option></select>
+          <label class="inline-flex items-center gap-1 text-xs"><input type="checkbox" class="checkbox" name="gn_{{ g }}" {% if g == "1" and groups.gn.1 or g == "2" and groups.gn.2 or g == "3" and groups.gn.3 %}checked{% endif %}> not</label></div>{% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="r-out">
+    <div class="card-header"><h2 id="r-out" class="card-title">Then</h2></div>
+    <div class="card-body grid gap-4 sm:grid-cols-2">
+      <div><label class="label" for="r-outcome">The outcome is</label><select id="r-outcome" name="outcome" class="select">{% for value, label in outcomes %}<option value="{{ value }}" {% if values.outcome == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+      <div><label class="label" for="r-unknown">If the condition cannot be decided</label><select id="r-unknown" name="on_unknown" class="select">{% for value, label in on_unknown_choices %}<option value="{{ value }}" {% if values.on_unknown == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+      <div class="sm:col-span-2"><label class="label" for="r-msg">Message</label><input id="r-msg" name="message" class="input" maxlength="300" value="{{ values.message }}"><p class="mt-1 text-xs text-muted-foreground">Added to the explanation. The explanation itself is generated from the values the rule really saw.</p></div>
+      <label class="inline-flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" class="checkbox" name="stop" {% if values.stop %}checked{% endif %}> Stop processing later rules when this one matches</label>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="r-act">
+    <div class="card-header flex-wrap"><h2 id="r-act" class="card-title">Requests</h2><p class="text-xs text-muted-foreground">Approved actions only; they run once, after a final evaluation is recorded, through the Findings and Workflow engines.</p></div>
+    <div class="card-body space-y-3">
+      {% for a in actions %}
+      <div class="rounded-md border border-border p-3">
+        <select name="act_type_{{ a.j }}" class="select max-w-xs" aria-label="Action {{ forloop.counter }}" hx-post="{{ form_url }}" hx-trigger="change" hx-target="#rule-form" hx-swap="outerHTML">
+          <option value="">— no action —</option>{% for value, label in action_types %}<option value="{{ value }}" {% if a.type == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        {% if a.type == "request_finding" %}
+        <div class="mt-2 grid gap-2 sm:grid-cols-2">
+          <select name="act_cat_{{ a.j }}" class="select" aria-label="Finding category"><option value="">— category —</option>{% for code, name in reference.categories %}<option value="{{ code }}" {% if a.category == code %}selected{% endif %}>{{ name }}</option>{% endfor %}</select>
+          <select name="act_sev_{{ a.j }}" class="select" aria-label="Finding severity"><option value="">— severity —</option>{% for code, name in reference.severities %}<option value="{{ code }}" {% if a.severity == code %}selected{% endif %}>{{ name }}</option>{% endfor %}</select>
+          <input name="act_title_{{ a.j }}" class="input sm:col-span-2" maxlength="200" value="{{ a.title }}" placeholder="Finding title" aria-label="Finding title">
+          <input name="act_desc_{{ a.j }}" class="input sm:col-span-2" maxlength="2000" value="{{ a.description }}" placeholder="Finding description (optional)" aria-label="Finding description">
+          <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" class="checkbox" name="act_review_{{ a.j }}" {% if a.requires_review %}checked{% endif %}> The finding needs review</label>
+        </div>
+        {% elif a.type == "start_workflow" %}
+        <div class="mt-2 max-w-md"><select name="act_wf_{{ a.j }}" class="select" aria-label="Workflow"><option value="">— workflow —</option>{% for code, name in reference.workflows %}<option value="{{ code }}" {% if a.workflow == code %}selected{% endif %}>{{ name }}</option>{% endfor %}</select>
+          {% if not reference.workflows %}<p class="mt-1 text-xs text-muted-foreground">No published workflow for checklist executions exists yet.</p>{% endif %}</div>
+        {% elif a.type == "tag" %}
+        <div class="mt-2 max-w-md"><input name="act_tag_{{ a.j }}" class="input" maxlength="40" value="{{ a.tag }}" placeholder="Tag (e.g. critical)" aria-label="Tag"></div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  </fieldset>
+
+  {% if can_edit %}<div class="flex flex-wrap justify-end gap-2"><a href="{{ editor_url }}" class="btn btn-secondary">Cancel</a><button type="submit" name="do" value="save" class="btn btn-primary">{% icon "save" %} Save rule</button></div>{% endif %}
+</form>

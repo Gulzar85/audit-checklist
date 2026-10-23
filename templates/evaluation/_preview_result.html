@@ -1,0 +1,16 @@
+{% load ui evaluation_tags %}
+<div id="preview-result" class="mt-4" aria-live="polite">
+  {% if error %}<div class="alert alert-danger" role="alert">{% icon "octagon-alert" %}<p>{{ error }}</p></div>
+  {% elif result and not result.valid %}
+    <div class="alert alert-danger" role="alert">{% icon "octagon-alert" %}<div><p class="font-medium">The rules cannot be evaluated yet</p><ul class="mt-1 list-disc pl-5">{% for i in result.issues %}{% if i.level == "error" %}<li>{{ i.message }}</li>{% endif %}{% endfor %}</ul></div></div>
+  {% elif evaluation %}
+    <p class="flex flex-wrap items-center gap-2">{% include "evaluation/_outcome.html" with outcome=evaluation.outcome %}{% tone_badge "Preview - not a recorded evaluation" "neutral" icon="flask-conical" %}</p>
+    <ul class="mt-3 list-disc space-y-1 pl-6 text-sm">{% for line in evaluation.explanation %}<li>{{ line }}</li>{% endfor %}</ul>
+    <div class="table-wrap mt-4"><table class="table"><thead><tr><th>Rule</th><th>Result</th><th>Why</th></tr></thead><tbody>
+      {% for r in evaluation.rules %}<tr {% if r.status != "matched" %}class="text-muted-foreground"{% endif %}><td><span class="font-mono text-xs">{{ r.code }}</span> {{ r.name }}</td><td class="text-sm">{{ r.status }}</td><td class="text-sm">{{ r.explanation }}</td></tr>{% endfor %}
+    </tbody></table></div>
+    {% if evaluation.actions %}<p class="mt-3 text-sm font-medium">A real evaluation would request:</p>
+      <ul class="list-disc pl-6 text-sm">{% for a in evaluation.actions %}<li>{{ a.rule }}: {{ a.action.type }}</li>{% endfor %}</ul>{% endif %}
+    <p class="mt-2 text-xs text-muted-foreground">A preview uses the same engine as a real execution. Nothing is stored, no execution is created and no finding or workflow is requested.</p>
+  {% endif %}
+</div>

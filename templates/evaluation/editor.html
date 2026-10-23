@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% load ui evaluation_tags %}
+{% block title %}Evaluation rules · {{ template.name }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% url 'checklists:detail' template.pk as crumb_url %}{% breadcrumbs "Home" "core:home" "Checklist templates" "checklists:list" template.name crumb_url "Evaluation rules" %}{% endblock %}
+
+{% block page_header %}
+{% page_header title="Evaluation rules" subtitle=subtitle icon="gavel" status=version.status %}
+  {% if can_edit %}<a href="{% url 'checklists:builder' template.pk %}" class="btn btn-secondary">{% icon "layout-list" %} Builder</a>{% else %}<a href="{% url 'checklists:detail' template.pk %}" class="btn btn-secondary">{% icon "eye" %} Overview</a>{% endif %}
+  {% if can_edit %}<a href="{% url 'evaluation:rule_new' version.pk %}" class="btn btn-primary">{% icon "plus" %} Add rule</a>{% endif %}
+{% endpage_header %}
+{% endblock %}
+
+{% block content %}
+<p class="mb-4 max-w-3xl text-sm text-muted-foreground">
+  Evaluation rules judge a <strong>submitted</strong> checklist automatically: each rule compares answers, the final score or execution facts, and says what the outcome is and which approved actions (a finding, a workflow) to request. Rules never change a record themselves.
+  {% if can_edit %}Changes save immediately into draft version {{ version.version_number }} and take effect when it is published.{% else %}Version {{ version.version_number }} is {{ version.get_status_display|lower }}, so its rules are read-only. Start a new draft to change them; recorded evaluations never change.{% endif %}
+</p>
+
+{% if errors %}<div class="alert alert-danger mb-4" role="alert">{% icon "octagon-alert" %}<div><p class="font-medium">These rules cannot be published yet.</p><ul class="mt-1 list-disc pl-5">{% for i in errors %}<li>{{ i.message }}</li>{% endfor %}</ul></div></div>{% endif %}
+{% if warnings %}<div class="alert alert-warning mb-4" role="status">{% icon "triangle-alert" %}<div><p class="font-medium">Worth a look</p><ul class="mt-1 list-disc pl-5">{% for i in warnings %}<li>{{ i.message }}</li>{% endfor %}</ul></div></div>{% endif %}
+{% if row and not errors and enabled and rules %}<div class="alert alert-success mb-4" role="status">{% icon "circle-check" %}<p>The rules are complete and valid ({{ rules|length }} rule{{ rules|length|pluralize }}).</p></div>{% endif %}
+
+<div class="space-y-6">
+  <section class="card" aria-labelledby="ev-settings">
+    <div class="card-header"><h2 id="ev-settings" class="card-title">Settings</h2></div>
+    <form method="post" action="{% url 'evaluation:settings' version.pk %}" novalidate>{% csrf_token %}
+      <fieldset class="card-body grid gap-4" {% if not can_edit %}disabled{% endif %}>
+        <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" class="checkbox" name="enabled" {% if enabled %}checked{% endif %}> Automated evaluation is on for this version (off: no evaluation is recorded)</label>
+        <div><label class="label" for="e-notes">Notes for designers</label><input id="e-notes" name="notes" class="input" maxlength="500" value="{{ row.notes }}"></div>
+      </fieldset>
+      {% if can_edit %}<div class="card-footer flex justify-end"><button type="submit" class="btn btn-primary">{% icon "save" %} Save settings</button></div>{% endif %}
+    </form>
+  </section>
+
+  <section class="card" aria-labelledby="ev-rules">
+    <div class="card-header flex-wrap"><h2 id="ev-rules" class="card-title">Rules <span class="font-normal text-muted-foreground">({{ rules|length }} of {{ limits.rules }})</span></h2>
+      <p class="text-xs text-muted-foreground">Rules run by priority (lowest first). When several match, the most severe outcome wins and every match is kept.</p></div>
+    {% if rules %}
+    <ol class="divide-y divide-border">
+      {% for r in rules %}
+      <li class="flex flex-wrap items-start justify-between gap-3 px-5 py-4" {% if not r.enabled %}data-disabled="true"{% endif %}>
+        <div class="min-w-[14rem] flex-1">
+          <p class="flex flex-wrap items-center gap-2"><span class="font-mono text-xs text-muted-foreground">#{{ r.priority }} · {{ r.code }}</span><span class="font-medium">{{ r.name }}</span>
+            {% if r.outcome %}{% include "evaluation/_outcome.html" with outcome=r.outcome %}{% endif %}
+            {% if not r.enabled %}{% tone_badge "Disabled" "neutral" icon="pause" %}{% endif %}{% if r.stop %}{% tone_badge "Stops processing" "neutral" icon="octagon" %}{% endif %}
+            {% for i in r.issues %}{% if i.level == "error" %}{% tone_badge "Needs attention" "danger" icon="octagon-alert" %}{% endif %}{% endfor %}</p>
+          <p class="mt-1 text-sm">When {{ r.condition }}</p>
+          {% if r.actions %}<p class="mt-1 text-xs text-muted-foreground">Requests: {{ r.actions|join:"; " }}</p>{% endif %}
+          {% for i in r.issues %}<p class="mt-1 text-xs {% if i.level == 'error' %}text-danger{% else %}text-warning{% endif %}">{{ i.message }}</p>{% endfor %}
+        </div>
+        <div class="flex items-center gap-0.5">
+          {% if can_edit %}
+            {% url 'evaluation:rule_move' version.pk r.code as move_url %}
+            {% if not forloop.first %}{% row_action "Move up" "arrow-up" post_url=move_url subject=r.code field_name="direction" field_value="up" %}{% endif %}
+            {% if not forloop.last %}{% row_action "Move down" "arrow-down" post_url=move_url subject=r.code field_name="direction" field_value="down" %}{% endif %}
+            {% url 'evaluation:rule_toggle' version.pk r.code as toggle_url %}
+            {% if r.enabled %}{% row_action "Disable" "pause" post_url=toggle_url subject=r.code field_name="action" field_value="disable" %}{% else %}{% row_action "Enable" "play" post_url=toggle_url subject=r.code field_name="action" field_value="enable" %}{% endif %}
+          {% endif %}
+          {% url 'evaluation:rule' version.pk r.code as edit_url %}{% row_action "Open rule" "pencil" href=edit_url subject=r.code %}
+          {% if can_edit %}
+          <div x-data="confirmDialog" class="inline-block">
+            <button type="button" class="btn btn-ghost btn-icon btn-sm" @click="show" aria-label="Delete rule {{ r.code }}">{% icon "trash-2" %}</button>
+            <dialog x-ref="dialog" class="modal-dialog" @click="onBackdrop" @close="onClose" aria-labelledby="del-{{ r.code }}">
+              <form method="post" action="{% url 'evaluation:rule_delete' version.pk r.code %}" class="p-6">{% csrf_token %}
+                <h2 id="del-{{ r.code }}" class="text-lg font-semibold">Delete rule {{ r.code }}?</h2>
+                <p class="mt-2 text-sm text-muted-foreground">“{{ r.name }}” is removed from this draft. Published versions are not affected. To keep it but stop it applying, disable it instead.</p>
+                <div class="mt-6 flex justify-end gap-2"><button type="button" class="btn btn-secondary" @click="hide">Cancel</button><button type="submit" class="btn btn-danger">Delete</button></div>
+              </form>
+            </dialog>
+          </div>
+          {% endif %}
+        </div>
+      </li>
+      {% endfor %}
+    </ol>
+    {% else %}
+    <div class="card-body">{% include "components/states/empty.html" with icon="gavel" title="No rules yet" message="A rule says: when this condition holds, the evaluation is a warning, needs review or fails - and may request a finding or a workflow. For example: when the score is below 70, require review." %}
+      {% if can_edit %}<p class="mt-2 text-center"><a href="{% url 'evaluation:rule_new' version.pk %}" class="btn btn-primary">{% icon "plus" %} Add the first rule</a></p>{% endif %}</div>
+    {% endif %}
+  </section>
+
+  <section class="card" aria-labelledby="ev-preview">
+    <div class="card-header flex-wrap"><h2 id="ev-preview" class="card-title">Try it</h2><p class="text-xs text-muted-foreground">Enter sample inputs and see the evaluation the saved rules would give. A preview is not a recorded evaluation: nothing is stored and no action runs.</p></div>
+    {% if can_try and rules %}
+    <form method="post" action="{% url 'evaluation:preview' version.pk %}" hx-post="{% url 'evaluation:preview' version.pk %}" hx-target="#preview-result" hx-swap="outerHTML" novalidate>{% csrf_token %}
+      <div class="card-body grid gap-4 sm:grid-cols-2">
+        <div class="sm:col-span-2"><p class="label">The score (as a final score of this execution)</p>
+          <div class="grid gap-2 sm:grid-cols-5">
+            <select name="score_status" class="select" aria-label="Score status">{% for s in score_statuses %}<option value="{{ s }}" {% if s == "final" %}selected{% endif %}>{{ s|capfirst }}</option>{% endfor %}</select>
+            <input name="score_percentage" class="input" inputmode="decimal" placeholder="Percentage" aria-label="Score percentage">
+            <input name="score_earned" class="input" inputmode="decimal" placeholder="Points earned" aria-label="Points earned">
+            <input name="score_available" class="input" inputmode="decimal" placeholder="Points available" aria-label="Points available">
+            <input name="score_grade" class="input" maxlength="20" placeholder="Grade" aria-label="Grade">
+          </div>
+          <label class="mt-2 inline-flex items-center gap-2 text-sm"><input type="checkbox" class="checkbox" name="score_critical"> A critical failure is flagged</label>
+        </div>
+        {% for f in sample_fields %}<div><label class="label" for="a-{{ f.code }}"><span class="font-mono text-xs">{{ f.code }}</span> {{ f.question }}</label>
+          {% if f.multi %}<div class="flex flex-wrap gap-3">{% for value, label in f.widget.choices %}<label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" class="checkbox" name="a_{{ f.code }}" value="{{ value }}"> {{ label }}</label>{% endfor %}</div>
+          {% elif f.widget.kind == "select" %}<select id="a-{{ f.code }}" name="a_{{ f.code }}" class="select"><option value="">— not answered —</option>{% for value, label in f.widget.choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
+          {% elif f.widget.kind == "bool" %}<select id="a-{{ f.code }}" name="a_{{ f.code }}" class="select"><option value="">— not answered —</option><option value="true">Yes</option><option value="false">No</option></select>
+          {% else %}<input id="a-{{ f.code }}" name="a_{{ f.code }}" class="input" inputmode="decimal">{% endif %}
+          <label class="mt-1 inline-flex items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" class="checkbox" name="na_{{ f.code }}"> Answer N/A</label></div>{% endfor %}
+      </div>
+      <div class="card-footer flex justify-end"><button type="submit" class="btn btn-primary">{% icon "flask-conical" %} Evaluate</button></div>
+    </form>
+    {% include "evaluation/_preview_result.html" with result=None error="" evaluation=None %}
+    {% else %}<div class="card-body"><p class="text-sm text-muted-foreground">{% if not rules %}Add at least one rule to try the evaluation.{% else %}Previews are available to people who can configure evaluation rules.{% endif %}</p></div>{% endif %}
+  </section>
+</div>
+{% endblock %}

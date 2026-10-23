@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load ui evaluation_tags %}
+{% block title %}Evaluation · {{ execution.reference }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% url 'executions:detail' execution.pk as crumb %}{% breadcrumbs "Home" "core:home" "Execution history" "executions:history" execution.reference crumb "Evaluation" %}{% endblock %}
+{% block page_header %}{% page_header title="Evaluation" subtitle=execution.reference icon="gavel" %}<a class="btn btn-secondary" href="{% url 'executions:detail' execution.pk %}">{% icon "clipboard-check" %} Execution</a>{% endpage_header %}{% endblock %}
+
+{% block content %}
+{% if not view.applicable %}
+  {% include "components/states/empty.html" with icon="gavel" title="This checklist is not evaluated automatically" message="No evaluation rules are enabled for the checklist version this execution used, so there is no evaluation. No pass is implied." %}
+{% else %}
+<div class="space-y-6">
+  <section class="card" aria-labelledby="ev-sum">
+    <div class="card-header"><h2 id="ev-sum" class="card-title">Result</h2></div>
+    <div class="card-body">
+      {% if run %}
+        <p class="flex flex-wrap items-center gap-2">{% include "evaluation/_outcome.html" with outcome=run.outcome %}{% if run.is_current %}{% tone_badge "Current" "info" %}{% endif %}</p>
+        <p class="mt-3 text-xs text-muted-foreground">Evaluated {{ run.created_at|date:"M d, Y H:i" }} ({{ run.get_trigger_display|lower }}) with the rules of this checklist version · rules fingerprint <span class="font-mono">{{ run.ruleset_hash|slice:":19" }}</span> · engine version {{ run.engine_version }}{% if run.created_by %} · by {{ run.created_by.get_short_name }}{% endif %}.{% if run.reason %} Reason: {{ run.reason }}{% endif %}</p>
+      {% elif evaluation %}
+        <p class="flex flex-wrap items-center gap-2">{% include "evaluation/_outcome.html" with outcome=evaluation.outcome %}{% tone_badge "Provisional" "warning" icon="clock" %}</p>
+        <p class="mt-3 text-xs text-muted-foreground">Provisional: evaluated now from the answers saved so far; the score is not available yet. Nothing is recorded and no action runs until submission.</p>
+      {% elif hidden_live %}
+        <p class="text-sm text-muted-foreground">This execution is still in progress. A provisional evaluation is shown only to people allowed to preview it.</p>
+      {% else %}
+        <p class="text-sm text-muted-foreground">The evaluation is being recorded; reload in a moment.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  {% if detail %}
+  <section class="card" aria-labelledby="ev-expl">
+    <div class="card-header"><h2 id="ev-expl" class="card-title">Why</h2></div>
+    <ul class="card-body list-disc space-y-1 pl-9 text-sm">{% for line in detail.explanation %}<li>{{ line }}</li>{% endfor %}</ul>
+  </section>
+
+  {% if matched %}
+  <section class="card" aria-labelledby="ev-matched">
+    <div class="card-header"><h2 id="ev-matched" class="card-title">Matched rules</h2></div>
+    <ul class="divide-y divide-border">{% for r in matched %}<li class="px-5 py-4"><p class="flex flex-wrap items-center gap-2"><span class="font-mono text-xs text-muted-foreground">#{{ r.priority }} · {{ r.code }}</span><span class="font-medium">{{ r.name }}</span>{% include "evaluation/_outcome.html" with outcome=r.outcome %}</p>
+      <p class="mt-1 text-sm">{{ r.explanation }}</p>
+      {% if r.conditions %}<ul class="mt-2 space-y-1">{% include "evaluation/_cond_tree.html" with node=r.conditions %}</ul>{% endif %}</li>{% endfor %}</ul>
+  </section>
+  {% endif %}
+
+  <section class="card" aria-labelledby="ev-other">
+    <div class="card-header"><h2 id="ev-other" class="card-title">Other rules</h2></div>
+    {% if other %}<div class="table-wrap"><table class="table"><thead><tr><th>Rule</th><th>Result</th><th>Why</th></tr></thead><tbody>{% for r in other %}<tr class="text-muted-foreground"><td><span class="font-mono text-xs">{{ r.code }}</span> {{ r.name }}</td><td class="text-sm">{{ r.status }}</td><td class="text-sm">{{ r.explanation }}</td></tr>{% endfor %}</tbody></table></div>
+    {% else %}<p class="card-body text-sm text-muted-foreground">Every rule matched.</p>{% endif %}
+  </section>
+
+  {% if actions %}
+  <section class="card" aria-labelledby="ev-act">
+    <div class="card-header"><h2 id="ev-act" class="card-title">Requested actions</h2></div>
+    <div class="table-wrap"><table class="table"><thead><tr><th>Rule</th><th>Action</th><th>Result</th><th>Outcome</th></tr></thead><tbody>
+      {% for a in actions %}<tr><td><span class="font-mono text-xs">{{ a.rule }}</span></td><td class="text-sm">{{ a.type }}</td>
+        <td>{% if a.status == "succeeded" %}{% tone_badge "Succeeded" "success" icon="circle-check" %}{% elif a.status == "skipped" %}{% tone_badge "Skipped" "neutral" icon="skip-forward" %}{% elif a.status == "failed" %}{% tone_badge "Failed" "danger" icon="octagon-alert" %}{% else %}{% tone_badge "Pending" "warning" icon="clock" %}{% endif %}</td>
+        <td class="text-sm">{% if a.result and a.result.type == "finding" %}<a href="{% url 'findings:detail' a.result.id %}">{{ a.result.reference }}</a>{% elif a.result and a.result.type == "workflow" %}<a href="{% url 'workflows:instance' a.result.id %}">{{ a.result.reference }}</a>{% elif a.tag %}tag “{{ a.tag }}”{% endif %} {{ a.message }}{{ a.error }}</td></tr>{% endfor %}
+    </tbody></table></div>
+    <p class="card-footer text-xs text-muted-foreground">An action is requested once per rule and execution. A finding or workflow produced elsewhere stays visible only to people allowed to see it.</p>
+  </section>
+  {% endif %}
+  {% elif run or evaluation %}
+  <p class="text-sm text-muted-foreground">The rule-level explanation needs the “explain evaluations” permission.</p>
+  {% endif %}
+
+  {% if history|length > 1 %}
+  <section class="card" aria-labelledby="ev-hist"><div class="card-header"><h2 id="ev-hist" class="card-title">History</h2></div>
+    <ul class="divide-y divide-border text-sm">{% for r in history %}<li class="px-5 py-3">{% include "evaluation/_outcome.html" with outcome=r.outcome %} · {{ r.get_trigger_display }} · {{ r.created_at|date:"M d, Y H:i" }}{% if r.is_current %} {% tone_badge "Current" "info" %}{% endif %}{% if r.reason %}<br><span class="text-muted-foreground">Reason: {{ r.reason }}</span>{% endif %}</li>{% endfor %}</ul></section>
+  {% endif %}
+
+  {% if can_reevaluate %}
+  <section class="card" aria-labelledby="ev-re"><div class="card-header"><h2 id="ev-re" class="card-title">Evaluate again</h2></div>
+    <form method="post" action="{% url 'evaluation:reevaluate' execution.pk %}" class="card-body space-y-3">{% csrf_token %}
+      <p class="text-sm text-muted-foreground">Evaluates this execution again with the rules of its checklist version. If the answers, score and rules are the same, nothing changes and no action is repeated; otherwise a new result is recorded and the previous one is kept. A reason is required and is audited.</p>
+      <label class="label" for="re-reason">Reason</label><input id="re-reason" name="reason" class="input" maxlength="500" required>
+      <div><button type="submit" class="btn btn-secondary">{% icon "refresh-cw" %} Evaluate again</button></div></form></section>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load ui scoring_tags %}
+{% load ui scoring_tags evaluation_tags %}
 {% block title %}{{ template.code }} v{{ version.version_number }} &middot; {{ APP_NAME }}{% endblock %}
 {% block page_width %}page-wide{% endblock %}
 
@@ -9,6 +9,7 @@
 {% with sub=version.change_summary|default:"Read-only snapshot of this version's structure." %}
 {% page_header title=version_label subtitle=sub icon="history" status=version.status %}
   <a href="{% url 'checklists:version_preview' template.pk version.version_number %}" class="btn btn-secondary">{% icon "eye" %} Preview</a>
+  {% evaluation_summary version request.user as ev %}{% if ev.can_view and ev.configured %}<a href="{% url 'evaluation:editor' version.pk %}" class="btn btn-secondary">{% icon "gavel" %} Evaluation{% if not ev.enabled %} (off){% endif %}</a>{% endif %}
   {% scoring_summary version request.user as sc %}{% if sc.can_view and sc.configured %}<a href="{% url 'scoring:editor' version.pk %}" class="btn btn-secondary">{% icon "calculator" %} Scoring{% if not sc.enabled %} (off){% endif %}</a>{% endif %}
   {% if previous_number %}<a href="{% url 'checklists:compare' template.pk %}?from={{ previous_number }}&to={{ version.version_number }}" class="btn btn-secondary">{% icon "git-compare" %} Compare with v{{ previous_number }}</a>{% endif %}
   {% if can_create_draft_from %}

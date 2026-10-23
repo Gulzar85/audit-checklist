@@ -24,7 +24,7 @@ from typing import Any
 from .rules.actions import ACTIONS
 from .rules.operators import OPERATORS
 
-CATEGORIES = ("section", "item", "option", "rule", "scoring")
+CATEGORIES = ("section", "item", "option", "rule", "scoring", "evaluation")
 KINDS = ("added", "removed", "modified", "reordered")
 IMPACTS = ("behavior", "wording", "structure")
 
@@ -344,4 +344,27 @@ def compare_manifests(old: dict[str, Any], new: dict[str, Any]) -> Comparison:
             for part, label in (("sections", "Section weights"), ("bands", "Grade bands"), ("critical", "Critical rules")):
                 if old_doc.get(part) != new_doc.get(part):
                     add(Change("scoring", "modified", f"document.{part}", label, f"{label} changed.", "behavior", part, old_doc.get(part), new_doc.get(part)))
+
+    # -- automated evaluation rules (extra definition data owned by the evaluation app; absent = not configured) --------------------
+    old_eval, new_eval = old.get("evaluation"), new.get("evaluation")
+    if old_eval != new_eval:
+        if old_eval is None:
+            add(Change("evaluation", "added", "evaluation", "Evaluation rules", "Automated evaluation rules were configured for this version.", "behavior"))
+        elif new_eval is None:
+            add(Change("evaluation", "removed", "evaluation", "Evaluation rules", "Automated evaluation rules were removed from this version.", "behavior"))
+        else:
+            if old_eval.get("enabled") != new_eval.get("enabled"):
+                add(Change("evaluation", "modified", "enabled", "Enabled", f"Automated evaluation was {'switched on' if new_eval.get('enabled') else 'switched off'}.", "behavior",
+                           "enabled", old_eval.get("enabled"), new_eval.get("enabled")))
+            old_r = {r.get("code"): r for r in old_eval.get("rules") or []}
+            new_r = {r.get("code"): r for r in new_eval.get("rules") or []}
+            for code in sorted(set(old_r) | set(new_r), key=str):
+                if code not in old_r:
+                    add(Change("evaluation", "added", f"rule.{code}", str(code), f"Evaluation rule {code} {_quote(str(new_r[code].get('name', '')))} was added.", "behavior"))
+                elif code not in new_r:
+                    add(Change("evaluation", "removed", f"rule.{code}", str(code), f"Evaluation rule {code} {_quote(str(old_r[code].get('name', '')))} was removed.", "behavior"))
+                elif old_r[code] != new_r[code]:
+                    changed = sorted(key for key in set(old_r[code]) | set(new_r[code]) if old_r[code].get(key) != new_r[code].get(key))
+                    add(Change("evaluation", "modified", f"rule.{code}", str(code), f"Evaluation rule {code} changed ({', '.join(changed)}).", "behavior", "rule",
+                               old_r[code], new_r[code]))
     return result

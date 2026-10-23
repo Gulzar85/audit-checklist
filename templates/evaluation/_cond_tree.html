@@ -1,0 +1,6 @@
+{% load ui %}<li class="text-sm">
+  <span class="inline-block rounded px-1.5 text-xs font-medium {% if node.result == 'true' %}bg-success/15 text-success{% elif node.result == 'false' %}bg-muted text-muted-foreground{% else %}bg-warning/15 text-warning{% endif %}">{% if node.result == "true" %}true{% elif node.result == "false" %}false{% else %}unknown{% endif %}</span>
+  {% if node.type == "group" %}<span class="font-medium">{{ node.logic }}</span>
+    <ul class="ml-5 mt-1 space-y-1 border-l border-border pl-3">{% for child in node.children %}{% include "evaluation/_cond_tree.html" with node=child %}{% endfor %}</ul>
+  {% else %}{{ node.text }}{% endif %}
+</li>

@@ -209,6 +209,60 @@ class FindingTarget(TargetSpec):
         return "This finding is finished and cannot enter a workflow." if obj.status in TERMINAL_STATUSES else None
 
 
+class ExecutionTarget(TargetSpec):
+    """A submitted checklist execution (Phase 16): a workflow can be requested for it by an evaluation rule or started by an authorized user.
+
+    There are no business actions for this target (the checklist execution has no lifecycle decision a workflow could take over), so its
+    workflows are pure approval / review processes whose tasks are completed by people.
+    """
+
+    def __init__(self) -> None:
+        from apps.executions.constants import ExecutionStatus
+
+        super().__init__(
+            "execution", "Checklist execution",
+            {a.code: a for a in (Attribute("status", "Execution status", CHOICE, "str", tuple(ExecutionStatus.values)),)},
+            {},
+        )
+
+    def resolve(self, user: Any, pk: Any) -> Any:
+        from apps.executions import selectors
+
+        return selectors.get_execution(user, pk)
+
+    def resolve_system(self, pk: Any) -> Any:
+        from apps.executions.models import ChecklistExecution
+
+        parsed = parse_uuid(pk)
+        return ChecklistExecution.objects.select_related("organization", "assignment__location").filter(pk=parsed).first() if parsed else None
+
+    def can_view(self, user: Any, obj: Any) -> bool:
+        from apps.executions import policies
+
+        return policies.can_view(user, obj)
+
+    def location(self, obj: Any) -> Any:
+        return obj.assignment.location
+
+    def owner_id(self, obj: Any) -> Any:
+        return obj.assignment.assigned_to_id
+
+    def creator_id(self, obj: Any) -> Any:
+        return obj.submitted_by_id or obj.started_by_id
+
+    def title(self, obj: Any) -> str:
+        return f"{obj.reference} - {obj.version.template.name}"
+
+    def facts(self, obj: Any) -> dict[str, Any]:
+        return {"status": obj.status}
+
+    def eligible(self, obj: Any) -> str | None:
+        from apps.executions.constants import ExecutionStatus
+
+        return None if obj.status == ExecutionStatus.SUBMITTED else "Only a submitted checklist execution can enter a workflow."
+
+
 def register_defaults() -> None:
     register(CorrectiveActionTarget())
     register(FindingTarget())
+    register(ExecutionTarget())

@@ -506,7 +506,7 @@ class VersionCompareView(TemplateObjectMixin, TemplateView):
     """Compare two versions of this checklist (read-only; filters narrow the list)."""
 
     template_name = "checklists/compare.html"
-    GROUPS = (("section", "Sections", "layout-list"), ("item", "Questions", "list-checks"), ("option", "Options", "list"), ("rule", "Rules", "git-branch"), ("scoring", "Scoring", "calculator"))
+    GROUPS = (("section", "Sections", "layout-list"), ("item", "Questions", "list-checks"), ("option", "Options", "list"), ("rule", "Rules", "git-branch"), ("scoring", "Scoring", "calculator"), ("evaluation", "Evaluation rules", "gavel"))
 
     def _number(self, key: str, default: int | None) -> int | None:
         raw = self.request.GET.get(key, "")

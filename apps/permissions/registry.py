@@ -52,6 +52,7 @@ RESOURCE_LABELS: dict[str, str] = {
     "corrective_action": "Corrective actions",
     "workflow": "Workflows",
     "scoring": "Scoring",
+    "evaluation": "Automated evaluation",
     "report": "Reports",
     "dashboard": "Dashboards",
 }
@@ -159,6 +160,13 @@ REGISTRY: tuple[PermissionDef, ...] = (
     _p("scoring", "breakdown_view", "View the detailed question-level score breakdown"),
     _p("scoring", "recalculate", "Preview the score of an execution that is still in progress"),
     _p("scoring", "finalize_recalculate", "Authorize a recalculation of a final score (reason required)"),
+    # Automated evaluation (Phase 16): rules belong to a checklist version (organization-level); results follow the execution's location.
+    _p("evaluation", "view", "View the evaluation rules of checklist versions", org_wide_only=True),
+    _p("evaluation", "configure", "Edit and validate the evaluation rules of draft checklist versions", org_wide_only=True),
+    _p("evaluation", "result_view", "View the evaluation result of an execution"),
+    _p("evaluation", "explain", "View the rule and condition level explanation of an evaluation"),
+    _p("evaluation", "evaluate", "Preview the evaluation of an execution that is still in progress"),
+    _p("evaluation", "reevaluate", "Authorize a re-evaluation of a submitted execution (reason required)"),
     _p("report", "view", "View reports"),
     _p("dashboard", "view", "View dashboards"),
 )
@@ -219,7 +227,8 @@ SYSTEM_ROLES: dict[str, tuple[str, str, tuple[str, ...]]] = {
          P.CORRECTIVE_ACTION_CREATE, P.CORRECTIVE_ACTION_ASSIGN, P.CORRECTIVE_ACTION_VERIFY, P.CORRECTIVE_ACTION_CLOSE,
          P.CORRECTIVE_ACTION_UPDATE, P.CORRECTIVE_ACTION_REASSIGN, P.CORRECTIVE_ACTION_START, P.CORRECTIVE_ACTION_UPDATE_PROGRESS, P.CORRECTIVE_ACTION_BLOCK, P.CORRECTIVE_ACTION_SUBMIT, P.CORRECTIVE_ACTION_REJECT, P.CORRECTIVE_ACTION_CANCEL, P.CORRECTIVE_ACTION_REOPEN,
          P.WORKFLOW_VIEW, P.WORKFLOW_CREATE, P.WORKFLOW_UPDATE_DRAFT, P.WORKFLOW_VALIDATE, P.WORKFLOW_PUBLISH, P.WORKFLOW_ARCHIVE, P.WORKFLOW_START, P.WORKFLOW_TRANSITION, P.WORKFLOW_CANCEL, P.WORKFLOW_INSTANCE_VIEW, P.WORKFLOW_TASK_VIEW, P.WORKFLOW_TASK_CLAIM, P.WORKFLOW_TASK_REASSIGN,
-         P.SCORING_CONFIGURE, P.SCORING_SCORE_VIEW, P.SCORING_BREAKDOWN_VIEW, P.SCORING_RECALCULATE, P.SCORING_FINALIZE_RECALCULATE),
+         P.SCORING_CONFIGURE, P.SCORING_SCORE_VIEW, P.SCORING_BREAKDOWN_VIEW, P.SCORING_RECALCULATE, P.SCORING_FINALIZE_RECALCULATE,
+         P.EVALUATION_CONFIGURE, P.EVALUATION_RESULT_VIEW, P.EVALUATION_EXPLAIN, P.EVALUATION_EVALUATE, P.EVALUATION_REEVALUATE),
     ),
     "auditor": (
         "Auditor",
@@ -228,7 +237,7 @@ SYSTEM_ROLES: dict[str, tuple[str, str, tuple[str, ...]]] = {
          P.EXECUTION_CREATE, P.EXECUTION_UPDATE, P.EXECUTION_SUBMIT, P.FINDING_VIEW, P.FINDING_CREATE,
          P.CORRECTIVE_ACTION_VIEW, P.CORRECTIVE_ACTION_VERIFY, P.CORRECTIVE_ACTION_REJECT,
          P.WORKFLOW_INSTANCE_VIEW, P.WORKFLOW_TASK_VIEW, P.WORKFLOW_TASK_CLAIM, P.WORKFLOW_TRANSITION,
-         P.SCORING_SCORE_VIEW, P.SCORING_BREAKDOWN_VIEW, P.SCORING_RECALCULATE),
+         P.SCORING_SCORE_VIEW, P.SCORING_BREAKDOWN_VIEW, P.SCORING_RECALCULATE, P.EVALUATION_RESULT_VIEW, P.EVALUATION_EXPLAIN),
     ),
     "operations-consultant": (
         "Operations Consultant",
@@ -243,7 +252,7 @@ SYSTEM_ROLES: dict[str, tuple[str, str, tuple[str, ...]]] = {
          P.LOCATION_DEACTIVATE, P.LOCATION_TYPE_VIEW, P.USER_VIEW, P.CHECKLIST_VIEW, P.EXECUTION_VIEW,
          P.FINDING_VIEW, P.FINDING_ACKNOWLEDGE, P.FINDING_ASSIGN, P.FINDING_RESOLVE, P.CORRECTIVE_ACTION_VIEW, P.CORRECTIVE_ACTION_ASSIGN, P.CORRECTIVE_ACTION_CREATE, P.CORRECTIVE_ACTION_UPDATE, P.CORRECTIVE_ACTION_REASSIGN, P.CORRECTIVE_ACTION_START, P.CORRECTIVE_ACTION_UPDATE_PROGRESS, P.CORRECTIVE_ACTION_BLOCK, P.CORRECTIVE_ACTION_SUBMIT, P.CORRECTIVE_ACTION_CANCEL,
          P.WORKFLOW_START, P.WORKFLOW_TRANSITION, P.WORKFLOW_INSTANCE_VIEW, P.WORKFLOW_TASK_VIEW, P.WORKFLOW_TASK_CLAIM, P.REPORT_VIEW, P.DASHBOARD_VIEW,
-         P.SCORING_SCORE_VIEW, P.SCORING_BREAKDOWN_VIEW,
+         P.SCORING_SCORE_VIEW, P.SCORING_BREAKDOWN_VIEW, P.EVALUATION_RESULT_VIEW,
          P.ASSIGNMENT_VIEW, P.ASSIGNMENT_CREATE, P.ASSIGNMENT_ISSUE, P.ASSIGNMENT_UPDATE, P.ASSIGNMENT_CANCEL),
     ),
     "restaurant-manager": (
@@ -252,7 +261,7 @@ SYSTEM_ROLES: dict[str, tuple[str, str, tuple[str, ...]]] = {
         (P.ORGANIZATION_VIEW, P.LOCATION_VIEW, P.LOCATION_UPDATE, P.CHECKLIST_VIEW, P.ASSIGNMENT_VIEW, P.EXECUTION_VIEW,
          P.EXECUTION_CREATE, P.EXECUTION_UPDATE, P.EXECUTION_SUBMIT, P.FINDING_VIEW, P.FINDING_ACKNOWLEDGE, P.FINDING_RESOLVE, P.CORRECTIVE_ACTION_VIEW,
          P.CORRECTIVE_ACTION_START, P.CORRECTIVE_ACTION_UPDATE_PROGRESS, P.CORRECTIVE_ACTION_BLOCK, P.CORRECTIVE_ACTION_SUBMIT,
-         P.WORKFLOW_INSTANCE_VIEW, P.WORKFLOW_TASK_VIEW, P.WORKFLOW_TASK_CLAIM, P.WORKFLOW_TRANSITION, P.SCORING_SCORE_VIEW),
+         P.WORKFLOW_INSTANCE_VIEW, P.WORKFLOW_TASK_VIEW, P.WORKFLOW_TASK_CLAIM, P.WORKFLOW_TRANSITION, P.SCORING_SCORE_VIEW, P.EVALUATION_RESULT_VIEW),
     ),
     "restaurant-user": (
         "Restaurant User",

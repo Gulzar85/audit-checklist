@@ -153,6 +153,11 @@ class Finding(BaseModel):
                 name="finding_rule_source_complete",
             ),
             models.CheckConstraint(
+                condition=~models.Q(source_type=SourceType.EVALUATION)
+                | (models.Q(assignment__isnull=False, execution__isnull=False, version__isnull=False) & ~models.Q(detection_key="") & ~models.Q(rule_code="")),
+                name="finding_evaluation_source_complete",
+            ),
+            models.CheckConstraint(
                 condition=models.Q(execution__isnull=True) | (models.Q(assignment__isnull=False, version__isnull=False)),
                 name="finding_execution_context_complete",
             ),

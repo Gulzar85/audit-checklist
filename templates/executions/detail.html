@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load ui scoring_tags %}
+{% load ui scoring_tags evaluation_tags %}
 {% block title %}{{ execution.reference }} &middot; {{ APP_NAME }}{% endblock %}
 {% block page_width %}page-wide{% endblock %}
 {% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Execution history" "executions:history" execution.reference %}{% endblock %}
@@ -28,6 +28,7 @@
       </dl>
     </section>
     {% score_card execution %}
+    {% evaluation_card execution %}
     {% for block in blocks %}
       <section class="card" aria-labelledby="sec-{{ block.section.pk }}">
         <div class="card-header"><h2 id="sec-{{ block.section.pk }}" class="card-title">{{ block.section.name }}</h2></div>

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{% if is_new %}New rule{% else %}Rule {{ rule.code }}{% endif %} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% url 'checklists:detail' template.pk as c1 %}{% breadcrumbs "Home" "core:home" "Checklist templates" "checklists:list" template.name c1 "Evaluation rules" editor_url "Rule" %}{% endblock %}
+{% block page_header %}{% page_header title=rule_title|default:"Evaluation rule" subtitle="When the condition holds, the rule sets an outcome and may request approved actions." icon="gavel" %}<a class="btn btn-secondary" href="{{ editor_url }}">{% icon "arrow-left" %} Rules</a>{% endpage_header %}{% endblock %}
+
+{% block content %}
+{% include "evaluation/_rule_form.html" %}
+{% endblock %}
