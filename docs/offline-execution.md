@@ -31,6 +31,7 @@ worklist shows "Online only: …". Policy (`apps/executions/offline/compat.py`):
 | text-contains operators, date-time comparisons | refused |
 | actions SHOW/HIDE ITEM/SECTION, REQUIRE_ITEM, MAKE_OPTIONAL, REQUIRE_COMMENT, ADD_INSTRUCTIONS, DISPLAY_MESSAGE | yes |
 | REQUIRE_EVIDENCE | yes (evaluator version 2) |
+| RAISE_FINDING | accepted and ignored on the device (evaluator version 3): findings are raised by the server when the submission is accepted |
 | OPTION_AVAILABILITY, SET_VALIDATION_CONSTRAINT | refused |
 
 ## Local evaluation

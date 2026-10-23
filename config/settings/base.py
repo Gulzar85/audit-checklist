@@ -314,6 +314,11 @@ EVIDENCE_CLAMD_TIMEOUT = env_int("EVIDENCE_CLAMD_TIMEOUT", 10)
 #: May users see files that are still waiting for the security scan?  (Quarantined files are never served.)
 EVIDENCE_ALLOW_VIEW_PENDING = env_bool("EVIDENCE_ALLOW_VIEW_PENDING", False)
 
+# --- Findings (Phase 12) --------------------------------------------------------------------------
+#: When true a finding can only be closed after an independent verification (a gate registered by a later phase); until one exists
+#: closing is refused rather than pretending the finding was verified.  Off by default: closing is then an authorized human decision.
+FINDINGS_REQUIRE_VERIFICATION = env_bool("FINDINGS_REQUIRE_VERIFICATION", False)
+
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {
@@ -603,6 +608,10 @@ JAZZMIN_SETTINGS = {
         "evidence.EvidenceAsset": "fas fa-paperclip",
         "evidence.EvidenceAttachment": "fas fa-link",
         "executions": "fas fa-play-circle",
+        "findings": "fas fa-exclamation-triangle",
+        "findings.Finding": "fas fa-exclamation-triangle",
+        "findings.FindingCategory": "fas fa-tags",
+        "findings.FindingSeverity": "fas fa-sort-amount-up",
         "evidence": "fas fa-paperclip",
         "findings": "fas fa-triangle-exclamation",
         "corrective_actions": "fas fa-screwdriver-wrench",

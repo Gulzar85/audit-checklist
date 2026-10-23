@@ -10,6 +10,7 @@ from .offline import OfflineAssignmentListView, OfflineManifestView, OfflinePack
 from .evidence import (
     AssetFileView, AssetPreviewView, AssetStatusView, AssetView, AttachmentDetailView, AttachmentListView, EvidenceLimitsView, TargetAttachmentsView, UploadView,
 )
+from .findings import CategoryViewSet, FindingViewSet, SeverityViewSet
 from .executions import AssignmentExecutionView, ExecutionViewSet, MyAssignmentsView, StartExecutionView
 from .checklists import AnswerTypeDetailView, AnswerTypeListView, ChecklistVersionViewSet, ChecklistViewSet, RuleMetadataView
 from .access import MemberViewSet, MyAccessView, PermissionListView, RoleViewSet
@@ -34,6 +35,9 @@ router.register("checklist-versions", ChecklistVersionViewSet, basename="checkli
 router.register("assignments", AssignmentViewSet, basename="assignment")
 router.register("executions", ExecutionViewSet, basename="execution")
 router.register("members", MemberViewSet, basename="member")
+router.register("findings", FindingViewSet, basename="finding")
+router.register("finding-categories", CategoryViewSet, basename="finding-category")
+router.register("finding-severities", SeverityViewSet, basename="finding-severity")
 
 urlpatterns = [
     path("", APIRootView.as_view(), name="root"),

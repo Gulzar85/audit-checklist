@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags ui %}
+{% block title %}{% if finding %}Edit {{ finding.reference }}{% else %}Report a finding{% endif %} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+
+{% block breadcrumbs %}{% if finding %}{% url 'findings:detail' finding.pk as c1 %}{% breadcrumbs "Home" "core:home" "Findings" "findings:list" finding.reference c1 "Edit" %}{% else %}{% breadcrumbs "Home" "core:home" "Findings" "findings:list" "Report a finding" %}{% endif %}{% endblock %}
+
+{% block page_header %}{% if finding %}{% page_header title="Edit finding" subtitle=finding.reference icon="pencil" %}{% endpage_header %}{% else %}{% page_header title="Report a finding" subtitle="Record an issue you identified. You are recorded as the reporter." icon="triangle-alert" %}{% endpage_header %}{% endif %}{% endblock %}
+
+{% block content %}
+<form method="post" novalidate x-data="formGuard" @submit="onSubmit" id="finding-form" class="card max-w-3xl">
+  <div class="card-body">
+    {% csrf_token %}
+    {% include "tailwind/errors.html" %}
+    {% if not finding %}
+      <div hx-get="{% url 'findings:assignee_options' %}" hx-trigger="change" hx-target="#id_assigned_to" hx-swap="innerHTML" hx-include="this" hx-params="location">{{ form.location|as_crispy_field }}</div>
+    {% endif %}
+    {{ form.title|as_crispy_field }}
+    {{ form.description|as_crispy_field }}
+    <div class="grid gap-x-6 sm:grid-cols-2"><div>{{ form.category|as_crispy_field }}</div><div>{{ form.severity|as_crispy_field }}</div></div>
+    {% if not finding %}{{ form.assigned_to|as_crispy_field }}{% endif %}
+    {{ form.due_at|as_crispy_field }}
+  </div>
+  <div class="card-footer flex flex-wrap justify-end gap-2">
+    <a href="{% if finding %}{% url 'findings:detail' finding.pk %}{% else %}{% url 'findings:list' %}{% endif %}" class="btn btn-secondary">Cancel</a>
+    <button type="submit" class="btn btn-primary">{% icon "save" %} {% if finding %}Save changes{% else %}Record finding{% endif %}</button>
+  </div>
+</form>
+{% endblock %}

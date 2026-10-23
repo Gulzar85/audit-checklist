@@ -98,6 +98,20 @@
               {% elif action.type == "ADD_INSTRUCTIONS" %}
                 <div><label class="label" for="{{ action.prefix }}_text">Instructions</label>
                   <textarea id="{{ action.prefix }}_text" name="{{ action.prefix }}_text" class="textarea" rows="2" maxlength="500">{{ action.p.text }}</textarea></div>
+              {% elif action.type == "RAISE_FINDING" %}
+                <div class="grid gap-2 sm:grid-cols-2">
+                  <div><label class="label" for="{{ action.prefix }}_category">Category code</label>
+                    <input id="{{ action.prefix }}_category" name="{{ action.prefix }}_category" class="input" value="{{ action.p.category }}" maxlength="40" placeholder="e.g. safety"></div>
+                  <div><label class="label" for="{{ action.prefix }}_severity">Severity code</label>
+                    <input id="{{ action.prefix }}_severity" name="{{ action.prefix }}_severity" class="input" value="{{ action.p.severity }}" maxlength="40" placeholder="e.g. high"></div>
+                  <div class="sm:col-span-2"><label class="label" for="{{ action.prefix }}_title">Title (optional)</label>
+                    <input id="{{ action.prefix }}_title" name="{{ action.prefix }}_title" class="input" value="{{ action.p.title }}" maxlength="200" placeholder="e.g. Not compliant: {question}">
+                    <p class="help-text">Placeholders: {question} {answer} {location} {checklist}. The codes refer to the organization's finding categories and severity levels.</p></div>
+                  <div><label class="label" for="{{ action.prefix }}_requires_review">Needs manual review</label>
+                    <select id="{{ action.prefix }}_requires_review" name="{{ action.prefix }}_requires_review" class="select"><option value="false"{% if action.p.requires_review != "true" and action.p.requires_review != "True" %} selected{% endif %}>No</option><option value="true"{% if action.p.requires_review == "true" or action.p.requires_review == "True" %} selected{% endif %}>Yes</option></select></div>
+                  <div><label class="label" for="{{ action.prefix }}_inherit_evidence">Show the response's evidence</label>
+                    <select id="{{ action.prefix }}_inherit_evidence" name="{{ action.prefix }}_inherit_evidence" class="select"><option value="true"{% if action.p.inherit_evidence != "false" and action.p.inherit_evidence != "False" %} selected{% endif %}>Yes</option><option value="false"{% if action.p.inherit_evidence == "false" or action.p.inherit_evidence == "False" %} selected{% endif %}>No</option></select></div>
+                </div>
               {% elif action.type == "OPTION_AVAILABILITY" %}
                 {% if action.option_choices %}
                   <div class="space-y-2">

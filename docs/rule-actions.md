@@ -28,6 +28,7 @@ the remaining keys are the action's parameters. Unknown parameters are errors.
 | `SET_VALIDATION_CONSTRAINT` | question | Tighten the answer-type limits | `constraints` (object; keys are the type's `rule_constraints`) | yes |
 | `OPTION_AVAILABILITY` | single/multiple-choice question | Restrict which of the question's options may be chosen | `mode` (`only`\|`exclude`), `options` (option values) | yes |
 | `ADD_INSTRUCTIONS` | question | Extra instruction text | `text` (required, <= 500) | no |
+| `RAISE_FINDING` | question | When matched **and the execution is submitted**, the server records a finding about the question (Phase 12; see [finding-detection.md](finding-detection.md)) | `category`, `severity` (organization codes, required), `title`, `description` (optional; placeholders `{question}` `{answer}` `{location}` `{checklist}`), `requires_review` (bool, default false), `inherit_evidence` (bool, default true) | no |
 
 \* A *graph edge* action changes whether another rule's **source answer** counts (a hidden answer is ignored; an answer
 outside the options or limits becomes invalid), so it takes part in cycle detection and decides evaluation order. The others

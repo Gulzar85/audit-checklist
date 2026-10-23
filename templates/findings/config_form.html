@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags ui %}
+{% block title %}{{ heading }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Findings" "findings:list" "Settings" "findings:settings" heading %}{% endblock %}
+
+{% block page_header %}{% page_header title=heading subtitle="Changes are recorded in the audit log." icon="settings" %}{% endpage_header %}{% endblock %}
+
+{% block content %}
+<form method="post" novalidate x-data="formGuard" @submit="onSubmit" class="card max-w-2xl">
+  <div class="card-body">{% csrf_token %}{% include "tailwind/errors.html" %}{{ form|crispy }}</div>
+  <div class="card-footer flex justify-end gap-2"><a href="{% url 'findings:settings' %}" class="btn btn-secondary">Cancel</a><button type="submit" class="btn btn-primary">{% icon "save" %} Save</button></div>
+</form>
+{% endblock %}

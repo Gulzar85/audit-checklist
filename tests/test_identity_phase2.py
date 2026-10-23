@@ -423,7 +423,7 @@ class TestSessionLifetime:
 
     def test_service_worker_never_caches_authentication_routes(self, client, db):
         source = client.get("/service-worker.js").content.decode()
-        assert '"/auth/"' in source and 'cp-static-v7' in source
+        assert '"/auth/"' in source and 'cp-static-v8' in source
 
 
 # ---------------------------------------------------------------------------

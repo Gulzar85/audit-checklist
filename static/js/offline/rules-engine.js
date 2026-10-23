@@ -16,7 +16,7 @@ export const SUPPORTED_OPERATORS = [
   "BETWEEN", "NOT_BETWEEN", "SELECTED", "NOT_SELECTED", "CONTAINS_ANY", "CONTAINS_ALL",
 ];
 export const SUPPORTED_ACTIONS = [
-  "SHOW_ITEM", "HIDE_ITEM", "SHOW_SECTION", "HIDE_SECTION", "REQUIRE_ITEM", "MAKE_OPTIONAL", "REQUIRE_COMMENT", "ADD_INSTRUCTIONS", "DISPLAY_MESSAGE", "REQUIRE_EVIDENCE",
+  "SHOW_ITEM", "HIDE_ITEM", "SHOW_SECTION", "HIDE_SECTION", "REQUIRE_ITEM", "MAKE_OPTIONAL", "REQUIRE_COMMENT", "ADD_INSTRUCTIONS", "DISPLAY_MESSAGE", "REQUIRE_EVIDENCE", "RAISE_FINDING",
 ];
 const EVIDENCE_KINDS = ["photo", "file", "signature"];
 
@@ -183,6 +183,8 @@ export function evaluate(pkg, answers = {}, notApplicable = []) {
         const current = item.evidence || { kinds: [], min_count: 1 };
         const kinds = [...new Set([...current.kinds, ...(action.kinds || [])])].sort((a, b) => EVIDENCE_KINDS.indexOf(a) - EVIDENCE_KINDS.indexOf(b));
         item.evidence = { kinds, min_count: Math.max(current.min_count, action.min_count || 1) };
+      } else if (action.type === "RAISE_FINDING") {
+        // Findings are raised by the server on submission (Phase 12); the device never creates one, so there is nothing to compute.
       } else if (action.type === "ADD_INSTRUCTIONS" && item) {
         item.instructions.push(action.text);
       } else if (action.type === "DISPLAY_MESSAGE") {

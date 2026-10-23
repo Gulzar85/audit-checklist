@@ -71,7 +71,7 @@ class TestServiceWorkerPolicy:
     def test_the_worker_is_served_from_the_root_with_a_new_cache_version(self, client, db):
         response = client.get("/service-worker.js")
         assert response["Service-Worker-Allowed"] == "/" and response["Cache-Control"] == "no-cache"
-        assert 'CACHE_VERSION = "cp-static-v7"' in response.content.decode()
+        assert 'CACHE_VERSION = "cp-static-v8"' in response.content.decode()
 
     def test_every_offline_module_is_precached_and_exists(self):
         urls = precache_urls()

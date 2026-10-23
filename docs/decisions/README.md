@@ -67,3 +67,6 @@ consequences. New records are appended; existing ones are superseded, not edited
 | [0060](0060-evidence-model-and-target-registry.md) | Evidence: asset/attachment model, explicit targets, immutable facts | Accepted |
 | [0061](0061-upload-pipeline-lifecycle-and-scanning.md) | Upload pipeline, lifecycle and scanning | Accepted |
 | [0062](0062-offline-evidence-over-the-existing-sync.md) | Offline evidence over the existing sync engine | Accepted |
+| [0063](0063-finding-model-lifecycle-and-source-registry.md) | Findings: explicit-key model, controlled sources, resolved is not verified | Accepted |
+| [0064](0064-finding-detection-on-submission-and-idempotency.md) | Finding detection: a Phase 6 action, raised on submission, idempotent | Accepted |
+| [0065](0065-finding-evidence-read-through.md) | Finding evidence is read through the triggering response | Accepted |

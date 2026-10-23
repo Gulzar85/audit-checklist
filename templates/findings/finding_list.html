@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load django_tables2 ui %}
+{% block title %}Findings &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Findings" %}{% endblock %}
+
+{% block page_header %}
+{% page_header title="Findings" subtitle="Issues recorded from checklist submissions or reported by people. A finding keeps the exact checklist version and answer it came from." icon="triangle-alert" %}
+  {% if can_manage %}<a href="{% url 'findings:settings' %}" class="btn btn-secondary">{% icon "settings" %} Settings</a>{% endif %}
+  {% if can_create %}<a href="{% url 'findings:create' %}" class="btn btn-primary">{% icon "plus" %} Report a finding</a>{% endif %}
+{% endpage_header %}
+{% endblock %}
+
+{% block content %}
+<section class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5" aria-label="Summary">
+  <div class="card card-body"><p class="text-xs text-muted-foreground">Open findings</p><p class="text-2xl font-semibold">{{ summary.open }}</p></div>
+  <div class="card card-body"><p class="text-xs text-muted-foreground">{% icon "flame" %} Critical</p><p class="text-2xl font-semibold {% if summary.critical %}text-danger-text{% endif %}">{{ summary.critical }}</p></div>
+  <a class="card card-body block" href="?status=overdue"><p class="text-xs text-muted-foreground">{% icon "alarm-clock" %} Overdue</p><p class="text-2xl font-semibold {% if summary.overdue %}text-danger-text{% endif %}">{{ summary.overdue }}</p></a>
+  <a class="card card-body block" href="?status=resolved"><p class="text-xs text-muted-foreground">Resolved, awaiting closure</p><p class="text-2xl font-semibold">{{ summary.awaiting_closure }}</p></a>
+  <div class="card card-body"><p class="text-xs text-muted-foreground">Needs review</p><p class="text-2xl font-semibold">{{ summary.needs_review }}</p></div>
+</section>
+<section class="mb-6 grid gap-3 lg:grid-cols-2">
+  <div class="card card-body" aria-labelledby="by-severity"><h2 id="by-severity" class="text-sm font-medium">Open by severity</h2>
+    <ul class="mt-2 space-y-1 text-sm">{% for row in summary.by_severity %}<li class="flex justify-between"><span>{{ row.name }}</span><span class="font-mono">{{ row.count }}</span></li>{% empty %}<li class="text-muted-foreground">No open findings.</li>{% endfor %}</ul></div>
+  <div class="card card-body" aria-labelledby="by-status"><h2 id="by-status" class="text-sm font-medium">By status</h2>
+    <ul class="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-sm">{% for status, n in summary.by_status.items %}<li class="flex justify-between"><a href="?status={{ status }}">{% status_badge status %}</a><span class="font-mono">{{ n }}</span></li>{% endfor %}</ul></div>
+</section>
+
+<div class="card mb-6">
+  {% include "components/filter_bar.html" with filter=filter reset_url=request.path hidden=hidden_filters %}
+</div>
+
+<div class="card">
+  {% if table.rows %}
+    {% render_table table %}
+  {% else %}
+    {% url "findings:create" as create_url %}
+    {% if can_create %}{% include "components/states/empty.html" with icon="triangle-alert" title="No findings found" message="Findings appear when a submitted checklist matches a finding rule, or when someone reports one." action_url=create_url action_label="Report a finding" %}{% else %}{% include "components/states/empty.html" with icon="triangle-alert" title="No findings found" message="Nothing matches the current filters." %}{% endif %}
+  {% endif %}
+</div>
+{% endblock %}

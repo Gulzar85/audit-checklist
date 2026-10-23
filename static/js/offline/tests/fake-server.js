@@ -14,7 +14,7 @@ export const NS = `${USER}:${ORG}`;
 
 export function fixturePackage(overrides = {}) {
   return {
-    schema_version: 1, evaluator_version: 2, package_hash: "a".repeat(64), generated_at: "2026-10-22T10:00:00Z", execution: null,
+    schema_version: 1, evaluator_version: 3, package_hash: "a".repeat(64), generated_at: "2026-10-22T10:00:00Z", execution: null,
     assignment: { id: A, reference: "ASG-00001", status: "assigned", priority: "normal", due_at: null, instructions: "", organization: ORG, location: { id: newId(), name: "R1", path: "North / R1" } },
     checklist: { template: newId(), name: "Daily", code: "D", version_id: V, version_number: 1, integrity_hash: "x" },
     sections: [{ id: newId(), code: "S1", name: "Safety", description: "", instructions: "", sort_order: 1 }],

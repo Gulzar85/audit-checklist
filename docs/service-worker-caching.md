@@ -1,6 +1,6 @@
 # Service-worker caching policy
 
-`static/js/service-worker.js`, scope `/`, version `CACHE_VERSION = "cp-static-v7"`. A strict **allowlist**; there is no "cache every GET".
+`static/js/service-worker.js`, scope `/`, version `CACHE_VERSION = "cp-static-v8"`. A strict **allowlist**; there is no "cache every GET".
 
 | Request | Strategy | Why |
 |---|---|---|

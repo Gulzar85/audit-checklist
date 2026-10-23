@@ -43,6 +43,7 @@ ACTION_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Visibility", ("SHOW_ITEM", "HIDE_ITEM", "SHOW_SECTION", "HIDE_SECTION")),
     ("Requirements", ("REQUIRE_ITEM", "MAKE_OPTIONAL", "REQUIRE_COMMENT", "REQUIRE_EVIDENCE")),
     ("Guidance", ("DISPLAY_MESSAGE", "ADD_INSTRUCTIONS")),
+    ("Findings", ("RAISE_FINDING",)),
     ("Validation", ("SET_VALIDATION_CONSTRAINT", "OPTION_AVAILABILITY")),
 )
 
@@ -440,6 +441,13 @@ def build_actions(snapshot: VersionSnapshot, state: dict[str, Any], *, strict: b
                 continue
         elif code_ == "ADD_INSTRUCTIONS":
             payload["text"] = p.get("text", "")
+        elif code_ == "RAISE_FINDING":
+            payload.update(category=p.get("category", "").strip().lower(), severity=p.get("severity", "").strip().lower(),
+                           requires_review=str(p.get("requires_review", "false")).lower() == "true",
+                           inherit_evidence=str(p.get("inherit_evidence", "true")).lower() != "false")
+            for key in ("title", "description"):
+                if p.get(key, "").strip():
+                    payload[key] = p[key].strip()
         elif code_ == "OPTION_AVAILABILITY":
             payload.update(mode=p.get("mode") or "only", options=list(p.get("options", [])))
         elif code_ == "SET_VALIDATION_CONSTRAINT":
@@ -485,6 +493,8 @@ def ready(state: dict[str, Any]) -> bool:
         if definition.code == "DISPLAY_MESSAGE" and not p.get("message", "").strip():
             return False
         if definition.code == "ADD_INSTRUCTIONS" and not p.get("text", "").strip():
+            return False
+        if definition.code == "RAISE_FINDING" and not (p.get("category", "").strip() and p.get("severity", "").strip()):
             return False
         if definition.code == "OPTION_AVAILABILITY" and not p.get("options"):
             return False

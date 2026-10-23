@@ -103,7 +103,8 @@ NAVIGATION: tuple[NavItem, ...] = (
     NavItem("executions", "My work", "play", "checklists", url_name="executions:list",
               visible=can_see("execution.create"), active=("executions:*",)),
     # --- Quality (planned) ------------------------------------------------------------------
-    NavItem("findings", "Findings", "triangle-alert", "quality"),
+    NavItem("findings", "Findings", "triangle-alert", "quality", url_name="findings:list",
+            visible=can_see("finding.view"), active=("findings:*",)),
     NavItem("corrective_actions", "Corrective Actions", "wrench", "quality"),
     NavItem("verifications", "Verifications", "badge-check", "quality"),
     # --- Analytics (planned) ----------------------------------------------------------------

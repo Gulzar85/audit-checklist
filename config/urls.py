@@ -39,6 +39,7 @@ urlpatterns += [
     path("checklists/", include("apps.checklists.urls", namespace="checklists")),
     path("assignments/", include("apps.assignments.urls", namespace="assignments")),
     path("executions/", include("apps.executions.urls", namespace="executions")),
+    path("findings/", include("apps.findings.urls", namespace="findings")),
     path("evidence/", include("apps.evidence.urls", namespace="evidence")),
     # Versioned REST API.
     path("api/v1/", include(("apps.api.v1.urls", "v1"), namespace="v1")),

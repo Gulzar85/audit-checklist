@@ -14,7 +14,7 @@ from apps.checklists.answer_types import registry
 from apps.evidence.validation import describe_limits
 
 SCHEMA_VERSION = 1  # the sync / package contract
-EVALUATOR_VERSION = 2  # the JavaScript rules evaluator (2: evidence - REQUIRE_EVIDENCE and photo/file/signature answers)
+EVALUATOR_VERSION = 3  # the JavaScript rules evaluator (2: evidence; 3: RAISE_FINDING is understood and ignored - the server raises findings)
 
 #: Answer types the offline workspace can render, validate and store.  Evidence types (photo / file / signature) are *answered by uploads*:
 #: the device stores the file Blob in IndexedDB and uploads it through the evidence endpoint (Phase 11, docs/offline-evidence-sync.md).
@@ -32,7 +32,7 @@ SUPPORTED_OPERATORS = (
 )
 SUPPORTED_ACTIONS = (
     "SHOW_ITEM", "HIDE_ITEM", "SHOW_SECTION", "HIDE_SECTION", "REQUIRE_ITEM", "MAKE_OPTIONAL", "REQUIRE_COMMENT", "ADD_INSTRUCTIONS",
-    "DISPLAY_MESSAGE", "REQUIRE_EVIDENCE",
+    "DISPLAY_MESSAGE", "REQUIRE_EVIDENCE", "RAISE_FINDING",
 )
 
 #: Limits of one sync request (abuse control).

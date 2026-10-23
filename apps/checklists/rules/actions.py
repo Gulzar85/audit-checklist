@@ -17,6 +17,7 @@ REQUIRE_EVIDENCE         item        evidence (photo / file / signature) is requ
 SET_VALIDATION_CONSTRAINT item       tighten the answer-type limits (min/max ...)                    yes
 OPTION_AVAILABILITY      item        restrict which existing options may be chosen                   yes
 ADD_INSTRUCTIONS         item        extra instruction text for the user                             no
+RAISE_FINDING            item        a finding the server records on submission (Phase 12)           no
 =======================  ==========  ==============================================================  ============
 
 "Graph edge" actions change whether another rule's *source answer* counts (hidden / out-of-option / constraint-invalid
@@ -40,8 +41,8 @@ SEVERITIES = ("info", "warning", "error")
 EVIDENCE_KINDS = ("photo", "file", "signature")
 
 #: Which effective property an action changes (used for conflict handling and traces).
-VISIBILITY, REQUIREDNESS, OPTIONS, CONSTRAINTS, COMMENT, EVIDENCE, MESSAGE, INSTRUCTIONS = (
-    "visibility", "requiredness", "options", "constraints", "comment", "evidence", "message", "instructions",
+VISIBILITY, REQUIREDNESS, OPTIONS, CONSTRAINTS, COMMENT, EVIDENCE, MESSAGE, INSTRUCTIONS, FINDING = (
+    "visibility", "requiredness", "options", "constraints", "comment", "evidence", "message", "instructions", "finding",
 )
 
 
@@ -154,6 +155,44 @@ def _options(item: ItemSpec | None, params: dict[str, Any]) -> dict[str, Any]:
     return {"mode": mode, "options": list(values)}
 
 
+#: Placeholders a finding title / description may use.  They are filled by plain substitution (never ``str.format``/``eval``).
+FINDING_TOKENS = ("question", "answer", "location", "checklist")
+_CODE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,39}$")
+_TOKEN = re.compile(r"\{([^{}]*)\}")
+
+
+def _finding_text(raw: Any, key: str, maximum: int) -> str:
+    text = _text(raw, key, maximum, required=False)
+    for token in _TOKEN.findall(text):
+        if token not in FINDING_TOKENS:
+            raise ActionError(f"“{key}” may only use the placeholders: " + ", ".join("{" + t + "}" for t in FINDING_TOKENS) + ".")
+    if text.count("{") != text.count("}"):
+        raise ActionError(f"“{key}” has an unbalanced brace.")
+    return text
+
+
+def _finding(item: ItemSpec | None, params: dict[str, Any]) -> dict[str, Any]:
+    _only(params, ("category", "severity", "title", "description", "requires_review", "inherit_evidence"))
+    cleaned: dict[str, Any] = {}
+    for key in ("category", "severity"):
+        value = params.get(key)
+        if not isinstance(value, str) or not _CODE.match(value.strip().lower()):
+            raise ActionError(f"“{key}” must be the code of an organization {key} (lowercase letters, digits, - and _).")
+        cleaned[key] = value.strip().lower()
+    title = _finding_text(params.get("title"), "title", 200)
+    description = _finding_text(params.get("description"), "description", 1000)
+    if title:
+        cleaned["title"] = title
+    if description:
+        cleaned["description"] = description
+    for key, default in (("requires_review", False), ("inherit_evidence", True)):
+        value = params.get(key, default)
+        if not isinstance(value, bool):
+            raise ActionError(f"“{key}” must be true or false.")
+        cleaned[key] = value
+    return cleaned
+
+
 def _instructions(item: ItemSpec | None, params: dict[str, Any]) -> dict[str, Any]:
     _only(params, ("text",))
     return {"text": _text(params.get("text"), "text", limit("max_instruction_length"))}
@@ -178,6 +217,11 @@ ACTIONS: dict[str, ActionDef] = {
                   ({"key": "constraints", "kind": "object", "required": True},)),
         ActionDef("OPTION_AVAILABILITY", "Restrict options", "Make only some of the question's options available.", "item", OPTIONS, True, _options,
                   ({"key": "mode", "kind": "choice", "choices": ["only", "exclude"], "required": True}, {"key": "options", "kind": "list", "required": True})),
+        ActionDef("RAISE_FINDING", "Raise a finding", "When the question is submitted with a matching answer, record a finding (idempotent; created by the server on submission).",
+                  "item", FINDING, False, _finding,
+                  ({"key": "category", "kind": "text", "required": True}, {"key": "severity", "kind": "text", "required": True},
+                   {"key": "title", "kind": "text", "required": False}, {"key": "description", "kind": "text", "required": False},
+                   {"key": "requires_review", "kind": "bool", "required": False}, {"key": "inherit_evidence", "kind": "bool", "required": False})),
         ActionDef("ADD_INSTRUCTIONS", "Add instructions", "Show extra instructions for the question.", "item", INSTRUCTIONS, False, _instructions,
                   ({"key": "text", "kind": "text", "required": True},)),
     )

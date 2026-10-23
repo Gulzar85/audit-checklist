@@ -85,8 +85,11 @@ def _submit(execution: ChecklistExecution, actor: Any) -> SubmissionResult:
     except IntegrityError as exc:
         raise integrity_error(exc) from exc
     assignment_lifecycle.mark_completed(assignment, actor=actor)
+    from apps.findings.services import detect_after_submission  # local import: findings depend on executions, not the reverse
+
+    findings = detect_after_submission(locked, actor)  # Phase 12: raises the findings the rules call for, inside this transaction
     log(VERBS["submitted"], locked, actor, f"Submitted {locked.reference}", answers=len(state.responses) - len(hidden_ids), hidden=len(hidden_ids),
-        version=locked.version.version_number)
+        version=locked.version.version_number, findings_raised=len(findings.created) if findings else 0)
     events.send_on_commit(events.execution_submitted, locked, actor)
     return SubmissionResult(locked)
 

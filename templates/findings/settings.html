@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Finding settings &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Findings" "findings:list" "Settings" %}{% endblock %}
+
+{% block page_header %}{% page_header title="Finding settings" subtitle="The categories and severity levels of this organization. Rules refer to them by code." icon="settings" %}{% endpage_header %}{% endblock %}
+
+{% block content %}
+<div class="grid gap-6 lg:grid-cols-2">
+  <section class="card" aria-labelledby="cats">
+    <div class="card-header"><h2 id="cats" class="card-title">Categories</h2><a class="btn btn-secondary btn-sm" href="{% url 'findings:category_create' %}">{% icon "plus" %} Add</a></div>
+    <ul class="divide-y divide-border">
+      {% for c in categories %}<li class="flex items-center justify-between px-5 py-3 text-sm"><div><a href="{% url 'findings:category_edit' c.pk %}" class="font-medium">{{ c.name }}</a> <span class="font-mono text-xs text-muted-foreground">{{ c.code }}</span>{% if c.description %}<p class="text-xs text-muted-foreground">{{ c.description }}</p>{% endif %}</div>{% if c.is_active %}{% status_badge "active" %}{% else %}{% status_badge "inactive" %}{% endif %}</li>{% empty %}<li class="px-5 py-3 text-sm text-muted-foreground">No categories.</li>{% endfor %}
+    </ul>
+  </section>
+  <section class="card" aria-labelledby="sevs">
+    <div class="card-header"><h2 id="sevs" class="card-title">Severity levels</h2><a class="btn btn-secondary btn-sm" href="{% url 'findings:severity_create' %}">{% icon "plus" %} Add</a></div>
+    <ul class="divide-y divide-border">
+      {% for s in severities %}<li class="flex items-center justify-between px-5 py-3 text-sm"><div><a href="{% url 'findings:severity_edit' s.pk %}" class="font-medium">{{ s.name }}</a> <span class="font-mono text-xs text-muted-foreground">{{ s.code }} · rank {{ s.rank }}</span>
+        <p class="text-xs text-muted-foreground">{% if s.is_default %}Default · {% endif %}{% if s.requires_owner %}Needs an owner · {% endif %}{% if s.is_escalation %}Escalation level · {% endif %}{% if s.default_due_days %}Due in {{ s.default_due_days }} days{% else %}No automatic due date{% endif %}</p></div>{% if s.is_active %}{% status_badge "active" %}{% else %}{% status_badge "inactive" %}{% endif %}</li>{% empty %}<li class="px-5 py-3 text-sm text-muted-foreground">No severity levels.</li>{% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

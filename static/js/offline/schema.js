@@ -5,7 +5,7 @@
  */
 
 export const SCHEMA_VERSION = 1; // the sync / package contract (apps/executions/offline/compat.py)
-export const EVALUATOR_VERSION = 2; // the rules evaluator (rules-engine.js); 2 = evidence (REQUIRE_EVIDENCE, photo/file/signature answers)
+export const EVALUATOR_VERSION = 3; // the rules evaluator (rules-engine.js); 2 = evidence (REQUIRE_EVIDENCE, photo/file/signature answers); 3 = RAISE_FINDING understood (server-side effect only)
 export const DB_NAME = "checklist-offline";
 export const DB_VERSION = 2;
 

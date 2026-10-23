@@ -17,7 +17,7 @@ _VERBS = {
     "REQUIRE_ITEM": "make required", "MAKE_OPTIONAL": "make optional", "REQUIRE_COMMENT": "require a comment on",
     "REQUIRE_EVIDENCE": "require evidence on", "SET_VALIDATION_CONSTRAINT": "tighten the limits of",
     "OPTION_AVAILABILITY": "restrict the options of", "ADD_INSTRUCTIONS": "add instructions to",
-    "DISPLAY_MESSAGE": "display a message",
+    "DISPLAY_MESSAGE": "display a message", "RAISE_FINDING": "raise a finding on",
 }
 
 
@@ -82,6 +82,8 @@ def describe_action(snapshot: VersionSnapshot, action: dict[str, Any]) -> str:
         extra = " (" + ", ".join(f"{k} {v}" for k, v in action["constraints"].items()) + ")"
     elif action["type"] == "REQUIRE_EVIDENCE":
         extra = f" ({', '.join(action['kinds'])})"
+    elif action["type"] == "RAISE_FINDING":
+        extra = f" ({action['category']} / {action['severity']})"
     return f"{verb} {name}{extra}"
 
 

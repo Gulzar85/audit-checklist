@@ -20,7 +20,7 @@
  */
 "use strict";
 
-const CACHE_VERSION = "cp-static-v7";
+const CACHE_VERSION = "cp-static-v8";
 const CACHE_PREFIX = "cp-static-";
 const OFFLINE_URL = "/offline/";
 const OFFLINE_APP_URL = "/offline/app/";

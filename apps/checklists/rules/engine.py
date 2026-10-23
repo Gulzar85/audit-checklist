@@ -93,17 +93,22 @@ class ItemResult:
     constraints: dict[str, Any] | None = None
     instructions: list[str] = field(default_factory=list)
     messages: list[dict[str, Any]] = field(default_factory=list)
+    #: ``RAISE_FINDING`` actions whose rule matched (Phase 12): ``{"rule", "rule_name", "index", **params}``.  Only a *visible* item raises.
+    findings: list[dict[str, Any]] = field(default_factory=list)
     answer: AnswerState = field(default_factory=lambda: AnswerState(EMPTY))
     required_by_rule: bool = False
     optional_by_rule: bool = False
 
     def as_dict(self) -> dict[str, Any]:
-        return {
+        data = {
             "visible": self.visible, "required": self.required, "comment_required": self.comment_required,
             "comment_prompts": self.comment_prompts, "evidence": self.evidence, "options": self.options,
             "constraints": self.constraints, "instructions": self.instructions, "messages": self.messages,
             "answer": self.answer.as_dict(),
         }
+        if self.findings:
+            data["findings"] = self.findings
+        return data
 
 
 @dataclass
@@ -250,7 +255,7 @@ def evaluate(
     for rule in active:
         if rule_results.get(rule.code) is not Tri.TRUE:
             continue
-        for action in rule.actions:
+        for index, action in enumerate(rule.actions):
             definition = ACTIONS[action.type]
             if definition.edge:
                 continue
@@ -271,6 +276,8 @@ def evaluate(
                 current = target_item.evidence or {"kinds": [], "min_count": 1}  # type: ignore[union-attr]
                 kinds = sorted(set(current["kinds"]) | set(action.params["kinds"]), key=EVIDENCE_KINDS.index)
                 target_item.evidence = {"kinds": kinds, "min_count": max(current["min_count"], action.params["min_count"])}  # type: ignore[union-attr]
+            elif action.type == "RAISE_FINDING":
+                target_item.findings.append({"rule": rule.code, "rule_name": rule.name, "index": index, **action.params})  # type: ignore[union-attr]
             elif action.type == "ADD_INSTRUCTIONS":
                 target_item.instructions.append(action.params["text"])  # type: ignore[union-attr]
             elif action.type == "DISPLAY_MESSAGE":
@@ -288,7 +295,7 @@ def evaluate(
         result.required = flag and result.visible
         result.answer = states[code]
         if not result.visible:
-            result.comment_required, result.comment_prompts, result.evidence = False, [], None
+            result.comment_required, result.comment_prompts, result.evidence, result.findings = False, [], None, []
 
     # Declared-N/A is not trusted: a required, visible question cannot be waved through by the client.
     for code in sorted(na_codes & set(results)):
