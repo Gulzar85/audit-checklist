@@ -182,16 +182,23 @@ class MicrosoftCallbackView(CredentialThrottleMixin, View):
 
         claims = (result or {}).get("id_token_claims")
         if not claims:
+            logger.warning(
+                "Microsoft token exchange returned no ID token: error=%s description=%s",
+                (result or {}).get("error"),
+                (result or {}).get("error_description"),
+            )
             return self._fail(request, self._error_code(result))
 
         identity = entra.claims_to_identity(claims)
         try:
             user = authenticate(request, msal_identity=identity)
         except IdentityNotAllowed as exc:
+            logger.warning("Microsoft sign-in rejected: %s", exc.reason)
             services.record_authentication(user=exc.user, success=False, reason=exc.reason)
             return self._fail(request, exc.reason)
 
         if user is None:
+            logger.warning("Microsoft sign-in: no backend authenticated the identity")
             return self._fail(request, "authentication_failed")
 
         login(request, user)
