@@ -77,8 +77,6 @@ class HomeView(TemplateView):
         from apps.locations.selectors import location_types_visible_to, locations_visible_to
         from apps.organizations.selectors import organizations_visible_to
 
-        from .selectors import recent_activity
-        from .timeline import group_activity
 
         user = self.request.user
         locations = locations_visible_to(user)
@@ -99,7 +97,6 @@ class HomeView(TemplateView):
                 for row in by_type
             ],
             "active_percent": round(100 * totals["active"] / totals["total"]) if totals["total"] else 0,
-            "activity_days": group_activity(recent_activity(organization_id=organization.pk, limit=10)) if organization else [],
             "dashboard_organization": organization,
         }
 

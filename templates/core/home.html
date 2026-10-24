@@ -43,10 +43,6 @@
         {% include "components/states/empty.html" with icon="network" title="No locations yet" message="Add location types and locations to see how your hierarchy is composed." action_url=types_url action_label="Set up location types" action_icon="tags" %}
       {% endif %}
     {% endcard %}
-
-    {% card title="Recent activity" subtitle="Latest events in the current organization" icon="history" %}
-      {% include "components/timeline/timeline.html" with days=activity_days %}
-    {% endcard %}
   </div>
 
   <div class="space-y-6">

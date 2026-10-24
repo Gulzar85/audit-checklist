@@ -96,16 +96,6 @@
         <div><dt class="text-sm text-muted-foreground">Date format</dt><dd class="mt-1">{{ organization.effective_date_format_label }}{% if not organization.date_format %} <span class="text-xs text-muted-foreground">(platform default)</span>{% endif %}</dd></div>
       </dl>
     </section>
-
-    <section class="card" aria-labelledby="activity-title">
-      <div class="card-header">
-        <h2 id="activity-title" class="card-title">Recent activity</h2>
-        <i data-lucide="activity" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
-      </div>
-      <div class="card-body">
-        {% include "components/activity_list.html" with entries=recent_activity %}
-      </div>
-    </section>
   </div>
 
   <aside class="space-y-6">

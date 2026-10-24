@@ -135,15 +135,5 @@
       {% endif %}
     </section>
   </div>
-
-  <aside class="space-y-6">
-    <section class="card" aria-labelledby="activity-title">
-      <div class="card-header">
-        <h2 id="activity-title" class="card-title">Recent activity</h2>
-        <i data-lucide="activity" class="h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
-      </div>
-      <div class="card-body">{% include "components/activity_list.html" with entries=recent_activity %}</div>
-    </section>
-  </aside>
 </div>
 {% endblock %}

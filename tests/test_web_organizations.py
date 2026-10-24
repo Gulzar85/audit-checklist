@@ -88,10 +88,10 @@ class TestDetail:
     def test_invalid_uuid_in_the_url_is_a_404(self, client, admin_a):
         assert login(client, admin_a).get("/organizations/not-a-uuid/").status_code == 404
 
-    def test_recent_activity_is_shown(self, client, staff_user, org_a):
+    def test_recent_activity_is_not_shown(self, client, staff_user, org_a):
         services.update_organization(org_a, actor=staff_user, phone="1")
         body = login(client, staff_user).get(reverse("organizations:detail", args=[org_a.pk])).content.decode()
-        assert "organization.updated" in body
+        assert "Recent activity" not in body
 
 
 class TestCreate:

@@ -24,7 +24,6 @@ from django_tables2 import SingleTableMixin
 
 from apps.core.forms import add_validation_error
 from apps.core.mixins import PolicyMixin
-from apps.core.selectors import recent_activity
 from apps.core.utils import is_htmx, parse_uuid
 from apps.organizations.selectors import organizations_visible_to
 
@@ -259,7 +258,6 @@ class LocationDetailView(LocationScopedMixin, LoginRequiredMixin, DetailView):
         context["children"] = get_children(location).filter(pk__in=reachable).select_related("location_type")
         context["descendant_count"] = get_descendants(location).filter(pk__in=reachable).count()
         context["active_descendant_count"] = get_descendants(location).filter(pk__in=reachable, is_active=True).count()
-        context["recent_activity"] = recent_activity(target=location, limit=10)
         context["can_edit"] = can_edit_location(user, location)
         context["can_create_child"] = can_create_location(user, parent=location)
         context["can_deactivate"] = can_deactivate_location(user, location)

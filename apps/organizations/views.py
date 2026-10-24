@@ -22,7 +22,6 @@ from django_tables2 import SingleTableMixin
 
 from apps.core.forms import add_validation_error
 from apps.core.mixins import PolicyMixin
-from apps.core.selectors import recent_activity
 
 from . import services
 from .filters import OrganizationFilter
@@ -78,7 +77,6 @@ class OrganizationDetailView(OrganizationScopedMixin, LoginRequiredMixin, Detail
         context["membership_count"] = organization.memberships.filter(is_active=True).count()
         context["location_count"] = organization.locations.count()
         context["location_type_count"] = organization.location_types.count()
-        context["recent_activity"] = recent_activity(organization_id=organization.pk, limit=10)
         context["status_choices"] = Organization.Status.choices
         return context
 
