@@ -129,8 +129,13 @@ class MicrosoftLoginView(View):
             reverse("accounts:microsoft_callback")
         )
         try:
+            # MSAL adds the OIDC reserved scopes itself and rejects them if passed.
+            scopes = [
+                s for s in settings.MICROSOFT_SCOPES
+                if s not in ("openid", "profile", "offline_access")
+            ]
             flow = entra.build_client().initiate_auth_code_flow(
-                scopes=list(settings.MICROSOFT_SCOPES), redirect_uri=redirect_uri
+                scopes=scopes, redirect_uri=redirect_uri
             )
         except Exception:  # pragma: no cover - network/misconfiguration
             logger.exception("Failed to initiate Microsoft sign-in")
