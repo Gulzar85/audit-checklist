@@ -1,0 +1,28 @@
+﻿{% extends "base.html" %}
+{% load ui jobs_tags %}
+{% block title %}Scheduling &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Scheduling" %}{% endblock %}
+{% block page_header %}{% page_header title="Scheduling" subtitle="Schedules, jobs and the runner that processes them." icon="calendar-clock" %}
+  <a class="btn btn-secondary" href="{% url 'jobs:schedules' %}">{% icon "calendar-days" %} Schedules</a>
+  <a class="btn btn-secondary" href="{% url 'jobs:jobs' %}">{% icon "list-checks" %} Jobs</a>
+  {% if is_platform_admin %}<a class="btn btn-secondary" href="{% url 'jobs:diagnostics' %}">{% icon "heart-pulse" %} Diagnostics</a>{% endif %}{% endpage_header %}{% endblock %}
+
+{% block content %}
+<section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-6" aria-label="Job totals">
+  <a class="card card-body" href="{% url 'jobs:jobs' %}?status=pending"><p class="text-sm text-muted-foreground">Pending</p><p class="text-2xl font-semibold tabular-nums">{{ d.pending }}</p></a>
+  <a class="card card-body" href="{% url 'jobs:jobs' %}?status=running"><p class="text-sm text-muted-foreground">Running</p><p class="text-2xl font-semibold tabular-nums">{{ d.running }}</p></a>
+  <a class="card card-body" href="{% url 'jobs:jobs' %}?status=retry_pending"><p class="text-sm text-muted-foreground">Waiting to retry</p><p class="text-2xl font-semibold tabular-nums">{{ d.retry }}</p></a>
+  <a class="card card-body" href="{% url 'jobs:jobs' %}?status=succeeded"><p class="text-sm text-muted-foreground">Succeeded</p><p class="text-2xl font-semibold tabular-nums">{{ d.succeeded }}</p></a>
+  <a class="card card-body" href="{% url 'jobs:jobs' %}?status=failed"><p class="text-sm text-muted-foreground">Failed</p><p class="text-2xl font-semibold tabular-nums">{{ d.failed }}</p></a>
+  <a class="card card-body" href="{% url 'jobs:schedules' %}?status=paused"><p class="text-sm text-muted-foreground">Paused schedules</p><p class="text-2xl font-semibold tabular-nums">{{ d.paused }}</p></a>
+</section>
+<div class="mt-6 grid gap-6 lg:grid-cols-2">
+  <section class="card" aria-labelledby="up-t"><div class="card-header"><h2 id="up-t" class="card-title">Next scheduled runs</h2></div>
+    {% if d.upcoming %}<ul class="divide-y divide-border">{% for s in d.upcoming %}<li class="flex items-center justify-between gap-3 px-5 py-3 text-sm"><a href="{% url 'jobs:schedule' s.pk %}" class="font-medium">{{ s.name }}</a><span class="text-muted-foreground">{{ s.next_run_at|in_zone:s.timezone }}</span></li>{% endfor %}</ul>
+    {% else %}<p class="card-body text-sm text-muted-foreground">No active schedule has a next run.</p>{% endif %}</section>
+  <section class="card" aria-labelledby="fl-t"><div class="card-header"><h2 id="fl-t" class="card-title">Recent failures</h2></div>
+    {% if d.recent_failures %}<ul class="divide-y divide-border">{% for j in d.recent_failures %}<li class="px-5 py-3 text-sm"><a href="{% url 'jobs:job' j.pk %}" class="font-medium">{{ j.task_type }}</a> <span class="text-muted-foreground">{{ j.finished_at|date:"M d H:i" }}</span><br><span class="text-muted-foreground">{{ j.error_message }}</span></li>{% endfor %}</ul>
+    {% else %}<p class="card-body text-sm text-muted-foreground">No failed jobs.</p>{% endif %}</section>
+</div>
+{% endblock %}

@@ -86,3 +86,6 @@ consequences. New records are appended; existing ones are superseded, not edited
 | [0079](0079-notification-events-outbox-and-delivery.md) | Notification events, the outbox and delivery after commit | Accepted |
 | [0080](0080-notification-rules-recipients-and-templates.md) | Notification rules, recipients and templates | Accepted |
 | [0081](0081-notification-preferences-retries-and-retention.md) | Notification preferences, retries and retention | Accepted |
+| [0082](0082-scheduler-execution-strategy.md) | Scheduler execution strategy: a DB-backed queue run by a management command | Accepted |
+| [0083](0083-scheduler-leases-and-idempotency.md) | Leases, conditional updates and idempotency | Accepted |
+| [0084](0084-scheduling-time-zones-misfires-and-registry.md) | Time zones, misfires and the task registry | Accepted |

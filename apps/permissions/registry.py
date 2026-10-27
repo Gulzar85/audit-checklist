@@ -54,6 +54,7 @@ RESOURCE_LABELS: dict[str, str] = {
     "scoring": "Scoring",
     "evaluation": "Automated evaluation",
     "notification": "Notifications",
+    "jobs": "Scheduling",
     "report": "Reports",
     "dashboard": "Dashboards",
 }
@@ -174,6 +175,10 @@ REGISTRY: tuple[PermissionDef, ...] = (
     _p("notification", "mandatory", "Mark a notification rule as mandatory (users cannot switch it off)", org_wide_only=True),
     _p("notification", "deliveries", "View the delivery history and attempts of notifications", org_wide_only=True),
     _p("notification", "retry", "Retry, resend or cancel a notification delivery (reason required)", org_wide_only=True),
+    # Scheduling (Phase 18): organization-wide.  Global (all-organization) schedules are limited to platform superusers, not to a permission.
+    _p("jobs", "view", "View schedules, jobs and execution history", org_wide_only=True),
+    _p("jobs", "manage", "Create, edit, enable, disable, pause and resume schedules", org_wide_only=True),
+    _p("jobs", "run", "Run a permitted task now, and retry or cancel jobs (reason required)", org_wide_only=True),
     _p("report", "view", "View reports"),
     _p("dashboard", "view", "View dashboards"),
 )
@@ -236,7 +241,7 @@ SYSTEM_ROLES: dict[str, tuple[str, str, tuple[str, ...]]] = {
          P.WORKFLOW_VIEW, P.WORKFLOW_CREATE, P.WORKFLOW_UPDATE_DRAFT, P.WORKFLOW_VALIDATE, P.WORKFLOW_PUBLISH, P.WORKFLOW_ARCHIVE, P.WORKFLOW_START, P.WORKFLOW_TRANSITION, P.WORKFLOW_CANCEL, P.WORKFLOW_INSTANCE_VIEW, P.WORKFLOW_TASK_VIEW, P.WORKFLOW_TASK_CLAIM, P.WORKFLOW_TASK_REASSIGN,
          P.SCORING_CONFIGURE, P.SCORING_SCORE_VIEW, P.SCORING_BREAKDOWN_VIEW, P.SCORING_RECALCULATE, P.SCORING_FINALIZE_RECALCULATE,
          P.EVALUATION_CONFIGURE, P.EVALUATION_RESULT_VIEW, P.EVALUATION_EXPLAIN, P.EVALUATION_EVALUATE, P.EVALUATION_REEVALUATE,
-         P.NOTIFICATION_CONFIGURE, P.NOTIFICATION_DELIVERIES, P.NOTIFICATION_RETRY),
+         P.NOTIFICATION_CONFIGURE, P.NOTIFICATION_DELIVERIES, P.NOTIFICATION_RETRY, P.JOBS_VIEW, P.JOBS_MANAGE, P.JOBS_RUN),
     ),
     "auditor": (
         "Auditor",

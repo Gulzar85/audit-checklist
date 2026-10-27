@@ -1,0 +1,38 @@
+﻿{% extends "base.html" %}
+{% load ui jobs_tags %}
+{% block title %}{{ schedule.name }} &middot; {{ APP_NAME }}{% endblock %}
+{% block breadcrumbs %}{% url 'jobs:dashboard' as c1 %}{% url 'jobs:schedules' as c2 %}{% breadcrumbs "Home" "core:home" "Scheduling" c1 "Schedules" c2 schedule.name %}{% endblock %}
+{% block page_header %}{% page_header title=schedule.name subtitle=task.name icon="calendar-days" %}{% if can_edit %}<a class="btn btn-secondary" href="{% url 'jobs:schedule_edit' schedule.pk %}">{% icon "pencil" %} Edit</a>{% endif %}{% endpage_header %}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <section class="card" aria-labelledby="s-sum"><div class="card-header"><h2 id="s-sum" class="card-title">Schedule</h2></div>
+    <dl class="card-body grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+      <div><dt class="text-muted-foreground">Status</dt><dd>{{ schedule.get_status_display }}</dd></div>
+      <div><dt class="text-muted-foreground">Scope</dt><dd>{% if schedule.organization %}{{ schedule.organization.name }}{% else %}Platform-wide{% endif %}</dd></div>
+      <div><dt class="text-muted-foreground">Runs</dt><dd>{{ schedule|recurrence_summary }}</dd></div>
+      <div><dt class="text-muted-foreground">Time zone</dt><dd>{{ schedule.timezone }}</dd></div>
+      <div><dt class="text-muted-foreground">Next run</dt><dd>{{ schedule.next_run_at|in_zone:schedule.timezone }}</dd></div>
+      <div><dt class="text-muted-foreground">Last run</dt><dd>{{ schedule.last_run_at|in_zone:schedule.timezone }}</dd></div>
+      <div><dt class="text-muted-foreground">Missed runs</dt><dd>{{ schedule.get_misfire_policy_display }}</dd></div>
+      <div><dt class="text-muted-foreground">Attempts per run</dt><dd>{{ schedule.max_attempts }}</dd></div>
+      {% if schedule.description %}<div class="sm:col-span-2"><dt class="text-muted-foreground">Description</dt><dd>{{ schedule.description }}</dd></div>{% endif %}
+    </dl></section>
+  {% if can_edit or can_trigger %}
+  <section class="card" aria-labelledby="s-act"><div class="card-header"><h2 id="s-act" class="card-title">Controls</h2></div>
+    <div class="card-body flex flex-wrap gap-2">
+      {% if can_edit %}
+        {% if schedule.status == "active" %}<form method="post" action="{% url 'jobs:schedule_action' schedule.pk 'pause' %}">{% csrf_token %}<button class="btn btn-secondary" type="submit">{% icon "pause" %} Pause</button></form>{% endif %}
+        {% if schedule.status == "paused" %}<form method="post" action="{% url 'jobs:schedule_action' schedule.pk 'resume' %}">{% csrf_token %}<button class="btn btn-secondary" type="submit">{% icon "play" %} Resume (no catch-up)</button></form>{% endif %}
+        {% if schedule.status == "active" or schedule.status == "paused" %}<form method="post" action="{% url 'jobs:schedule_action' schedule.pk 'disable' %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">{% icon "ban" %} Disable</button></form>{% endif %}
+        {% if schedule.status == "disabled" or schedule.status == "finished" %}<form method="post" action="{% url 'jobs:schedule_action' schedule.pk 'enable' %}">{% csrf_token %}<button class="btn btn-secondary" type="submit">{% icon "power" %} Enable</button></form>{% endif %}
+      {% endif %}
+      {% if can_trigger %}<details class="rounded border border-border px-3 py-2"><summary class="cursor-pointer text-sm font-medium">Run now</summary>
+        <form method="post" action="{% url 'jobs:schedule_action' schedule.pk 'run' %}" class="mt-2 space-y-2">{% csrf_token %}<p class="text-xs text-muted-foreground">Queues one extra run now. The runner executes it on its next pass.</p><button class="btn btn-primary btn-sm" type="submit">{% icon "play" %} Confirm: queue a run</button></form></details>{% endif %}
+    </div></section>{% endif %}
+  <section class="card" aria-labelledby="s-jobs"><div class="card-header"><h2 id="s-jobs" class="card-title">Recent runs</h2></div>
+    {% if jobs %}<div class="table-wrap"><table class="table"><thead><tr><th>Scheduled for</th><th>Status</th><th class="text-right">Attempts</th><th>Result</th></tr></thead><tbody>
+      {% for j in jobs %}<tr><td><a href="{% url 'jobs:job' j.pk %}">{{ j.scheduled_for|in_zone:schedule.timezone }}</a></td><td>{{ j.get_status_display }}</td><td class="text-right tabular-nums">{{ j.attempt_count }}</td><td class="text-sm text-muted-foreground">{{ j.error_message }}</td></tr>{% endfor %}</tbody></table></div>
+    {% else %}<p class="card-body text-sm text-muted-foreground">Nothing has run yet.</p>{% endif %}</section>
+</div>
+{% endblock %}

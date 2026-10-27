@@ -513,6 +513,26 @@ document.addEventListener("alpine:init", function () {
 
   /* In-page tabs (WAI-ARIA tabs pattern).  Panels carry role="tabpanel"; without script every
    * panel simply stays visible.  The active tab is mirrored in the URL hash (#tab-<key>). */
+  /* Schedule form: shows only the recurrence fields of the selected schedule type (no inline expressions: CSP build). */
+  Alpine.data("scheduleForm", function () {
+    return {
+      mode: "",
+      init: function () {
+        var select = this.$root.querySelector('[name="schedule_type"]');
+        this.mode = select ? select.value : "";
+      },
+      sync: function (event) {
+        this.mode = event.target.value;
+      },
+      get isOnce() { return this.mode === "one_time"; },
+      get isRecurring() { return this.mode !== "one_time" && this.mode !== ""; },
+      get isInterval() { return this.mode === "interval"; },
+      get hasTime() { return this.mode === "daily" || this.mode === "weekly" || this.mode === "monthly"; },
+      get isWeekly() { return this.mode === "weekly"; },
+      get isMonthly() { return this.mode === "monthly"; }
+    };
+  });
+
   Alpine.data("tabs", function () {
     return {
       active: "",

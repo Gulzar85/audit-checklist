@@ -1,0 +1,29 @@
+﻿{% extends "base.html" %}
+{% load ui %}
+{% block title %}Scheduling diagnostics &middot; {{ APP_NAME }}{% endblock %}
+{% block breadcrumbs %}{% url 'jobs:dashboard' as c %}{% breadcrumbs "Home" "core:home" "Scheduling" c "Diagnostics" %}{% endblock %}
+{% block page_header %}{% page_header title="Scheduling diagnostics" subtitle="Is anything processing jobs, and is anything stuck?" icon="heart-pulse" %}{% endpage_header %}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <section class="card" aria-labelledby="d-r"><div class="card-header"><h2 id="d-r" class="card-title">Runner</h2></div><div class="card-body text-sm">
+    {% if d.runner_state == "alive" %}{% tone_badge "Runner active" "success" icon="circle-check" %} Last activity {{ d.last_seen_at|timesince }} ago ({{ d.last_runner }}).
+    {% elif d.runner_state == "stale" %}{% tone_badge "Runner silent" "danger" icon="octagon-alert" %} The last activity was {{ d.last_seen_at|timesince }} ago. Jobs are not being processed.
+    {% else %}{% tone_badge "No runner has ever reported" "danger" icon="octagon-alert" %} Nothing is processing jobs. Start the runner: see docs/scheduling-runner-and-operations.md.{% endif %}
+    {% if d.runner_state != "alive" and d.waiting_now == 0 %}<p class="mt-2 text-muted-foreground">The queue is currently empty, so nothing is waiting - but without a runner, new work will not move.</p>{% endif %}
+    {% if d.runner_state == "alive" and d.waiting_now == 0 %}<p class="mt-2 text-muted-foreground">The queue is idle (the runner is healthy and nothing is due).</p>{% endif %}</div></section>
+  <section class="card" aria-labelledby="d-q"><div class="card-header"><h2 id="d-q" class="card-title">Backlog</h2></div>
+    <dl class="card-body grid gap-3 text-sm sm:grid-cols-4">
+      <div><dt class="text-muted-foreground">Ready now</dt><dd class="text-xl font-semibold tabular-nums">{{ d.waiting_now }}</dd></div>
+      <div><dt class="text-muted-foreground">Waiting too long</dt><dd class="text-xl font-semibold tabular-nums">{{ d.waiting_overdue }}</dd></div>
+      <div><dt class="text-muted-foreground">Expired leases</dt><dd class="text-xl font-semibold tabular-nums">{{ d.expired_leases }}</dd></div>
+      <div><dt class="text-muted-foreground">Waiting to retry</dt><dd class="text-xl font-semibold tabular-nums">{{ d.retry_pending }}</dd></div>
+      <div><dt class="text-muted-foreground">Overdue schedules</dt><dd class="text-xl font-semibold tabular-nums">{{ d.overdue_schedules }}</dd></div>
+    </dl></section>
+  <section class="card" aria-labelledby="d-f"><div class="card-header"><h2 id="d-f" class="card-title">Repeated failures (last 24 hours)</h2></div>
+    {% if d.repeated_failures %}<ul class="divide-y divide-border">{% for r in d.repeated_failures %}<li class="px-5 py-3 text-sm">{{ r.task_type }}: {{ r.n }} failed jobs</li>{% endfor %}</ul>{% else %}<p class="card-body text-sm text-muted-foreground">None.</p>{% endif %}</section>
+  <section class="card" aria-labelledby="d-c"><div class="card-header"><h2 id="d-c" class="card-title">Configuration</h2></div>
+    <dl class="card-body grid gap-3 text-sm sm:grid-cols-3"><div><dt class="text-muted-foreground">Execution backend</dt><dd>{{ config.backend }}</dd></div><div><dt class="text-muted-foreground">Lease (seconds)</dt><dd>{{ config.lease }}</dd></div>
+      <div><dt class="text-muted-foreground">Misfire grace (seconds)</dt><dd>{{ config.grace }}</dd></div><div><dt class="text-muted-foreground">History kept (days)</dt><dd>{{ config.retention }}</dd></div><div><dt class="text-muted-foreground">Registered tasks</dt><dd>{{ config.tasks }}</dd></div></dl></section>
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+﻿{% extends "base.html" %}
+{% load ui %}
+{% block title %}{% if schedule %}Edit schedule{% else %}New schedule{% endif %} &middot; {{ APP_NAME }}{% endblock %}
+{% block breadcrumbs %}{% url 'jobs:dashboard' as c1 %}{% url 'jobs:schedules' as c2 %}{% breadcrumbs "Home" "core:home" "Scheduling" c1 "Schedules" c2 "Schedule" %}{% endblock %}
+{% block page_header %}{% page_header title=schedule|yesno:"Edit schedule,New schedule" subtitle=organization.name icon="calendar-days" %}{% endpage_header %}{% endblock %}
+
+{% block content %}
+<form method="post" class="card max-w-3xl" novalidate x-data="scheduleForm" @change="sync">{% csrf_token %}
+  <div class="card-body space-y-4">
+    {% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    {% for f in form.visible_fields %}
+      {% if f.name == "every_minutes" %}<div x-show="isInterval" x-cloak>
+      {% elif f.name == "time" %}<div x-show="hasTime" x-cloak>
+      {% elif f.name == "weekdays" %}<div x-show="isWeekly" x-cloak>
+      {% elif f.name == "day" %}<div x-show="isMonthly" x-cloak>
+      {% elif f.name == "end_at" %}<div x-show="isRecurring" x-cloak>
+      {% elif f.name == "allow_timezone_change" %}{% if schedule %}<div>{% else %}<div hidden>{% endif %}
+      {% elif f.name == "platform_wide" %}{% if is_platform_admin and not schedule %}<div>{% else %}<div hidden>{% endif %}
+      {% else %}<div>{% endif %}
+        <label class="label" for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}
+        {% if f.help_text %}<p class="mt-1 text-xs text-muted-foreground">{{ f.help_text }}</p>{% endif %}
+        {% if f.errors %}<p class="mt-1 text-sm text-danger" role="alert">{{ f.errors|join:" " }}</p>{% endif %}
+      </div>
+    {% endfor %}
+    <p class="text-xs text-muted-foreground">Times are read in the schedule's time zone. Changing the zone of an existing schedule changes when it runs, so it must be confirmed. Weekdays: Monday is the first day. A monthly day that a month lacks runs on the month's last day.</p>
+  </div>
+  <div class="card-footer flex justify-end gap-2"><a class="btn btn-ghost" href="{% url 'jobs:schedules' %}">Cancel</a><button class="btn btn-primary" type="submit">{% icon "save" %} Save schedule</button></div>
+</form>
+{% endblock %}

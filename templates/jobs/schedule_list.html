@@ -1,0 +1,30 @@
+﻿{% extends "base.html" %}
+{% load ui jobs_tags %}
+{% block title %}Schedules &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% url 'jobs:dashboard' as c %}{% breadcrumbs "Home" "core:home" "Scheduling" c "Schedules" %}{% endblock %}
+{% block page_header %}{% page_header title="Schedules" subtitle="Recurring and one-time rules; each run becomes a job." icon="calendar-days" %}
+  {% if can_manage %}<a class="btn btn-primary" href="{% url 'jobs:schedule_new' %}">{% icon "plus" %} New schedule</a>{% endif %}{% endpage_header %}{% endblock %}
+
+{% block content %}
+<form method="get" class="mb-4 flex flex-wrap items-end gap-3" role="search">
+  <div><label class="label" for="q">Search</label><input id="q" name="q" value="{{ q }}" class="input" maxlength="80"></div>
+  <div><label class="label" for="status">Status</label><select id="status" name="status" class="input"><option value="">All</option>{% for v, l in statuses %}<option value="{{ v }}" {% if status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div><label class="label" for="task">Task</label><select id="task" name="task" class="input"><option value="">All</option>{% for t in tasks %}<option value="{{ t.code }}" {% if task == t.code %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></div>
+  <button class="btn btn-secondary" type="submit">{% icon "search" %} Filter</button>
+</form>
+<section class="card" aria-label="Schedules">
+  {% if page.object_list %}<div class="table-wrap"><table class="table"><thead><tr><th>Name</th><th>Task</th><th>Runs</th><th>Next run</th><th>Last run</th><th>Status</th><th>Last result</th></tr></thead><tbody>
+    {% for s in page.object_list %}<tr><td><a class="font-medium" href="{% url 'jobs:schedule' s.pk %}">{{ s.name }}</a>{% if not s.organization %} <span class="badge badge-neutral">Platform</span>{% endif %}</td>
+      <td class="text-sm">{{ s.task.name|default:s.task_type }}</td><td class="text-sm">{{ s|recurrence_summary }}</td>
+      <td class="text-sm">{{ s.next_run_at|in_zone:s.timezone }}</td><td class="text-sm">{{ s.last_run_at|in_zone:s.timezone }}</td>
+      <td>{% if s.status == "active" %}{% tone_badge "Active" "success" icon="circle-check" %}{% elif s.status == "paused" %}{% tone_badge "Paused" "warning" icon="pause" %}{% elif s.status == "finished" %}{% tone_badge "Finished" "neutral" %}{% else %}{% tone_badge "Disabled" "neutral" icon="ban" %}{% endif %}</td>
+      <td class="text-sm">{% if s.last_job %}{{ s.last_job.get_status_display }}{% else %}-{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% if page.paginator.num_pages > 1 %}<nav class="flex items-center justify-between border-t border-border px-5 py-3 text-sm" aria-label="Pagination">
+    {% if page.has_previous %}<a class="btn btn-secondary btn-sm" href="?page={{ page.previous_page_number }}&q={{ q|urlencode }}&status={{ status }}&task={{ task }}">Previous</a>{% else %}<span></span>{% endif %}
+    <span class="text-muted-foreground">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}<a class="btn btn-secondary btn-sm" href="?page={{ page.next_page_number }}&q={{ q|urlencode }}&status={{ status }}&task={{ task }}">Next</a>{% else %}<span></span>{% endif %}</nav>{% endif %}
+  {% else %}<div class="card-body">{% include "components/states/empty.html" with icon="calendar-x" title="No schedules" message="Create a schedule to run a task automatically." %}</div>{% endif %}
+</section>
+{% endblock %}

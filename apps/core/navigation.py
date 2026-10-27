@@ -123,6 +123,7 @@ NAVIGATION: tuple[NavItem, ...] = (
             url_name="locations:type_list", active=("locations:type_*",)),
     NavItem("users", "Users", "users", "administration", url_name="access:member_list",
             visible=can_see("user.view"), active=("access:member_*",)),
+    NavItem("scheduling", "Scheduling", "calendar-clock", "administration", url_name="jobs:dashboard", visible=can_see("jobs.view"), active=("jobs:*",)),
     NavItem("roles", "Roles & Permissions", "shield-check", "administration", url_name="access:role_list",
             visible=can_see("role.view"), active=("access:role_*",)),
     NavItem("themes", "Themes", "palette", "administration", url_name="themes:list", active=("themes:*",)),

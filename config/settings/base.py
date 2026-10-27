@@ -91,6 +91,7 @@ LOCAL_APPS = [
     "apps.scoring",
     "apps.evaluation",
     "apps.notifications",
+    "apps.jobs",
     "apps.reporting",
     "apps.api",
 ]
@@ -374,6 +375,15 @@ NOTIFICATION_MAX_ATTEMPTS = env_int("NOTIFICATION_MAX_ATTEMPTS", 5)
 NOTIFICATION_BATCH_LIMIT = env_int("NOTIFICATION_BATCH_LIMIT", 50)
 NOTIFICATION_RETENTION_DAYS = env_int("NOTIFICATION_RETENTION_DAYS", 180)
 #: Scheme + host used to build absolute links in emails (an internal *path* is always appended; empty = emails carry the path only).
+# --- Scheduling (Phase 18): see docs/scheduling-architecture.md. Defaults are safe; every limit is also capped in apps/jobs/constants.py.
+#: "poll" (default): the runner command (``manage.py process_scheduled_jobs``) picks jobs up.  "django_tasks": a manual run-now is additionally handed to the configured Django Tasks backend (needs a real worker; see the docs).
+JOBS_EXECUTION_BACKEND = env("JOBS_EXECUTION_BACKEND", "poll")
+JOBS_LEASE_SECONDS = env_int("JOBS_LEASE_SECONDS", 600)
+JOBS_MISFIRE_GRACE_SECONDS = env_int("JOBS_MISFIRE_GRACE_SECONDS", 300)
+JOBS_RETRY_JITTER = float(env("JOBS_RETRY_JITTER", "0.1"))
+JOBS_HISTORY_RETENTION_DAYS = env_int("JOBS_HISTORY_RETENTION_DAYS", 90)
+JOBS_RUNNER_ID = env("JOBS_RUNNER_ID", "")
+
 NOTIFICATION_BASE_URL = env("NOTIFICATION_BASE_URL", "")
 #: Microsoft Graph sender (see providers/microsoft365.py): the mailbox that sends, used only when that provider is selected.
 NOTIFICATION_GRAPH_SENDER = env("NOTIFICATION_GRAPH_SENDER", "")
@@ -647,6 +657,10 @@ JAZZMIN_SETTINGS = {
         "notifications.Notification": "fas fa-bell",
         "notifications.NotificationDelivery": "fas fa-paper-plane",
         "notifications.DeliveryAttempt": "fas fa-clock-rotate-left",
+        "jobs.ScheduleDefinition": "fas fa-calendar-days",
+        "jobs.ScheduledJob": "fas fa-list-check",
+        "jobs.JobExecution": "fas fa-clock-rotate-left",
+        "jobs.RunnerHeartbeat": "fas fa-heart-pulse",
         "scoring.ScoringConfig": "fas fa-calculator",
         "scoring.ScoreResult": "fas fa-percentage",
         "workflows.WorkflowDefinition": "fas fa-project-diagram",
@@ -665,6 +679,7 @@ JAZZMIN_SETTINGS = {
         "scoring": "fas fa-percent",
     "evaluation": "fas fa-gavel",
         "notifications": "fas fa-bell",
+        "jobs": "fas fa-calendar-days",
         "reporting": "fas fa-chart-line",
     },
     # --- Change forms -----------------------------------------------------

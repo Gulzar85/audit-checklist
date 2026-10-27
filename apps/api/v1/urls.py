@@ -17,6 +17,7 @@ from .evaluation import (
 )
 from .evaluation import MetadataView as EvaluationMetadataView
 from . import notifications as nt
+from . import scheduling as sc
 from .scoring import (
     ExecutionScoreBreakdownView, ExecutionScoreHistoryView, ExecutionScoreRecalculateView, ExecutionScoreView, VersionScoringPreviewView, VersionScoringValidateView,
     VersionScoringView,
@@ -89,6 +90,15 @@ urlpatterns = [
     path("notifications/<uuid:pk>/", nt.NotificationDetailView.as_view(), name="notification"),
     path("notifications/<uuid:pk>/read/", nt.MarkReadView.as_view(), name="notification-read"),
     path("notifications/<uuid:pk>/archive/", nt.ArchiveView.as_view(), name="notification-archive"),
+    path("scheduling/tasks/", sc.TaskListView.as_view(), name="scheduling-tasks"),
+    path("scheduling/schedules/", sc.ScheduleListView.as_view(), name="scheduling-schedules"),
+    path("scheduling/schedules/<uuid:pk>/", sc.ScheduleDetailView.as_view(), name="scheduling-schedule"),
+    path("scheduling/schedules/<uuid:pk>/<str:action>/", sc.ScheduleActionView.as_view(), name="scheduling-schedule-action"),
+    path("scheduling/upcoming/", sc.UpcomingView.as_view(), name="scheduling-upcoming"),
+    path("scheduling/jobs/", sc.JobListView.as_view(), name="scheduling-jobs"),
+    path("scheduling/jobs/<uuid:pk>/", sc.JobDetailView.as_view(), name="scheduling-job"),
+    path("scheduling/jobs/<uuid:pk>/<str:action>/", sc.JobActionView.as_view(), name="scheduling-job-action"),
+    path("scheduling/diagnostics/", sc.DiagnosticsView.as_view(), name="scheduling-diagnostics"),
     path("checklist-versions/<uuid:pk>/scoring/", VersionScoringView.as_view(), name="version-scoring"),
     path("checklist-versions/<uuid:pk>/scoring/validate/", VersionScoringValidateView.as_view(), name="version-scoring-validate"),
     path("checklist-versions/<uuid:pk>/scoring/preview/", VersionScoringPreviewView.as_view(), name="version-scoring-preview"),

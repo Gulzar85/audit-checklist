@@ -1,0 +1,34 @@
+﻿{% extends "base.html" %}
+{% load ui jobs_tags %}
+{% block title %}Job &middot; {{ APP_NAME }}{% endblock %}
+{% block breadcrumbs %}{% url 'jobs:dashboard' as c1 %}{% url 'jobs:jobs' as c2 %}{% breadcrumbs "Home" "core:home" "Scheduling" c1 "Jobs" c2 "Job" %}{% endblock %}
+{% block page_header %}{% page_header title=job.task_type subtitle=job.get_status_display icon="list-checks" %}<a class="btn btn-secondary" href="{% url 'jobs:jobs' %}">{% icon "arrow-left" %} Jobs</a>{% endpage_header %}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <section class="card" aria-labelledby="j-sum"><div class="card-header"><h2 id="j-sum" class="card-title">Job</h2></div>
+    <dl class="card-body grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+      <div><dt class="text-muted-foreground">Status</dt><dd>{{ job.get_status_display }}</dd></div>
+      <div><dt class="text-muted-foreground">Triggered by</dt><dd>{{ job.get_trigger_display }}</dd></div>
+      <div><dt class="text-muted-foreground">Scope</dt><dd>{% if job.organization %}{{ job.organization.name }}{% else %}Platform-wide{% endif %}</dd></div>
+      <div><dt class="text-muted-foreground">Schedule</dt><dd>{% if job.schedule %}<a href="{% url 'jobs:schedule' job.schedule_id %}">{{ job.schedule.name }}</a>{% else %}-{% endif %}</dd></div>
+      <div><dt class="text-muted-foreground">Scheduled for</dt><dd>{{ job.scheduled_for|date:"M d, Y H:i:s" }} UTC</dd></div>
+      <div><dt class="text-muted-foreground">Next attempt not before</dt><dd>{{ job.available_at|date:"M d, Y H:i:s" }} UTC</dd></div>
+      <div><dt class="text-muted-foreground">Started / finished</dt><dd>{{ job.started_at|date:"H:i:s"|default:"-" }} / {{ job.finished_at|date:"H:i:s"|default:"-" }}</dd></div>
+      <div><dt class="text-muted-foreground">Attempts</dt><dd>{{ job.attempt_count }} of {{ job.max_attempts }}</dd></div>
+      <div><dt class="text-muted-foreground">Correlation id</dt><dd class="font-mono text-xs">{{ job.correlation_id }}</dd></div>
+      {% if job.error_message %}<div class="sm:col-span-2"><dt class="text-muted-foreground">Error</dt><dd>{{ job.error_message }}</dd></div>{% endif %}
+      {% if job.cancel_reason %}<div class="sm:col-span-2"><dt class="text-muted-foreground">Cancelled because</dt><dd>{{ job.cancel_reason }}</dd></div>{% endif %}
+    </dl></section>
+  <section class="card" aria-labelledby="j-att"><div class="card-header"><h2 id="j-att" class="card-title">Attempts</h2></div>
+    {% if executions %}<div class="table-wrap"><table class="table"><thead><tr><th>#</th><th>Started</th><th>Outcome</th><th>Decision</th><th class="text-right">Duration</th><th>Error</th></tr></thead><tbody>
+      {% for e in executions %}<tr><td>{{ e.number }}</td><td class="text-sm">{{ e.started_at|date:"M d H:i:s" }}</td><td>{{ e.get_outcome_display }}</td><td class="text-sm">{{ e.retry_decision|default:"-" }}</td><td class="text-right tabular-nums">{{ e.duration_ms }} ms</td><td class="text-sm text-muted-foreground">{{ e.error_message }}</td></tr>{% endfor %}</tbody></table></div>
+    {% else %}<p class="card-body text-sm text-muted-foreground">It has not run yet.</p>{% endif %}</section>
+  {% if can_act and cancellable or can_act and retryable %}
+  <section class="card" aria-labelledby="j-op"><div class="card-header"><h2 id="j-op" class="card-title">Operations</h2></div>
+    <div class="card-body space-y-3"><p class="text-sm text-muted-foreground">A reason is required and is audited. A job that has started cannot be cancelled: it finishes (tasks are safe to repeat).</p>
+      <form method="post" class="space-y-3">{% csrf_token %}<label class="label" for="reason">Reason</label><input id="reason" name="reason" class="input" minlength="3" maxlength="300" required>
+        <div class="flex gap-2">{% if retryable %}<button class="btn btn-primary" type="submit" formaction="{% url 'jobs:job_action' job.pk 'retry' %}">{% icon "refresh-cw" %} Retry</button>{% endif %}
+        {% if cancellable %}<button class="btn btn-secondary" type="submit" formaction="{% url 'jobs:job_action' job.pk 'cancel' %}">{% icon "x" %} Cancel job</button>{% endif %}</div></form></div></section>{% endif %}
+</div>
+{% endblock %}

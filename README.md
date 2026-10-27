@@ -9,7 +9,7 @@ actions, workflow, and offline execution.
 > RBAC, themes, checklist authoring/versioning/publishing with a conditional rules engine,
 > assignments, execution, PWA offline execution and sync, evidence and attachments, findings,
 > corrective actions, a **configurable workflow engine** (Phase 14) and a **configurable scoring engine**
-> (Phase 15) and an **automated evaluation engine** (Phase 16). Notifications (Phase 17) are built; reporting is not built yet (see [Scope](#scope)).
+> (Phase 15) and an **automated evaluation engine** (Phase 16). Notifications (Phase 17) and scheduling (Phase 18) are built; reporting is not built yet (see [Scope](#scope)).
 
 ---
 
@@ -127,6 +127,7 @@ apps/
   accounts/        Custom User + lifecycle, Entra ID sign-in (MSAL), profile/preferences,
                    organization context, selectors/policies/services, auth middleware
   permissions/     RBAC foundation (Role / RoleScope / UserRole) + authorization
+  jobs/            Scheduling: DB-backed job queue, schedules with time zones, controlled task registry, leases and retries, run by a management command
   notifications/   Notification engine: outbox events, rules, recipients, safe templates, preferences, in-app + email (SMTP / Microsoft Graph), delivery state machine and retries
   api/             DRF envelope renderer, exception handler, v1 (organizations, locations, identity) + OpenAPI
   themes/          Theme engine (design tokens, appearance)
@@ -207,12 +208,13 @@ Org B:  Business Unit -> Division -> Facility -> Department
 * **Phase 15 - Scoring engine:** scoring configured per checklist version (question points and weights, N/A and missing-answer policies, section weights, grade bands, critical failures) and sealed with it; one exact-decimal calculation used by the designer preview, the execution and offline sync; an append-only final score recorded at submission with a full explained breakdown; authorized recalculation. Configure it from the checklist builder ([docs/scoring-configuration.md](docs/scoring-configuration.md)).
 * **Phase 16 - Automated evaluation:** declarative rules per checklist version (answers, the stored score, execution facts; AND/OR/NOT with three-valued UNKNOWN semantics, explicit priority and severity precedence), sealed with the version; an append-only, explainable run recorded at submission; controlled actions that call the Findings and Workflow services once per rule and execution. Configure it from the checklist builder ([docs/evaluation-architecture.md](docs/evaluation-architecture.md)).
 * **Phase 17 - Notifications:** business events published after commit (outbox), configurable rules with combined channels and precedence, recipients resolved by RBAC and the owning module's visibility, safe `{{ variable }}` templates, user preferences (optional / operational / mandatory), an in-app inbox and bell, email through Django `MAILERS` or Microsoft Graph (never faking success), a delivery state machine with attempt history, bounded retries, manual retry/resend/cancel, a REST API, admin and commands (`process_notification_events`, `dispatch_notifications`, `emit_due_reminders`, `seed_notification_defaults`, `purge_notifications`, `notification_status`) that the Phase 18 scheduler will call.
+* **Phase 18 - Scheduling:** one-time, delayed and recurring (interval / daily / weekly / monthly, no cron parser) schedules with explicit time zones and daylight-saving rules and misfire policies; a controlled task registry (notification processing and dispatch, notification purge, corrective-action reminders, history cleanup) that only calls existing services; `SKIP LOCKED` claiming with leases and conditional updates, bounded retries with backoff, an attempt history, audit, a dashboard, diagnostics, REST API and the runner command `process_scheduled_jobs` (Windows Task Scheduler / cron). Assignment and workflow-task reminders are not registered because the notification registry has no such events yet.
 
 The REST API root `/api/v1/` lists every endpoint; the OpenAPI schema is at `/api/docs/`.
 
 ## Scope
 
-**Not built yet:** reporting/dashboards, Teams notifications, schedulers and recurring jobs, reopening submitted executions. Also excluded by design: Redis, Celery, microservices, a SPA, a second rules engine, arbitrary user code in workflows.
+**Not built yet:** reporting/dashboards, Teams notifications, reopening submitted executions. Also excluded by design: Redis, Celery, microservices, a SPA, a second rules engine, arbitrary user code in workflows.
 
 ## Documentation
 
@@ -225,12 +227,13 @@ The REST API root `/api/v1/` lists every endpoint; the OpenAPI schema is at `/ap
 * Evidence: [`docs/evidence-architecture.md`](docs/evidence-architecture.md), [`docs/evidence-operations.md`](docs/evidence-operations.md)
 * Findings: [`docs/findings-architecture.md`](docs/findings-architecture.md), [`docs/findings-operations.md`](docs/findings-operations.md)
 * Corrective actions: [`docs/corrective-actions-architecture.md`](docs/corrective-actions-architecture.md), [`docs/corrective-action-lifecycle.md`](docs/corrective-action-lifecycle.md)
+* Scheduling: [`docs/scheduling-architecture.md`](docs/scheduling-architecture.md), [`docs/scheduling-runner-and-operations.md`](docs/scheduling-runner-and-operations.md), [`docs/api/scheduling.md`](docs/api/scheduling.md)
 * Notifications: [`docs/notifications-architecture.md`](docs/notifications-architecture.md), [`docs/notifications-email-and-operations.md`](docs/notifications-email-and-operations.md), [`docs/api/notifications.md`](docs/api/notifications.md)
 * Evaluation: [`docs/evaluation-architecture.md`](docs/evaluation-architecture.md), [`docs/evaluation-rule-sets-and-versioning.md`](docs/evaluation-rule-sets-and-versioning.md), [`docs/evaluation-conditions-and-semantics.md`](docs/evaluation-conditions-and-semantics.md), [`docs/evaluation-integrations-and-idempotency.md`](docs/evaluation-integrations-and-idempotency.md), [`docs/evaluation-example-rule-sets.md`](docs/evaluation-example-rule-sets.md)
 * Scoring: [`docs/scoring-architecture.md`](docs/scoring-architecture.md), [`docs/scoring-configuration.md`](docs/scoring-configuration.md), [`docs/scoring-snapshots-and-offline.md`](docs/scoring-snapshots-and-offline.md)
 * Workflows: [`docs/workflow-architecture.md`](docs/workflow-architecture.md), [`docs/workflow-runtime.md`](docs/workflow-runtime.md), [`docs/workflow-versioning-and-validation.md`](docs/workflow-versioning-and-validation.md), [`docs/workflow-administration.md`](docs/workflow-administration.md)
 * API: [`docs/api/`](docs/api/) (one file per module, including [workflows](docs/api/workflows.md))
-* [`docs/decisions/`](docs/decisions/) - ADRs 0001-0081
+* [`docs/decisions/`](docs/decisions/) - ADRs 0001-0084
 
 ---
 

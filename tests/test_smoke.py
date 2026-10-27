@@ -45,6 +45,7 @@ def test_all_local_apps_are_installed():
         "apps.scoring",
         "apps.evaluation",
         "apps.notifications",
+        "apps.jobs",
         "apps.reporting",
         "apps.api",
     }

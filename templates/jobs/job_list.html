@@ -1,0 +1,27 @@
+﻿{% extends "base.html" %}
+{% load ui jobs_tags %}
+{% block title %}Jobs &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% url 'jobs:dashboard' as c %}{% breadcrumbs "Home" "core:home" "Scheduling" c "Jobs" %}{% endblock %}
+{% block page_header %}{% page_header title="Jobs" subtitle="Every execution request and its outcome. Succeeded means the task finished, not that an email arrived." icon="list-checks" %}{% endpage_header %}{% endblock %}
+
+{% block content %}
+<form method="get" class="mb-4 flex flex-wrap items-end gap-3" role="search">
+  <div><label class="label" for="q">Search</label><input id="q" name="q" value="{{ q }}" class="input" maxlength="80" placeholder="Correlation id or schedule"></div>
+  <div><label class="label" for="status">Status</label><select id="status" name="status" class="input"><option value="">All</option>{% for v, l in statuses %}<option value="{{ v }}" {% if status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div><label class="label" for="task">Task</label><select id="task" name="task" class="input"><option value="">All</option>{% for t in tasks %}<option value="{{ t.code }}" {% if task == t.code %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></div>
+  <button class="btn btn-secondary" type="submit">{% icon "search" %} Filter</button>
+</form>
+<section class="card" aria-label="Jobs">
+  {% if page.object_list %}<div class="table-wrap"><table class="table"><thead><tr><th>Scheduled for</th><th>Task</th><th>Status</th><th class="text-right">Attempts</th><th class="text-right">Duration</th><th>Summary</th><th>Correlation</th></tr></thead><tbody>
+    {% for j in page.object_list %}<tr><td class="text-sm"><a href="{% url 'jobs:job' j.pk %}">{{ j.scheduled_for|date:"M d, Y H:i" }} UTC</a></td><td class="text-sm">{{ j.task_type }}</td>
+      <td>{% if j.status == "succeeded" %}{% tone_badge "Succeeded" "success" icon="circle-check" %}{% elif j.status == "failed" %}{% tone_badge "Failed" "danger" icon="octagon-alert" %}{% elif j.status == "retry_pending" %}{% tone_badge "Will retry" "warning" icon="clock" %}{% elif j.status == "running" or j.status == "claimed" %}{% tone_badge j.get_status_display "info" icon="loader" %}{% else %}{% tone_badge j.get_status_display "neutral" %}{% endif %}</td>
+      <td class="text-right tabular-nums">{{ j.attempt_count }}/{{ j.max_attempts }}</td><td class="text-right tabular-nums">{% if j.duration_ms is not None %}{{ j.duration_ms }} ms{% else %}-{% endif %}</td>
+      <td class="text-sm text-muted-foreground">{{ j.error_message }}</td><td class="font-mono text-xs">{{ j.correlation_id|slice:":8" }}</td></tr>{% endfor %}</tbody></table></div>
+  {% if page.paginator.num_pages > 1 %}<nav class="flex items-center justify-between border-t border-border px-5 py-3 text-sm" aria-label="Pagination">
+    {% if page.has_previous %}<a class="btn btn-secondary btn-sm" href="?page={{ page.previous_page_number }}&q={{ q|urlencode }}&status={{ status }}&task={{ task }}">Previous</a>{% else %}<span></span>{% endif %}
+    <span class="text-muted-foreground">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}<a class="btn btn-secondary btn-sm" href="?page={{ page.next_page_number }}&q={{ q|urlencode }}&status={{ status }}&task={{ task }}">Next</a>{% else %}<span></span>{% endif %}</nav>{% endif %}
+  {% else %}<div class="card-body">{% include "components/states/empty.html" with icon="list-x" title="No jobs" message="Jobs appear here when a schedule is due or a task is run." %}</div>{% endif %}
+</section>
+{% endblock %}
