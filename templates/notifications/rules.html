@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Notification rules &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% url 'notifications:inbox' as crumb %}{% breadcrumbs "Home" "core:home" "Notifications" crumb "Rules" %}{% endblock %}
+{% block page_header %}{% page_header title="Notification rules" subtitle=organization.name icon="settings-2" %}
+  <a class="btn btn-secondary" href="{% url 'notifications:deliveries' %}">{% icon "mail-check" %} Deliveries</a>{% endpage_header %}{% endblock %}
+
+{% block content %}
+<p class="mb-4 max-w-3xl text-sm text-muted-foreground">A rule turns one kind of event into notifications: who is told (resolved on the server, only people who may open the item), through which channels, with which text, and whether people can switch it off. When several rules apply to the same person, their channels combine and the rule with the lowest precedence number decides the text, priority and policy. Rules are edited through the API; disabling one here stops it applying.</p>
+<section class="card" aria-labelledby="nr-title">
+  <div class="card-header"><h2 id="nr-title" class="card-title">Rules <span class="font-normal text-muted-foreground">({{ rules|length }})</span></h2></div>
+  <div class="table-wrap"><table class="table"><thead><tr><th>Rule</th><th>Event</th><th>Channels</th><th>Policy</th><th class="text-right">Precedence</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody>
+    {% for r in rules %}<tr {% if not r.enabled %}class="text-muted-foreground"{% endif %}><td><span class="font-mono text-xs">{{ r.code }}</span> {{ r.name }}{% if r.is_system_default %} <span class="badge badge-neutral">Built-in</span>{% endif %}</td>
+      <td class="text-sm">{{ r.event_label }}</td><td class="text-sm">{{ r.channels|join:", " }}</td><td class="text-sm">{{ r.get_preference_policy_display }}</td><td class="text-right tabular-nums">{{ r.precedence }}</td>
+      <td>{% if r.enabled %}{% tone_badge "Enabled" "success" icon="circle-check" %}{% else %}{% tone_badge "Disabled" "neutral" icon="pause" %}{% endif %}</td>
+      <td class="text-right">{% if can_edit %}<form method="post" action="{% url 'notifications:rule_toggle' r.pk %}">{% csrf_token %}<input type="hidden" name="action" value="{% if r.enabled %}disable{% else %}enable{% endif %}"><button type="submit" class="btn btn-ghost btn-sm">{% if r.enabled %}{% icon "pause" %} Disable{% else %}{% icon "play" %} Enable{% endif %}</button></form>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+<section class="card mt-6" aria-labelledby="nt-title">
+  <div class="card-header"><h2 id="nt-title" class="card-title">Templates</h2></div>
+  {% if templates %}<div class="table-wrap"><table class="table"><thead><tr><th>Code</th><th>Name</th><th>Event</th><th>Version</th><th>Status</th></tr></thead><tbody>
+    {% for t in templates %}<tr><td class="font-mono text-xs">{{ t.code }}</td><td>{{ t.name }}</td><td class="text-sm">{{ t.event_type }}</td><td>v{{ t.version }}</td><td>{{ t.get_status_display }}</td></tr>{% endfor %}</tbody></table></div>
+  {% else %}<p class="card-body text-sm text-muted-foreground">No custom templates: every event uses its built-in text.</p>{% endif %}
+</section>
+{% endblock %}

@@ -367,6 +367,17 @@ NOTIFICATION_EMAIL_PROVIDER = env(
     "NOTIFICATION_EMAIL_PROVIDER",
     "apps.notifications.providers.django_smtp.DjangoEmailProvider",
 )
+#: Phase 17 notifications engine (see docs/notifications-architecture.md).  Delivery is attempted right after a business transaction commits when
+#: ``NOTIFICATION_DISPATCH_INLINE`` is on; with it off, deliveries wait for ``manage.py dispatch_notifications`` (the Phase 18 scheduler's entry point).
+NOTIFICATION_DISPATCH_INLINE = env_bool("NOTIFICATION_DISPATCH_INLINE", True)
+NOTIFICATION_MAX_ATTEMPTS = env_int("NOTIFICATION_MAX_ATTEMPTS", 5)
+NOTIFICATION_BATCH_LIMIT = env_int("NOTIFICATION_BATCH_LIMIT", 50)
+NOTIFICATION_RETENTION_DAYS = env_int("NOTIFICATION_RETENTION_DAYS", 180)
+#: Scheme + host used to build absolute links in emails (an internal *path* is always appended; empty = emails carry the path only).
+NOTIFICATION_BASE_URL = env("NOTIFICATION_BASE_URL", "")
+#: Microsoft Graph sender (see providers/microsoft365.py): the mailbox that sends, used only when that provider is selected.
+NOTIFICATION_GRAPH_SENDER = env("NOTIFICATION_GRAPH_SENDER", "")
+NOTIFICATION_GRAPH_TIMEOUT = env_int("NOTIFICATION_GRAPH_TIMEOUT", 15)
 
 # ---------------------------------------------------------------------------
 # Background tasks (native Django Tasks framework)
@@ -629,6 +640,13 @@ JAZZMIN_SETTINGS = {
         "evaluation.EvaluationRuleSet": "fas fa-gavel",
         "evaluation.EvaluationRun": "fas fa-clipboard-check",
         "evaluation.EvaluationActionRequest": "fas fa-bolt",
+        "notifications.NotificationEvent": "fas fa-inbox",
+        "notifications.NotificationTemplate": "fas fa-file-lines",
+        "notifications.NotificationRule": "fas fa-sliders",
+        "notifications.UserNotificationPreference": "fas fa-user-gear",
+        "notifications.Notification": "fas fa-bell",
+        "notifications.NotificationDelivery": "fas fa-paper-plane",
+        "notifications.DeliveryAttempt": "fas fa-clock-rotate-left",
         "scoring.ScoringConfig": "fas fa-calculator",
         "scoring.ScoreResult": "fas fa-percentage",
         "workflows.WorkflowDefinition": "fas fa-project-diagram",

@@ -39,7 +39,7 @@ ENDPOINTS: dict[str, str] = {
     "corrective_actions": "corrective-actions/", "my_corrective_actions": "my-corrective-actions/", "corrective_actions_verification_queue": "corrective-actions/verification-queue/",
     "corrective_actions_summary": "corrective-actions/summary/",
     # workflows
-    "scoring_metadata": "scoring/metadata/", "evaluation_metadata": "evaluation/metadata/", "workflows": "workflows/", "workflow_metadata": "workflows/metadata/", "workflow_instances": "workflow-instances/",
+    "scoring_metadata": "scoring/metadata/", "evaluation_metadata": "evaluation/metadata/", "notifications": "notifications/", "notification_metadata": "notifications/metadata/", "notification_unread_count": "notifications/unread-count/", "notification_preferences": "notifications/preferences/", "notification_rules": "notifications/rules/", "notification_templates": "notifications/templates/", "notification_deliveries": "notifications/deliveries/", "workflows": "workflows/", "workflow_metadata": "workflows/metadata/", "workflow_instances": "workflow-instances/",
     "workflow_tasks": "workflow-tasks/", "my_workflow_tasks": "my-workflow-tasks/", "workflow_tasks_summary": "workflow-tasks/summary/",
 }
 

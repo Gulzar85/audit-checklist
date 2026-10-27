@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Notification preferences &middot; {{ APP_NAME }}{% endblock %}
+{% block breadcrumbs %}{% url 'notifications:inbox' as crumb %}{% breadcrumbs "Home" "core:home" "Notifications" crumb "Preferences" %}{% endblock %}
+{% block page_header %}{% page_header title="Notification preferences" subtitle=organization.name icon="sliders-horizontal" %}<a class="btn btn-secondary" href="{% url 'notifications:inbox' %}">{% icon "arrow-left" %} Notifications</a>{% endpage_header %}{% endblock %}
+
+{% block content %}
+<p class="mb-4 max-w-3xl text-sm text-muted-foreground">Choose how you hear about each kind of event in {{ organization.name }}. Switching a channel off only affects notifications your organization has marked as optional: <strong>operational</strong> notifications always appear in the app (you can still switch their email off), and <strong>mandatory</strong> ones cannot be switched off.</p>
+<form method="post" class="card max-w-3xl" novalidate>{% csrf_token %}
+  <div class="table-wrap"><table class="table"><thead><tr><th>Category</th><th class="text-center">In the app</th><th class="text-center">By email</th></tr></thead><tbody>
+    {% for row in rows %}<tr><td>{{ row.label }}{% if row.has_mandatory %}<br><span class="text-xs text-muted-foreground">Some notifications in this category are mandatory for your organization.</span>{% endif %}</td>
+      <td class="text-center"><input type="hidden" name="in_app_{{ row.category }}_present" value="1"><input type="checkbox" class="checkbox" name="in_app_{{ row.category }}" {% if row.in_app_enabled %}checked{% endif %} aria-label="{{ row.label }} in the app"></td>
+      <td class="text-center"><input type="hidden" name="email_{{ row.category }}_present" value="1"><input type="checkbox" class="checkbox" name="email_{{ row.category }}" {% if row.email_enabled %}checked{% endif %} aria-label="{{ row.label }} by email"></td></tr>{% endfor %}
+  </tbody></table></div>
+  <div class="card-footer flex justify-end"><button type="submit" class="btn btn-primary">{% icon "save" %} Save preferences</button></div>
+</form>
+{% endblock %}

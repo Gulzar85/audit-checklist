@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Notifications &middot; {{ APP_NAME }}{% endblock %}
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Notifications" %}{% endblock %}
+{% block page_header %}{% page_header title="Notifications" subtitle="What needs your attention. Opening one takes you to the item only if you may see it." icon="bell" %}
+  <a href="{% url 'notifications:preferences' %}" class="btn btn-secondary">{% icon "sliders-horizontal" %} Preferences</a>
+  {% if can_manage %}<a href="{% url 'notifications:rules' %}" class="btn btn-secondary">{% icon "settings-2" %} Rules</a>{% endif %}
+{% endpage_header %}{% endblock %}
+
+{% block content %}
+<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+  <nav class="flex flex-wrap items-center gap-2 text-sm" aria-label="Filter notifications">
+    <a href="?" class="badge {% if not unread and not category %}badge-info{% else %}badge-neutral{% endif %}">All</a>
+    <a href="?filter=unread" class="badge {% if unread %}badge-info{% else %}badge-neutral{% endif %}">Unread{% if unread_count %} ({{ unread_count }}){% endif %}</a>
+    {% for value, label in categories %}<a href="?category={{ value }}" class="badge {% if category == value %}badge-info{% else %}badge-neutral{% endif %}">{{ label }}</a>{% endfor %}
+    <a href="?archived=1" class="badge {% if archived %}badge-info{% else %}badge-neutral{% endif %}">Archived</a>
+  </nav>
+  {% if unread_count %}<form method="post" action="{% url 'notifications:read_all' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button type="submit" class="btn btn-secondary btn-sm">{% icon "check-check" %} Mark all as read</button></form>{% endif %}
+</div>
+
+<section class="card" aria-label="Notifications">
+  {% if page.object_list %}
+  <ul class="divide-y divide-border">
+    {% for n in page.object_list %}
+    <li class="flex flex-wrap items-start justify-between gap-3 px-5 py-4 {% if not n.is_read %}bg-muted/40{% endif %}">
+      <div class="min-w-[14rem] flex-1">
+        <p class="flex flex-wrap items-center gap-2">{% if not n.is_read %}<span class="h-2 w-2 rounded-full bg-primary" aria-hidden="true"></span><span class="sr-only">Unread</span>{% endif %}
+          <span class="font-medium">{{ n.title }}</span>
+          {% if n.priority == "high" %}{% tone_badge "High priority" "warning" icon="triangle-alert" %}{% endif %}
+          <span class="badge badge-neutral">{{ n.get_category_display }}</span></p>
+        {% if n.message %}<p class="mt-1 text-sm">{{ n.message }}</p>{% endif %}
+        <p class="mt-1 text-xs text-muted-foreground">{{ n.created_at|date:"M d, Y H:i" }} · {{ n.created_at|timesince }} ago</p>
+      </div>
+      <div class="flex items-center gap-1">
+        {% if n.destination %}<a href="{% url 'notifications:open' n.pk %}" class="btn btn-secondary btn-sm">{% icon "external-link" %} Open</a>{% endif %}
+        {% if not n.is_read %}<form method="post" action="{% url 'notifications:read' n.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button type="submit" class="btn btn-ghost btn-sm" aria-label="Mark as read: {{ n.title }}">{% icon "check" %} Read</button></form>{% endif %}
+        {% if not n.archived_at %}<form method="post" action="{% url 'notifications:archive' n.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button type="submit" class="btn btn-ghost btn-icon btn-sm" aria-label="Archive: {{ n.title }}">{% icon "archive" %}</button></form>{% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% if page.paginator.num_pages > 1 %}
+  <nav class="flex items-center justify-between border-t border-border px-5 py-3 text-sm" aria-label="Pagination">
+    {% if page.has_previous %}<a class="btn btn-secondary btn-sm" href="?page={{ page.previous_page_number }}{% if unread %}&filter=unread{% endif %}{% if category %}&category={{ category }}{% endif %}">Previous</a>{% else %}<span></span>{% endif %}
+    <span class="text-muted-foreground">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}<a class="btn btn-secondary btn-sm" href="?page={{ page.next_page_number }}{% if unread %}&filter=unread{% endif %}{% if category %}&category={{ category }}{% endif %}">Next</a>{% else %}<span></span>{% endif %}
+  </nav>
+  {% endif %}
+  {% else %}
+    <div class="card-body">{% include "components/states/empty.html" with icon="bell-off" title="Nothing here" message=unread|yesno:"You have no unread notifications.,You have no notifications yet. New assignments, approvals and alerts for you appear here." %}</div>
+  {% endif %}
+</section>
+{% endblock %}

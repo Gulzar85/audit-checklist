@@ -53,6 +53,7 @@ RESOURCE_LABELS: dict[str, str] = {
     "workflow": "Workflows",
     "scoring": "Scoring",
     "evaluation": "Automated evaluation",
+    "notification": "Notifications",
     "report": "Reports",
     "dashboard": "Dashboards",
 }
@@ -167,6 +168,12 @@ REGISTRY: tuple[PermissionDef, ...] = (
     _p("evaluation", "explain", "View the rule and condition level explanation of an evaluation"),
     _p("evaluation", "evaluate", "Preview the evaluation of an execution that is still in progress"),
     _p("evaluation", "reevaluate", "Authorize a re-evaluation of a submitted execution (reason required)"),
+    # Notifications (Phase 17): a user's own notifications need no permission; these are administrative and organization-wide.
+    _p("notification", "view", "View notification rules and templates", org_wide_only=True),
+    _p("notification", "configure", "Create and edit notification rules and templates", org_wide_only=True),
+    _p("notification", "mandatory", "Mark a notification rule as mandatory (users cannot switch it off)", org_wide_only=True),
+    _p("notification", "deliveries", "View the delivery history and attempts of notifications", org_wide_only=True),
+    _p("notification", "retry", "Retry, resend or cancel a notification delivery (reason required)", org_wide_only=True),
     _p("report", "view", "View reports"),
     _p("dashboard", "view", "View dashboards"),
 )
@@ -228,7 +235,8 @@ SYSTEM_ROLES: dict[str, tuple[str, str, tuple[str, ...]]] = {
          P.CORRECTIVE_ACTION_UPDATE, P.CORRECTIVE_ACTION_REASSIGN, P.CORRECTIVE_ACTION_START, P.CORRECTIVE_ACTION_UPDATE_PROGRESS, P.CORRECTIVE_ACTION_BLOCK, P.CORRECTIVE_ACTION_SUBMIT, P.CORRECTIVE_ACTION_REJECT, P.CORRECTIVE_ACTION_CANCEL, P.CORRECTIVE_ACTION_REOPEN,
          P.WORKFLOW_VIEW, P.WORKFLOW_CREATE, P.WORKFLOW_UPDATE_DRAFT, P.WORKFLOW_VALIDATE, P.WORKFLOW_PUBLISH, P.WORKFLOW_ARCHIVE, P.WORKFLOW_START, P.WORKFLOW_TRANSITION, P.WORKFLOW_CANCEL, P.WORKFLOW_INSTANCE_VIEW, P.WORKFLOW_TASK_VIEW, P.WORKFLOW_TASK_CLAIM, P.WORKFLOW_TASK_REASSIGN,
          P.SCORING_CONFIGURE, P.SCORING_SCORE_VIEW, P.SCORING_BREAKDOWN_VIEW, P.SCORING_RECALCULATE, P.SCORING_FINALIZE_RECALCULATE,
-         P.EVALUATION_CONFIGURE, P.EVALUATION_RESULT_VIEW, P.EVALUATION_EXPLAIN, P.EVALUATION_EVALUATE, P.EVALUATION_REEVALUATE),
+         P.EVALUATION_CONFIGURE, P.EVALUATION_RESULT_VIEW, P.EVALUATION_EXPLAIN, P.EVALUATION_EVALUATE, P.EVALUATION_REEVALUATE,
+         P.NOTIFICATION_CONFIGURE, P.NOTIFICATION_DELIVERIES, P.NOTIFICATION_RETRY),
     ),
     "auditor": (
         "Auditor",

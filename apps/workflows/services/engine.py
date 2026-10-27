@@ -23,7 +23,7 @@ from apps.checklists.rules.tri import Tri
 from apps.core.services import stamp_history
 from apps.permissions.registry import P
 
-from .. import assignment, conditions, handlers, policies
+from .. import assignment, conditions, events, handlers, policies
 from ..constants import (
     OPEN_TASK_STATUSES, ActorRule, ApprovalMode, Decision, DefinitionStatus, EventKind, InstanceStatus, OnNoAssignee, Outcome, StateKind, TaskStatus,
     VersionStatus,
@@ -138,6 +138,7 @@ def _enter_state(instance: WorkflowInstance, state: WorkflowState, spec: Any, ob
         if created:
             record_event(instance, EventKind.TASK_CREATED, actor, task=task, to_state=state, metadata={"slot": slot, "assignee": str(user.pk) if user else None})
             log(VERBS["task_created"], instance, actor, f"Task created for {state.name}", task_id=str(task.pk), slot=slot)
+            events.send_on_commit(events.task_created, instance, actor, task=task)
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
@@ -308,6 +309,7 @@ def _perform(instance: WorkflowInstance, action: str, actor: Any, comment: str, 
         reason=comment or None, decision=branch.decision)
     if locked.status == InstanceStatus.COMPLETED:
         log(VERBS["completed"], locked, actor, f"Completed ({locked.outcome})", outcome=locked.outcome)
+        events.send_on_commit(events.instance_finished, locked, actor)
     else:
         _enter_state(locked, branch.target, spec, obj, actor)
         locked.save(update_fields=["state_entered_at", "needs_attention", "updated_at"])
@@ -371,4 +373,5 @@ def cancel(instance: WorkflowInstance, *, actor: Any, reason: str) -> WorkflowIn
     locked.save()
     record_event(locked, EventKind.CANCELLED, actor, comment=reason, from_state=locked.state)
     log(VERBS["cancelled"], locked, actor, f"Cancelled {locked.reference}", reason=reason)
+    events.send_on_commit(events.instance_finished, locked, actor)
     return locked

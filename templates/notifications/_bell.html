@@ -1,0 +1,25 @@
+{% if show %}
+<div class="relative" x-data="dropdown" @keydown.escape="closeAndFocus" @click.outside="close" @keydown="onKeydown">
+  <button type="button" class="btn btn-ghost btn-icon relative" @click="toggle" :aria-expanded="open" aria-haspopup="true"
+          aria-controls="notifications-menu" aria-label="Notifications{% if unread %}, {{ unread }} unread{% endif %}">
+    <i data-lucide="bell" class="h-5 w-5" aria-hidden="true"></i>
+    {% if unread %}<span class="badge badge-danger absolute -right-1 -top-1 min-w-[1.1rem] justify-center px-1 text-[0.65rem] leading-4" data-notification-count>{% if unread > 99 %}99+{% else %}{{ unread }}{% endif %}</span>{% endif %}
+  </button>
+  <div id="notifications-menu" x-show="open" x-cloak class="menu-panel absolute right-0 z-50 mt-2 w-80 max-w-[calc(100vw-1.5rem)] p-0">
+    <div class="flex items-center justify-between border-b border-border px-4 py-3"><p class="text-sm font-semibold">Notifications</p>
+      {% if unread %}<form method="post" action="{% url 'notifications:read_all' %}">{% csrf_token %}<button type="submit" class="text-xs text-primary underline">Mark all read</button></form>{% endif %}</div>
+    {% if items %}
+      <ul class="max-h-80 divide-y divide-border overflow-y-auto">
+        {% for n in items %}<li><a href="{% url 'notifications:open' n.pk %}" class="block px-4 py-3 hover:bg-muted {% if not n.is_read %}font-medium{% endif %}">
+          <span class="flex items-center gap-2 text-sm">{% if not n.is_read %}<span class="h-2 w-2 shrink-0 rounded-full bg-primary" aria-label="Unread"></span>{% endif %}{{ n.title }}</span>
+          {% if n.message %}<span class="mt-0.5 block text-xs text-muted-foreground">{{ n.message|truncatechars:90 }}</span>{% endif %}
+          <span class="mt-0.5 block text-xs text-muted-foreground">{{ n.created_at|timesince }} ago</span></a></li>{% endfor %}
+      </ul>
+    {% else %}
+      <div class="state py-8"><span class="state-icon"><i data-lucide="bell-off" class="h-6 w-6" aria-hidden="true"></i></span><p class="text-sm font-medium text-foreground">You're all caught up</p>
+        <p class="px-4 text-xs text-muted-foreground">New assignments, approvals and alerts for you appear here.</p></div>
+    {% endif %}
+    <div class="flex justify-between border-t border-border px-4 py-2 text-xs"><a href="{% url 'notifications:inbox' %}" class="text-primary underline">All notifications</a><a href="{% url 'notifications:preferences' %}" class="text-muted-foreground underline">Preferences</a></div>
+  </div>
+</div>
+{% endif %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Delivery &middot; {{ APP_NAME }}{% endblock %}
+{% block breadcrumbs %}{% url 'notifications:inbox' as c1 %}{% url 'notifications:deliveries' as c2 %}{% breadcrumbs "Home" "core:home" "Notifications" c1 "Deliveries" c2 "Delivery" %}{% endblock %}
+{% block page_header %}{% page_header title="Delivery" subtitle=delivery.notification.title icon="mail-check" %}<a class="btn btn-secondary" href="{% url 'notifications:deliveries' %}">{% icon "arrow-left" %} Deliveries</a>{% endpage_header %}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <section class="card" aria-labelledby="d-sum"><div class="card-header"><h2 id="d-sum" class="card-title">Status</h2></div>
+    <dl class="card-body grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+      <div><dt class="text-muted-foreground">Channel</dt><dd>{{ delivery.get_channel_display }}</dd></div>
+      <div><dt class="text-muted-foreground">Status</dt><dd>{{ delivery.get_status_display }}{% if delivery.suppressed_reason %} · {{ delivery.suppressed_reason }}{% endif %}</dd></div>
+      <div><dt class="text-muted-foreground">Recipient</dt><dd>{{ delivery.to_masked|default:"in the app" }}</dd></div>
+      <div><dt class="text-muted-foreground">Provider</dt><dd>{{ delivery.provider|default:"-" }}</dd></div>
+      <div><dt class="text-muted-foreground">Accepted by the provider</dt><dd>{{ delivery.accepted_at|date:"M d, Y H:i"|default:"not accepted" }}</dd></div>
+      <div><dt class="text-muted-foreground">Confirmed delivered</dt><dd>{{ delivery.delivered_at|date:"M d, Y H:i"|default:"not confirmed" }}</dd></div>
+      <div><dt class="text-muted-foreground">Attempts</dt><dd>{{ delivery.attempt_count }} of {{ delivery.max_attempts }}</dd></div>
+      <div><dt class="text-muted-foreground">Next attempt</dt><dd>{{ delivery.next_attempt_at|date:"M d, Y H:i"|default:"-" }}</dd></div>
+      {% if delivery.last_error %}<div class="sm:col-span-2"><dt class="text-muted-foreground">Last error</dt><dd>{{ delivery.last_error }}</dd></div>{% endif %}
+      {% if delivery.resend_of %}<div class="sm:col-span-2"><dt class="text-muted-foreground">Resent from</dt><dd><a href="{% url 'notifications:delivery' delivery.resend_of_id %}">the original delivery</a>: {{ delivery.resend_reason }}</dd></div>{% endif %}
+    </dl></section>
+  <section class="card" aria-labelledby="d-att"><div class="card-header"><h2 id="d-att" class="card-title">Attempts</h2></div>
+    {% if attempts %}<div class="table-wrap"><table class="table"><thead><tr><th>#</th><th>Started</th><th>Outcome</th><th>Category</th><th class="text-right">Duration</th></tr></thead><tbody>
+      {% for a in attempts %}<tr><td>{{ a.number }}</td><td class="text-sm">{{ a.started_at|date:"M d H:i:s" }}</td><td>{{ a.get_outcome_display }}</td><td class="text-sm">{{ a.error_category|default:"-" }}</td><td class="text-right tabular-nums">{{ a.duration_ms }} ms</td></tr>{% endfor %}</tbody></table></div>
+    {% else %}<p class="card-body text-sm text-muted-foreground">No attempt has been made yet.</p>{% endif %}</section>
+  {% if can_retry and delivery.channel == "email" %}
+  <section class="card" aria-labelledby="d-act"><div class="card-header"><h2 id="d-act" class="card-title">Operations</h2></div>
+    <form method="post" class="card-body space-y-3" action="">{% csrf_token %}
+      <p class="text-sm text-muted-foreground">A reason is required and is audited. Retry re-queues a failed delivery with a fresh attempt allowance; resend creates a new delivery of the same message; cancel stops it.</p>
+      <label class="label" for="d-reason">Reason</label><input id="d-reason" name="reason" class="input" maxlength="300" required>
+      <div class="flex flex-wrap gap-2">
+        {% if delivery.status == "failed" %}<button type="submit" formaction="{% url 'notifications:delivery_action' delivery.pk 'retry' %}" class="btn btn-primary">{% icon "refresh-cw" %} Retry</button>{% endif %}
+        {% if delivery.status == "sent" or delivery.status == "delivered" or delivery.status == "failed" %}<button type="submit" formaction="{% url 'notifications:delivery_action' delivery.pk 'resend' %}" class="btn btn-secondary">{% icon "send" %} Send again</button>{% endif %}
+        {% if delivery.status == "pending" or delivery.status == "retry_pending" or delivery.status == "failed" %}<button type="submit" formaction="{% url 'notifications:delivery_action' delivery.pk 'cancel' %}" class="btn btn-ghost">{% icon "x" %} Cancel</button>{% endif %}
+      </div></form></section>
+  {% endif %}
+</div>
+{% endblock %}

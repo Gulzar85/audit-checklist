@@ -83,3 +83,6 @@ consequences. New records are appended; existing ones are superseded, not edited
 | [0076](0076-evaluation-rule-sets-scope-and-reuse.md) | Evaluation rule sets belong to the checklist version; Phase 6 and Phase 15 are reused | Accepted |
 | [0077](0077-evaluation-semantics-and-conflict-resolution.md) | Evaluation semantics: UNKNOWN never acts, explicit order, severity precedence | Accepted |
 | [0078](0078-evaluation-runs-actions-and-idempotency.md) | Evaluation runs, controlled actions and idempotency | Accepted |
+| [0079](0079-notification-events-outbox-and-delivery.md) | Notification events, the outbox and delivery after commit | Accepted |
+| [0080](0080-notification-rules-recipients-and-templates.md) | Notification rules, recipients and templates | Accepted |
+| [0081](0081-notification-preferences-retries-and-retention.md) | Notification preferences, retries and retention | Accepted |

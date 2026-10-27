@@ -16,6 +16,7 @@ from .evaluation import (
     VersionEvaluationValidateView, VersionEvaluationView,
 )
 from .evaluation import MetadataView as EvaluationMetadataView
+from . import notifications as nt
 from .scoring import (
     ExecutionScoreBreakdownView, ExecutionScoreHistoryView, ExecutionScoreRecalculateView, ExecutionScoreView, VersionScoringPreviewView, VersionScoringValidateView,
     VersionScoringView,
@@ -71,6 +72,23 @@ urlpatterns = [
     path("executions/<uuid:pk>/evaluation/runs/", ExecutionEvaluationRunsView.as_view(), name="execution-evaluation-runs"),
     path("executions/<uuid:pk>/evaluation/evaluate/", ExecutionEvaluateView.as_view(), name="execution-evaluation-evaluate"),
     path("evaluation-runs/<uuid:pk>/", EvaluationRunDetailView.as_view(), name="evaluation-run"),
+    path("notifications/", nt.NotificationListView.as_view(), name="notifications"),
+    path("notifications/metadata/", nt.MetadataView.as_view(), name="notification-metadata"),
+    path("notifications/unread-count/", nt.UnreadCountView.as_view(), name="notification-unread-count"),
+    path("notifications/mark-read/", nt.BulkReadView.as_view(), name="notification-mark-read"),
+    path("notifications/preferences/", nt.PreferencesView.as_view(), name="notification-preferences"),
+    path("notifications/rules/", nt.RuleListView.as_view(), name="notification-rules"),
+    path("notifications/rules/<uuid:pk>/", nt.RuleDetailView.as_view(), name="notification-rule"),
+    path("notifications/rules/<uuid:pk>/<str:action>/", nt.RuleToggleView.as_view(), name="notification-rule-toggle"),
+    path("notifications/templates/", nt.TemplateListView.as_view(), name="notification-templates"),
+    path("notifications/templates/preview/", nt.TemplatePreviewView.as_view(), name="notification-template-preview"),
+    path("notifications/templates/<uuid:pk>/<str:action>/", nt.TemplateActionView.as_view(), name="notification-template-action"),
+    path("notifications/deliveries/", nt.DeliveryListView.as_view(), name="notification-deliveries"),
+    path("notifications/deliveries/<uuid:pk>/", nt.DeliveryDetailView.as_view(), name="notification-delivery"),
+    path("notifications/deliveries/<uuid:pk>/<str:action>/", nt.DeliveryActionView.as_view(), name="notification-delivery-action"),
+    path("notifications/<uuid:pk>/", nt.NotificationDetailView.as_view(), name="notification"),
+    path("notifications/<uuid:pk>/read/", nt.MarkReadView.as_view(), name="notification-read"),
+    path("notifications/<uuid:pk>/archive/", nt.ArchiveView.as_view(), name="notification-archive"),
     path("checklist-versions/<uuid:pk>/scoring/", VersionScoringView.as_view(), name="version-scoring"),
     path("checklist-versions/<uuid:pk>/scoring/validate/", VersionScoringValidateView.as_view(), name="version-scoring-validate"),
     path("checklist-versions/<uuid:pk>/scoring/preview/", VersionScoringPreviewView.as_view(), name="version-scoring-preview"),

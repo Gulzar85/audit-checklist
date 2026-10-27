@@ -33,6 +33,7 @@ from apps.executions.services.base import lock_execution
 from apps.scoring import selectors as scoring_selectors
 
 from .. import actions as action_registry
+from .. import events as evaluation_events
 from .. import config as cfg
 from .. import constants as k
 from .. import policies, selectors, sources
@@ -186,6 +187,7 @@ def _evaluate(execution: ChecklistExecution, state: Any, *, trigger: str, actor:
     _audit(VERBS["recorded"], execution, actor, f"{execution.reference} evaluated: {run.outcome}", outcome=run.outcome, trigger=trigger, matched=evaluation.matched,
            ruleset_hash=run.ruleset_hash, engine_version=run.engine_version, actions=[{"rule": r.rule_code, "type": r.action_type, "status": r.status} for r in requests],
            previous=str(previous.pk) if previous else None, reason=reason[:200])
+    evaluation_events.send_on_commit(run, actor)
     return run, True
 
 

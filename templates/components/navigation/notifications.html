@@ -1,18 +1,5 @@
 {% comment %}
-Notifications entry point.  The notification module is a later phase, so this shows an honest empty
-state - no fake counts.  When the module exists it supplies `notifications` and an unread count.
+Notifications entry point (Phase 17): the unread count and the latest notifications of the signed-in user, with links to the inbox and the preferences.
+Nothing is shown to an anonymous visitor; the bell never breaks a page (see apps/notifications/templatetags/notification_tags.py).
 {% endcomment %}
-<div class="relative" x-data="dropdown" @keydown.escape="closeAndFocus" @click.outside="close" @keydown="onKeydown">
-  <button type="button" class="btn btn-ghost btn-icon" @click="toggle" :aria-expanded="open" aria-haspopup="true"
-          aria-controls="notifications-menu" aria-label="Notifications">
-    <i data-lucide="bell" class="h-5 w-5" aria-hidden="true"></i>
-  </button>
-  <div id="notifications-menu" x-show="open" x-cloak class="menu-panel absolute right-0 z-50 mt-2 w-80 max-w-[calc(100vw-1.5rem)] p-0">
-    <div class="border-b border-border px-4 py-3"><p class="text-sm font-semibold">Notifications</p></div>
-    <div class="state py-8">
-      <span class="state-icon"><i data-lucide="bell-off" class="h-6 w-6" aria-hidden="true"></i></span>
-      <p class="text-sm font-medium text-foreground">You're all caught up</p>
-      <p class="px-4 text-xs text-muted-foreground">Task and workflow notifications will appear here once those modules are available.</p>
-    </div>
-  </div>
-</div>
+{% load notification_tags %}{% notification_bell %}

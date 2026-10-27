@@ -590,7 +590,7 @@ class TestQueryBudgets:
     def test_authenticated_dashboard_shell(self, client, admin_a, django_assert_max_num_queries):
         client.force_login(admin_a)
         client.get("/")  # warm caches (content types, sessions, RBAC grants)
-        with django_assert_max_num_queries(14):  # +2: the scope-aware location selector
+        with django_assert_max_num_queries(16):  # +2: the scope-aware location selector; +2: the notification bell (unread count and latest items)
             assert client.get("/").status_code == 200
 
     def test_account_page(self, client, admin_a, django_assert_max_num_queries):

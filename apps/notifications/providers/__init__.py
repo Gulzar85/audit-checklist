@@ -8,12 +8,13 @@ placeholder for a later phase.
 
 from __future__ import annotations
 
-from .base import BaseEmailProvider, EmailMessage, EmailProviderError
+from .base import BaseEmailProvider, EmailMessage, EmailProviderError, SendResult
 from .django_smtp import DjangoEmailProvider
 
 __all__ = [
     "BaseEmailProvider",
     "EmailMessage",
     "EmailProviderError",
+    "SendResult",
     "DjangoEmailProvider",
 ]

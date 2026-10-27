@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Notification deliveries &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% url 'notifications:inbox' as crumb %}{% breadcrumbs "Home" "core:home" "Notifications" crumb "Deliveries" %}{% endblock %}
+{% block page_header %}{% page_header title="Notification deliveries" subtitle="Every email and in-app delivery, with its attempts. Sent means the provider accepted it - not that it was read." icon="mail-check" %}{% endpage_header %}{% endblock %}
+
+{% block content %}
+<nav class="mb-4 flex flex-wrap items-center gap-2 text-sm" aria-label="Filter deliveries">
+  <a href="?" class="badge {% if not status and not channel %}badge-info{% else %}badge-neutral{% endif %}">All</a>
+  {% for value, label in statuses %}<a href="?status={{ value }}" class="badge {% if status == value %}badge-info{% else %}badge-neutral{% endif %}">{{ label }}{% for s, n in summary.items %}{% if s == value %} ({{ n }}){% endif %}{% endfor %}</a>{% endfor %}
+</nav>
+<section class="card" aria-label="Deliveries">
+  {% if page.object_list %}
+  <div class="table-wrap"><table class="table"><thead><tr><th>Created</th><th>Channel</th><th>Notification</th><th>Recipient</th><th>Status</th><th class="text-right">Attempts</th><th>Last error</th></tr></thead><tbody>
+    {% for d in page.object_list %}<tr><td class="text-sm"><a href="{% url 'notifications:delivery' d.pk %}">{{ d.created_at|date:"M d H:i" }}</a></td><td class="text-sm">{{ d.get_channel_display }}</td><td class="text-sm">{{ d.notification.title }}</td>
+      <td class="text-sm">{{ d.to_masked|default:"in the app" }}</td>
+      <td>{% if d.status == "sent" %}{% tone_badge "Sent" "info" icon="send" %}{% elif d.status == "delivered" %}{% tone_badge "Delivered" "success" icon="circle-check" %}{% elif d.status == "failed" %}{% tone_badge "Failed" "danger" icon="octagon-alert" %}{% elif d.status == "retry_pending" %}{% tone_badge "Will retry" "warning" icon="clock" %}{% elif d.status == "pending" or d.status == "processing" %}{% tone_badge d.get_status_display "warning" icon="clock" %}{% else %}{% tone_badge d.get_status_display "neutral" %}{% endif %}</td>
+      <td class="text-right tabular-nums">{{ d.attempt_count }}</td><td class="text-sm text-muted-foreground">{{ d.last_error }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% if page.paginator.num_pages > 1 %}<nav class="flex items-center justify-between border-t border-border px-5 py-3 text-sm" aria-label="Pagination">
+    {% if page.has_previous %}<a class="btn btn-secondary btn-sm" href="?page={{ page.previous_page_number }}{% if status %}&status={{ status }}{% endif %}">Previous</a>{% else %}<span></span>{% endif %}
+    <span class="text-muted-foreground">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}<a class="btn btn-secondary btn-sm" href="?page={{ page.next_page_number }}{% if status %}&status={{ status }}{% endif %}">Next</a>{% else %}<span></span>{% endif %}</nav>{% endif %}
+  {% else %}<div class="card-body">{% include "components/states/empty.html" with icon="mail" title="No deliveries" message="Deliveries appear here once an event produces a notification." %}</div>{% endif %}
+</section>
+{% endblock %}

@@ -94,7 +94,7 @@ NAVIGATION: tuple[NavItem, ...] = (
     # --- General ---------------------------------------------------------------------------
     NavItem("dashboard", "Dashboard", "layout-dashboard", "general", url_name="core:home", active=("core:home",)),
     NavItem("my_tasks", "My Tasks", "list-checks", "general"),  # planned
-    NavItem("notifications", "Notifications", "bell", "general"),  # planned
+    NavItem("notifications", "Notifications", "bell", "general", url_name="notifications:inbox", active=("notifications:*",)),
     # --- Checklists (planned) ---------------------------------------------------------------
     NavItem("templates", "Checklist Templates", "clipboard-list", "checklists", url_name="checklists:list",
             visible=can_see("checklist.view"), active=("checklists:*",)),
