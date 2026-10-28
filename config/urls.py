@@ -46,6 +46,7 @@ urlpatterns += [
     path("evaluation/", include("apps.evaluation.urls", namespace="evaluation")),
     path("notifications/", include("apps.notifications.urls", namespace="notifications")),
     path("scheduling/", include("apps.jobs.urls", namespace="jobs")),
+    path("reports/", include("apps.reporting.urls", namespace="reporting")),
     path("evidence/", include("apps.evidence.urls", namespace="evidence")),
     # Versioned REST API.
     path("api/v1/", include(("apps.api.v1.urls", "v1"), namespace="v1")),

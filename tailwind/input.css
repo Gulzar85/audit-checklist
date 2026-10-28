@@ -286,6 +286,8 @@
   .table-wrap {
     position: relative; /* contains absolutely-positioned .sr-only text so it cannot widen the page */
     border-radius: var(--table-radius);
+    max-width: 100%;
+    overflow-x: auto; /* a wide table scrolls inside its card instead of widening the page on small screens */
   }
   .table {
     @apply w-full border-collapse text-left text-sm;

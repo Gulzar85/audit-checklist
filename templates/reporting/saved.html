@@ -1,0 +1,14 @@
+﻿{% extends "base.html" %}
+{% load ui %}
+{% block title %}Saved reports &middot; {{ APP_NAME }}{% endblock %}
+{% block breadcrumbs %}{% url 'reporting:catalogue' as c %}{% breadcrumbs "Home" "core:home" "Reports" c "Saved reports" %}{% endblock %}
+{% block page_header %}{% page_header title="Saved reports" subtitle=organization.name icon="bookmark" %}<a class="btn btn-secondary" href="{% url 'reporting:catalogue' %}">{% icon "arrow-left" %} Reports</a>{% endpage_header %}{% endblock %}
+{% block content %}
+<section class="card" aria-label="Saved reports">{% if rows %}<div class="table-wrap"><table class="table"><thead><tr><th>Name</th><th>Report</th><th>Owner</th><th>Visibility</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody>
+  {% for s in rows %}<tr><td><a class="font-medium" href="{% url 'reporting:report' s.report_code %}?{{ s.query }}">{{ s.name }}</a>{% if s.description %}<br><span class="text-xs text-muted-foreground">{{ s.description }}</span>{% endif %}</td>
+    <td class="text-sm">{{ s.report_title }}</td><td class="text-sm">{% if s.mine %}You{% else %}{{ s.owner.get_short_name }}{% endif %}</td><td class="text-sm">{{ s.get_visibility_display }}</td>
+    <td class="text-right"><div class="flex justify-end gap-1"><a class="btn btn-secondary btn-sm" href="{% url 'reporting:report' s.report_code %}?{{ s.query }}">{% icon "play" %} Run</a>
+      <form method="post" action="{% url 'reporting:saved_action' s.pk 'duplicate' %}">{% csrf_token %}<button class="btn btn-ghost btn-sm" type="submit">{% icon "copy" %} Duplicate</button></form>
+      {% if s.mine %}<form method="post" action="{% url 'reporting:saved_action' s.pk 'delete' %}">{% csrf_token %}<button class="btn btn-ghost btn-sm" type="submit" aria-label="Delete {{ s.name }}">{% icon "trash-2" %}</button></form>{% endif %}</div></td></tr>{% endfor %}
+</tbody></table></div>{% else %}<div class="card-body">{% include "components/states/empty.html" with icon="bookmark" title="No saved reports" message="Run a report and use Save this configuration to keep it." %}</div>{% endif %}</section>
+{% endblock %}

@@ -18,6 +18,7 @@ from .evaluation import (
 from .evaluation import MetadataView as EvaluationMetadataView
 from . import notifications as nt
 from . import scheduling as sc
+from . import reports as rp
 from .scoring import (
     ExecutionScoreBreakdownView, ExecutionScoreHistoryView, ExecutionScoreRecalculateView, ExecutionScoreView, VersionScoringPreviewView, VersionScoringValidateView,
     VersionScoringView,
@@ -99,6 +100,17 @@ urlpatterns = [
     path("scheduling/jobs/<uuid:pk>/", sc.JobDetailView.as_view(), name="scheduling-job"),
     path("scheduling/jobs/<uuid:pk>/<str:action>/", sc.JobActionView.as_view(), name="scheduling-job-action"),
     path("scheduling/diagnostics/", sc.DiagnosticsView.as_view(), name="scheduling-diagnostics"),
+    path("reports/", rp.ReportListView.as_view(), name="reports"),
+    path("reports/saved/", rp.SavedListView.as_view(), name="reports-saved"),
+    path("reports/saved/<uuid:pk>/", rp.SavedDetailView.as_view(), name="reports-saved-detail"),
+    path("reports/saved/<uuid:pk>/<str:action>/", rp.SavedActionView.as_view(), name="reports-saved-action"),
+    path("reports/runs/", rp.RunListView.as_view(), name="reports-runs"),
+    path("reports/runs/<uuid:pk>/", rp.RunDetailView.as_view(), name="reports-run"),
+    path("reports/runs/<uuid:pk>/download/", rp.DownloadView.as_view(), name="reports-download"),
+    path("reports/<str:code>/", rp.ReportDetailView.as_view(), name="reports-detail"),
+    path("reports/<str:code>/validate/", rp.ValidateView.as_view(), name="reports-validate"),
+    path("reports/<str:code>/run/", rp.RunView.as_view(), name="reports-run-report"),
+    path("reports/<str:code>/export/", rp.ExportView.as_view(), name="reports-export"),
     path("checklist-versions/<uuid:pk>/scoring/", VersionScoringView.as_view(), name="version-scoring"),
     path("checklist-versions/<uuid:pk>/scoring/validate/", VersionScoringValidateView.as_view(), name="version-scoring-validate"),
     path("checklist-versions/<uuid:pk>/scoring/preview/", VersionScoringPreviewView.as_view(), name="version-scoring-preview"),

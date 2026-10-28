@@ -1,0 +1,14 @@
+﻿{% extends "base.html" %}
+{% load ui %}
+{% block title %}Export &middot; {{ APP_NAME }}{% endblock %}
+{% block breadcrumbs %}{% url 'reporting:catalogue' as c1 %}{% url 'reporting:runs' as c2 %}{% breadcrumbs "Home" "core:home" "Reports" c1 "Export history" c2 "Export" %}{% endblock %}
+{% block page_header %}{% page_header title=report_title subtitle=run.get_format_display icon="download" %}<a class="btn btn-secondary" href="{% url 'reporting:runs' %}">{% icon "arrow-left" %} Export history</a>{% endpage_header %}{% endblock %}
+{% block content %}
+<section class="card max-w-3xl" aria-labelledby="r-t"><div class="card-header"><h2 id="r-t" class="card-title">Status</h2></div>
+  <dl class="card-body grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+    <div><dt class="text-muted-foreground">Status</dt><dd>{{ run.get_status_display }}</dd></div><div><dt class="text-muted-foreground">Requested</dt><dd>{{ run.created_at|date:"M d, Y H:i" }}</dd></div>
+    <div><dt class="text-muted-foreground">Rows</dt><dd>{{ run.row_count|default_if_none:"-" }}</dd></div><div><dt class="text-muted-foreground">Duration</dt><dd>{% if run.duration_ms is not None %}{{ run.duration_ms }} ms{% else %}-{% endif %}</dd></div>
+    <div><dt class="text-muted-foreground">Available until</dt><dd>{{ run.expires_at|date:"M d, Y H:i"|default:"-" }}</dd></div><div><dt class="text-muted-foreground">Reference</dt><dd class="font-mono text-xs">{{ run.correlation_id }}</dd></div>
+    {% if run.error_message %}<div class="sm:col-span-2"><dt class="text-muted-foreground">Problem</dt><dd>{{ run.error_message }}</dd></div>{% endif %}</dl>
+  <div class="card-footer flex justify-end gap-2">{% if downloadable %}<a class="btn btn-primary" href="{% url 'reporting:download' run.pk %}">{% icon "download" %} Download</a>{% elif run.status == "queued" or run.status == "running" %}<span class="text-sm text-muted-foreground">Being prepared by the background runner. Refresh to check.</span>{% endif %}</div></section>
+{% endblock %}

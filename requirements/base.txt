@@ -33,3 +33,6 @@ django-jazzmin>=3.0.5,<3.1   # pinned: admin CSP hashes track its inline scripts
 
 # Imaging (avatars, evidence thumbnails in later phases)
 Pillow>=11.0
+
+# XLSX report export (Phase 19)
+openpyxl>=3.1,<4

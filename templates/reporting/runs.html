@@ -1,0 +1,12 @@
+﻿{% extends "base.html" %}
+{% load ui %}
+{% block title %}Export history &middot; {{ APP_NAME }}{% endblock %}
+{% block breadcrumbs %}{% url 'reporting:catalogue' as c %}{% breadcrumbs "Home" "core:home" "Reports" c "Export history" %}{% endblock %}
+{% block page_header %}{% page_header title="Export history" subtitle="Your exports. Files are private and expire." icon="history" %}<a class="btn btn-secondary" href="{% url 'reporting:catalogue' %}">{% icon "arrow-left" %} Reports</a>{% endpage_header %}{% endblock %}
+{% block content %}
+<section class="card" aria-label="Exports">{% if runs %}<div class="table-wrap"><table class="table"><thead><tr><th>Requested</th><th>Report</th><th>Format</th><th>Status</th><th class="text-right">Rows</th><th>Available until</th></tr></thead><tbody>
+  {% for r in runs %}<tr><td class="text-sm"><a href="{% url 'reporting:run' r.pk %}">{{ r.created_at|date:"M d, Y H:i" }}</a></td><td class="text-sm">{{ r.report_title }}</td><td>{{ r.get_format_display }}</td>
+    <td>{% if r.status == "succeeded" %}{% tone_badge "Ready" "success" icon="circle-check" %}{% elif r.status == "failed" %}{% tone_badge "Failed" "danger" icon="octagon-alert" %}{% elif r.status == "expired" %}{% tone_badge "Expired" "neutral" %}{% else %}{% tone_badge r.get_status_display "warning" icon="clock" %}{% endif %}</td>
+    <td class="text-right tabular-nums">{{ r.row_count|default_if_none:"-" }}</td><td class="text-sm">{{ r.expires_at|date:"M d H:i"|default:"-" }}</td></tr>{% endfor %}</tbody></table></div>
+{% else %}<div class="card-body">{% include "components/states/empty.html" with icon="history" title="No exports yet" message="Exports you request appear here." %}</div>{% endif %}</section>
+{% endblock %}

@@ -89,3 +89,6 @@ consequences. New records are appended; existing ones are superseded, not edited
 | [0082](0082-scheduler-execution-strategy.md) | Scheduler execution strategy: a DB-backed queue run by a management command | Accepted |
 | [0083](0083-scheduler-leases-and-idempotency.md) | Leases, conditional updates and idempotency | Accepted |
 | [0084](0084-scheduling-time-zones-misfires-and-registry.md) | Time zones, misfires and the task registry | Accepted |
+| [0085](0085-reporting-registry-and-scope.md) | Reporting: a controlled registry over the modules' scoped selectors | Accepted |
+| [0086](0086-report-exports-and-private-artifacts.md) | Report exports and private artifacts | Accepted |
+| [0087](0087-report-runs-saved-reports-and-background-generation.md) | Report runs, saved reports and background generation | Accepted |

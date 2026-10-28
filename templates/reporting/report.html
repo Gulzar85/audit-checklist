@@ -1,0 +1,52 @@
+﻿{% extends "base.html" %}
+{% load ui reporting_tags %}
+{% block title %}{{ report.title }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% url 'reporting:catalogue' as c %}{% breadcrumbs "Home" "core:home" "Reports" c report.title %}{% endblock %}
+{% block page_header %}{% page_header title=report.title subtitle=report.description icon="chart-column" %}<a class="btn btn-secondary" href="{% url 'reporting:catalogue' %}">{% icon "arrow-left" %} Reports</a>{% endpage_header %}{% endblock %}
+
+{% block content %}
+<form method="get" class="card mb-4" aria-label="Report filters"><div class="card-body grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <div><label class="label" for="f_date_from">From</label><input id="f_date_from" type="date" name="f_date_from" value="{{ raw.filters.date_from }}" class="input"></div>
+  <div><label class="label" for="f_date_to">To (inclusive)</label><input id="f_date_to" type="date" name="f_date_to" value="{{ raw.filters.date_to }}" class="input"></div>
+  {% for f in report.filters %}{% if people or not f.people %}
+  <div><label class="label" for="f_{{ f.key }}">{{ f.label }}</label>
+    {% if f.key == "location" %}<select id="f_location" name="f_location" class="input"><option value="">All my locations</option>{% for l in locations %}<option value="{{ l.pk }}" {% if raw.filters.location == l.pk|stringformat:"s" %}selected{% endif %}>{{ l.name }}</option>{% endfor %}</select>
+    {% elif f.key == "template" %}<select id="f_template" name="f_template" class="input"><option value="">All</option>{% for t in templates %}<option value="{{ t.pk }}" {% if raw.filters.template == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select>
+    {% elif f.kind == "choice" %}<select id="f_{{ f.key }}" name="f_{{ f.key }}" class="input"><option value="">All</option>{% for value, label in f.choices %}<option value="{{ value }}" {% if spec_values|lookup:f.key == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    {% elif f.key == "include_descendants" %}<select id="f_include_descendants" name="f_include_descendants" class="input"><option value="1">Yes</option><option value="0" {% if raw.filters.include_descendants is False %}selected{% endif %}>No - only the chosen location</option></select>
+    {% elif f.kind == "bool" %}<label class="flex items-center gap-2 pt-2 text-sm"><input type="checkbox" class="checkbox" id="f_{{ f.key }}" name="f_{{ f.key }}" value="1" {% if spec_values|lookup:f.key %}checked{% endif %}> Yes</label>
+    {% else %}<input id="f_{{ f.key }}" name="f_{{ f.key }}" value="{{ spec_values|lookup:f.key }}" class="input" maxlength="36" placeholder="Identifier">{% endif %}</div>
+  {% endif %}{% endfor %}
+  {% if report.group_by %}<div><label class="label" for="group_by">Group by</label><select id="group_by" name="group_by" class="input"><option value="">Overall</option>{% for value, label in report.group_by %}<option value="{{ value }}" {% if raw.group_by == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>{% endif %}
+  <div><label class="label" for="sort">Sort by</label><select id="sort" name="sort" class="input"><option value="">Default</option>{% for c in report.columns %}{% if people or not c.people %}<option value="{{ c.key }}" {% if raw.sort == c.key %}selected{% endif %}>{{ c.label }} (asc)</option><option value="-{{ c.key }}" {% if raw.sort == "-"|add:c.key %}selected{% endif %}>{{ c.label }} (desc)</option>{% endif %}{% endfor %}</select></div>
+  {% if report.kind == "list" %}<fieldset class="sm:col-span-2 lg:col-span-4"><legend class="label">Columns</legend><div class="flex flex-wrap gap-x-4 gap-y-1 text-sm">{% for c in report.columns %}{% if people or not c.people %}<label class="flex items-center gap-1"><input type="checkbox" class="checkbox" name="columns" value="{{ c.key }}" {% if c.key in col_keys or not col_keys and c.default %}checked{% endif %}> {{ c.label }}</label>{% endif %}{% endfor %}</div></fieldset>{% endif %}
+</div><div class="card-footer flex justify-end gap-2"><a class="btn btn-ghost" href="{% url 'reporting:report' report.code %}">Reset</a><button class="btn btn-primary" type="submit">{% icon "search" %} Run report</button></div></form>
+
+{% if error %}<div class="alert alert-danger mb-4" role="alert">{{ error }}</div>{% endif %}
+{% if result %}
+<section class="card" aria-label="Results">
+  <div class="card-header flex flex-wrap items-center justify-between gap-2"><div><h2 class="card-title">{{ result.total }} row{{ result.total|pluralize }}</h2>
+    <p class="text-xs text-muted-foreground">Generated {{ result.generated_at|date:"M d, Y H:i" }} · period {{ result.params.start|date:"M d, Y" }} to {{ result.params.end|date_before }} (by {{ report.date_label|default:"report definition" }}){% if result.truncated %} · limited to {{ report.max_rows }} rows{% endif %}</p></div>
+    {% if can_export %}<form method="post" action="{% url 'reporting:export' report.code %}" class="flex items-center gap-2">{% csrf_token %}<input type="hidden" name="query" value="{{ query }}">
+      <label class="sr-only" for="export-format">Format</label><select id="export-format" name="format" class="input">{% for value, label in formats %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
+      <button class="btn btn-secondary" type="submit">{% icon "download" %} Export</button></form>{% endif %}</div>
+  {% if result.rows %}<div class="table-wrap"><table class="table"><thead><tr>{% for c in result.columns %}<th{% if c.kind == "int" or c.kind == "decimal" or c.kind == "duration" %} class="text-right"{% endif %}>{{ c.label }}</th>{% endfor %}</tr></thead><tbody>
+    {% for row in result.rows %}<tr>{% for c in result.columns %}<td{% if c.kind == "int" or c.kind == "decimal" or c.kind == "duration" %} class="text-right tabular-nums"{% endif %}>{{ row|cell:c }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+    {% if result.pages > 1 %}<nav class="flex items-center justify-between border-t border-border px-5 py-3 text-sm" aria-label="Pagination">
+      {% if result.page > 1 %}<a class="btn btn-secondary btn-sm" href="?{{ query }}&page={{ result.page|add:'-1' }}">Previous</a>{% else %}<span></span>{% endif %}
+      <span class="text-muted-foreground">Page {{ result.page }} of {{ result.pages }}</span>
+      {% if result.page < result.pages %}<a class="btn btn-secondary btn-sm" href="?{{ query }}&page={{ result.page|add:'1' }}">Next</a>{% else %}<span></span>{% endif %}</nav>{% endif %}
+  {% else %}<div class="card-body">{% include "components/states/empty.html" with icon="table" title="No rows" message="Nothing matches these filters within the locations you may report on." %}</div>{% endif %}
+</section>
+{% if report.notes %}<p class="mt-3 text-xs text-muted-foreground">{{ report.notes }}</p>{% endif %}
+<details class="card mt-4"><summary class="card-body cursor-pointer text-sm font-medium">Save this configuration</summary>
+  <form method="post" action="{% url 'reporting:save' report.code %}" class="card-body space-y-3 border-t border-border">{% csrf_token %}<input type="hidden" name="query" value="{{ query }}">
+    <div><label class="label" for="s-name">Name</label><input id="s-name" name="name" class="input" maxlength="120" required></div>
+    <div><label class="label" for="s-desc">Description</label><input id="s-desc" name="description" class="input" maxlength="500"></div>
+    <div class="flex flex-wrap gap-4"><div><label class="label" for="s-vis">Visible to</label><select id="s-vis" name="visibility" class="input"><option value="private">Only me</option>{% if can_share %}<option value="organization">The whole organization</option>{% endif %}</select></div>
+      <div><label class="label" for="s-fmt">Default export</label><select id="s-fmt" name="default_format" class="input"><option value="">None</option>{% for value, label in formats %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div></div>
+    <p class="text-xs text-muted-foreground">A saved report keeps this configuration, not your access: whoever runs it is checked against their own permissions.</p>
+    <button class="btn btn-primary" type="submit">{% icon "bookmark-plus" %} Save</button></form></details>
+{% endif %}
+{% endblock %}

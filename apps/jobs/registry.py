@@ -24,7 +24,7 @@ SCOPE_BOTH = "both"  # one organization, or (superusers) every organization
 class Field:
     """One payload field: an integer in ``[minimum, maximum]``, a boolean, or a string from ``choices``."""
 
-    kind: str  # "int" | "bool" | "choice"
+    kind: str  # "int" | "bool" | "choice" | "uuid"
     default: Any
     minimum: int = 0
     maximum: int = 0
@@ -100,6 +100,13 @@ def clean_payload(task: Task, raw: Any) -> dict[str, Any]:
         elif spec.kind == "int":
             if isinstance(value, bool) or not isinstance(value, int) or not spec.minimum <= value <= spec.maximum:
                 raise JobError(f"{name} must be a whole number from {spec.minimum} to {spec.maximum}.", "invalid_payload")
+        elif spec.kind == "uuid":
+            from apps.core.utils import parse_uuid
+
+            parsed = parse_uuid(value) if isinstance(value, str) else None
+            if parsed is None:
+                raise JobError(f"{name} must be an identifier.", "invalid_payload")
+            value = str(parsed)
         elif spec.kind == "choice":
             if value not in spec.choices:
                 raise JobError(f"{name} must be one of: {', '.join(spec.choices)}.", "invalid_payload")

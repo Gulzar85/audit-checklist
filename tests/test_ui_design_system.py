@@ -124,9 +124,9 @@ class TestApplicationShell:
 class TestNavigation:
     def test_unbuilt_modules_are_declared_but_never_rendered(self, client, admin_a):
         html = page(client, admin_a, "/")
-        for label in ("Checklist Templates", "Reports", "My Tasks", "Roles &amp; Permissions"):
+        for label in ("Checklist Templates", "My Tasks", "Roles &amp; Permissions"):
             assert label not in html, label
-        assert {"reports", "settings"} <= set(navigation.PLANNED)  # findings and corrective actions are built (Phases 12-13)
+        assert "settings" in navigation.PLANNED and "reports" not in navigation.PLANNED  # findings, corrective actions (Phases 12-13) and reports (Phase 19) are built
 
     def test_built_modules_are_listed_in_their_sections(self, client, staff_user):
         html = page(client, staff_user, "/")

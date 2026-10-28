@@ -375,6 +375,11 @@ NOTIFICATION_MAX_ATTEMPTS = env_int("NOTIFICATION_MAX_ATTEMPTS", 5)
 NOTIFICATION_BATCH_LIMIT = env_int("NOTIFICATION_BATCH_LIMIT", 50)
 NOTIFICATION_RETENTION_DAYS = env_int("NOTIFICATION_RETENTION_DAYS", 180)
 #: Scheme + host used to build absolute links in emails (an internal *path* is always appended; empty = emails carry the path only).
+# --- Reporting (Phase 19): see docs/reporting-architecture.md.  Exports are private files outside static / media.
+REPORT_ARTIFACT_ROOT = env("REPORT_ARTIFACT_ROOT", "")  # empty: <BASE_DIR>/private/reports
+REPORT_ARTIFACT_RETENTION_HOURS = env_int("REPORT_ARTIFACT_RETENTION_HOURS", 72)
+REPORT_RUN_RETENTION_DAYS = env_int("REPORT_RUN_RETENTION_DAYS", 90)
+
 # --- Scheduling (Phase 18): see docs/scheduling-architecture.md. Defaults are safe; every limit is also capped in apps/jobs/constants.py.
 #: "poll" (default): the runner command (``manage.py process_scheduled_jobs``) picks jobs up.  "django_tasks": a manual run-now is additionally handed to the configured Django Tasks backend (needs a real worker; see the docs).
 JOBS_EXECUTION_BACKEND = env("JOBS_EXECUTION_BACKEND", "poll")
@@ -661,6 +666,8 @@ JAZZMIN_SETTINGS = {
         "jobs.ScheduledJob": "fas fa-list-check",
         "jobs.JobExecution": "fas fa-clock-rotate-left",
         "jobs.RunnerHeartbeat": "fas fa-heart-pulse",
+        "reporting.SavedReport": "fas fa-bookmark",
+        "reporting.ReportRun": "fas fa-file-export",
         "scoring.ScoringConfig": "fas fa-calculator",
         "scoring.ScoreResult": "fas fa-percentage",
         "workflows.WorkflowDefinition": "fas fa-project-diagram",

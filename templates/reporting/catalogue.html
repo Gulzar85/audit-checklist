@@ -1,0 +1,21 @@
+﻿{% extends "base.html" %}
+{% load ui %}
+{% block title %}Reports &middot; {{ APP_NAME }}{% endblock %}
+{% block breadcrumbs %}{% breadcrumbs "Home" "core:home" "Reports" %}{% endblock %}
+{% block page_header %}{% page_header title="Reports" subtitle=organization.name icon="chart-column" %}
+  <a class="btn btn-secondary" href="{% url 'reporting:saved' %}">{% icon "bookmark" %} Saved reports</a>
+  <a class="btn btn-secondary" href="{% url 'reporting:runs' %}">{% icon "history" %} Export history</a>{% endpage_header %}{% endblock %}
+
+{% block content %}
+{% for category, reports in groups.items %}
+<section class="mb-6" aria-labelledby="cat-{{ forloop.counter }}"><h2 id="cat-{{ forloop.counter }}" class="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">{{ category }}</h2>
+  <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    {% for r in reports %}<a class="card card-body block hover:bg-muted" href="{% url 'reporting:report' r.code %}">
+      <p class="font-medium">{{ r.title }}</p><p class="mt-1 text-sm text-muted-foreground">{{ r.description }}</p>
+      <p class="mt-3 text-xs text-muted-foreground">Filters: {% for f in r.filters %}{{ f.label }}{% if not forloop.last %}, {% endif %}{% empty %}none{% endfor %}</p>
+      <p class="mt-1 text-xs text-muted-foreground">Exports: {% if can_export %}{{ r.formats|join:", "|upper }}{% else %}not permitted{% endif %}</p></a>{% endfor %}
+  </div></section>
+{% empty %}
+  <div class="card card-body">{% include "components/states/empty.html" with icon="chart-column" title="No reports available" message="Your role does not include any report yet. Ask an administrator for the Reports permission." %}</div>
+{% endfor %}
+{% endblock %}
