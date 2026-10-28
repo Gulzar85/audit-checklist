@@ -113,7 +113,7 @@ NAVIGATION: tuple[NavItem, ...] = (
             active=("workflows:list", "workflows:create", "workflows:detail", "workflows:edit", "workflows:version")),
     # --- Analytics (planned) ----------------------------------------------------------------
     NavItem("reports", "Reports", "chart-column", "analytics", url_name="reporting:catalogue", visible=can_see("report.view"), active=("reporting:*",)),
-    NavItem("dashboards", "Dashboards", "chart-no-axes-combined", "analytics"),
+    NavItem("dashboards", "Dashboards", "chart-no-axes-combined", "analytics", url_name="dashboards:index", visible=can_see("dashboard.view"), active=("dashboards:*",)),
     # --- Administration ---------------------------------------------------------------------
     NavItem("organizations", "Organizations", "building-2", "administration",
             url_name="organizations:list", active=("organizations:*",)),

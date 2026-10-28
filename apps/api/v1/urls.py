@@ -19,6 +19,7 @@ from .evaluation import MetadataView as EvaluationMetadataView
 from . import notifications as nt
 from . import scheduling as sc
 from . import reports as rp
+from . import dashboards as db
 from .scoring import (
     ExecutionScoreBreakdownView, ExecutionScoreHistoryView, ExecutionScoreRecalculateView, ExecutionScoreView, VersionScoringPreviewView, VersionScoringValidateView,
     VersionScoringView,
@@ -100,6 +101,13 @@ urlpatterns = [
     path("scheduling/jobs/<uuid:pk>/", sc.JobDetailView.as_view(), name="scheduling-job"),
     path("scheduling/jobs/<uuid:pk>/<str:action>/", sc.JobActionView.as_view(), name="scheduling-job-action"),
     path("scheduling/diagnostics/", sc.DiagnosticsView.as_view(), name="scheduling-diagnostics"),
+    path("dashboards/", db.DashboardListView.as_view(), name="dashboards"),
+    path("dashboards/kpis/", db.KpiListView.as_view(), name="dashboards-kpis"),
+    path("dashboards/widgets/<str:widget>/data/", db.WidgetDataView.as_view(), name="dashboards-widget-data"),
+    path("dashboards/<str:code>/", db.DashboardDetailView.as_view(), name="dashboards-detail"),
+    path("dashboards/<str:code>/data/", db.DashboardDataView.as_view(), name="dashboards-data"),
+    path("dashboards/<str:code>/layout/", db.LayoutView.as_view(), name="dashboards-layout"),
+    path("dashboards/<str:code>/layout/shared/", db.SharedLayoutView.as_view(), name="dashboards-layout-shared"),
     path("reports/", rp.ReportListView.as_view(), name="reports"),
     path("reports/saved/", rp.SavedListView.as_view(), name="reports-saved"),
     path("reports/saved/<uuid:pk>/", rp.SavedDetailView.as_view(), name="reports-saved-detail"),

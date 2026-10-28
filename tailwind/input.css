@@ -913,3 +913,36 @@
     transform: translateY(0);
   }
 }
+
+/* --- Dashboards (Phase 20): server-rendered SVG charts and widget grid.  Colors come from the theme tokens only. --- */
+@layer components {
+  .chart { width: 100%; height: auto; overflow: visible; }
+  .chart-label, .chart-value, .chart-tick { fill: var(--color-muted-foreground); font-size: 18px; }
+  .chart-value { fill: var(--color-foreground); font-variant-numeric: tabular-nums; }
+  .chart-total { fill: var(--color-foreground); font-size: 34px; font-weight: 600; }
+  .chart-legend { fill: var(--color-foreground); font-size: 28px; }
+  .chart-axis { stroke: var(--color-border); stroke-width: 1; }
+  .chart-grid { stroke: var(--color-border); stroke-width: 1; stroke-dasharray: 2 3; }
+  .chart-bar.chart-s1, .chart-point.chart-s1 { fill: var(--color-primary); }
+  .chart-bar.chart-s2, .chart-point.chart-s2 { fill: var(--color-info); }
+  .chart-bar.chart-s2 { fill-opacity: 0.85; stroke: var(--color-foreground); stroke-width: 0.5; }
+  .chart-line { fill: none; stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+  .chart-line.chart-s1 { stroke: var(--color-primary); }
+  .chart-line.chart-s2 { stroke: var(--color-info); stroke-dasharray: 6 4; }
+  .chart-seg { fill: none; stroke-width: 48; transform: rotate(-90deg); transform-origin: 240px 130px; }
+  .chart-seg.chart-c1 { stroke: var(--color-primary); } .chart-swatch.chart-c1 { fill: var(--color-primary); }
+  .chart-seg.chart-c2 { stroke: var(--color-info); } .chart-swatch.chart-c2 { fill: var(--color-info); }
+  .chart-seg.chart-c3 { stroke: var(--color-warning); } .chart-swatch.chart-c3 { fill: var(--color-warning); }
+  .chart-seg.chart-c4 { stroke: var(--color-success); } .chart-swatch.chart-c4 { fill: var(--color-success); }
+  .chart-seg.chart-c5 { stroke: var(--color-danger); } .chart-swatch.chart-c5 { fill: var(--color-danger); }
+  .chart-seg.chart-c6 { stroke: var(--color-neutral); } .chart-swatch.chart-c6 { fill: var(--color-neutral); }
+  .dash-widget { min-width: 0; }
+  @media (min-width: 640px) { .dash-size-2, .dash-size-4 { grid-column: span 2 / span 2; } }
+  @media (min-width: 1280px) { .dash-size-4 { grid-column: span 4 / span 4; } }
+  .dash-skeleton { height: 4.5rem; border-radius: var(--card-radius); background: color-mix(in srgb, var(--color-muted) 70%, transparent); }
+  .dash-delta { font-weight: 600; color: var(--color-foreground); }
+  .dash-good { color: color-mix(in srgb, var(--color-success) 80%, var(--color-foreground)); }
+  .dash-bad { color: color-mix(in srgb, var(--color-danger) 80%, var(--color-foreground)); }
+  .dash-legend::before { content: ""; display: inline-block; width: 1rem; height: 0; margin-right: 0.35rem; vertical-align: middle; border-top: 2px solid var(--color-primary); }
+  .dash-legend-2::before { border-top: 2px dashed var(--color-info); }
+}

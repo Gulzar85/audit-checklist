@@ -1,0 +1,36 @@
+﻿{% load charts dashboard_tags %}
+<div class="card-body">
+  <div class="flex items-start justify-between gap-2">
+    <h2 class="text-sm font-semibold">{{ w.title }}</h2>
+    {% if w.drill %}<a class="text-xs text-primary underline" href="{{ w.drill }}">Details<span class="sr-only"> for {{ w.title }}</span></a>{% endif %}
+  </div>
+  {% if w.status == "error" %}
+    <p class="mt-3 text-sm text-danger" role="alert">{{ w.error }}</p>
+    <button type="button" class="btn btn-ghost btn-sm mt-2" hx-get="{% url 'dashboards:widget' dashboard.code w.code %}?{{ query }}" hx-target="closest section" hx-swap="innerHTML">Try again</button>
+  {% elif w.kind == "kpi" %}
+    {% if w.status == "not_comparable" %}
+      <p class="mt-2 text-2xl font-semibold">-</p><p class="text-xs text-muted-foreground">{{ w.note }}</p>
+    {% elif w.status == "empty" %}
+      <p class="mt-2 text-2xl font-semibold">-</p><p class="text-xs text-muted-foreground">{{ w.note|default:"No data in this period." }}</p>
+    {% else %}
+      <p class="mt-2 text-3xl font-semibold tabular-nums">{{ w.value|chart_fmt:w.unit }}</p>
+      {% if w.note %}<p class="text-xs text-muted-foreground">{{ w.note }}</p>{% endif %}
+      {% if w.change_pct is not None %}<p class="mt-1 text-xs"><span class="dash-delta {% if w.better == 'up' and w.change_pct > 0 or w.better == 'down' and w.change_pct < 0 %}dash-good{% elif w.better and w.change_pct != 0 %}dash-bad{% endif %}">{% if w.change_pct > 0 %}▲ +{% elif w.change_pct < 0 %}▼ {% else %}= {% endif %}{{ w.change_pct }}%</span> vs previous period ({{ w.previous|chart_fmt:w.unit }})</p>
+      {% elif w.comparison %}<p class="mt-1 text-xs text-muted-foreground">{% if w.previous == 0 %}Previous period: 0, so no percentage change is shown.{% elif w.previous is None and "current state" in w.comparison %}{{ w.comparison }}{% else %}No value in the previous period. {{ w.comparison }}{% endif %}</p>{% endif %}
+    {% endif %}
+    <details class="mt-2 text-xs text-muted-foreground"><summary class="cursor-pointer">How is this calculated?</summary><p class="mt-1">{{ w.description }}</p>{% if w.definition.denominator %}<p>Numerator: {{ w.definition.numerator }}. Denominator: {{ w.definition.denominator }}.</p>{% else %}<p>Counts {{ w.definition.numerator }}.</p>{% endif %}</details>
+  {% elif w.status == "empty" %}
+    <p class="mt-3 text-sm text-muted-foreground">No data for these filters.</p>
+  {% else %}
+    <p class="mt-1 text-xs text-muted-foreground">{{ w.description }}</p>
+    <div class="mt-3">
+      {% if w.kind == "trend" %}{% line_chart w %}{% elif w.kind == "donut" and w.series|length <= 6 %}{% donut w %}{% elif w.kind == "table" %}{% else %}{% bar_chart w %}{% endif %}
+    </div>
+    {% if w.kind == "trend" and w.metrics|length > 1 %}<p class="mt-1 flex flex-wrap gap-3 text-xs">{% for m in w.metrics %}<span class="dash-legend dash-legend-{{ forloop.counter }}">{{ m.label }}</span>{% endfor %}</p>{% endif %}
+    <details {% if w.kind == "table" %}open{% endif %} class="mt-2"><summary class="cursor-pointer text-xs text-muted-foreground">{% if w.kind == "table" %}Table{% else %}Data table{% endif %}</summary>
+      <div class="table-wrap mt-1"><table class="table text-sm"><thead><tr><th>{% if w.bucket %}{{ w.bucket|capfirst }}{% else %}Group{% endif %}</th>{% for m in w.metrics %}<th class="text-right">{{ m.label }}</th>{% endfor %}</tr></thead><tbody>
+        {% for row in w.series %}<tr><td>{% if row.drill %}<a class="underline" href="{{ row.drill }}">{{ row.label }}</a>{% else %}{{ row.label }}{% endif %}</td>{% for m in w.metrics %}<td class="text-right tabular-nums">{{ row.values|dash_value:m.key|chart_fmt:m.unit }}</td>{% endfor %}</tr>{% endfor %}
+      </tbody></table></div>{% if w.truncated %}<p class="text-xs text-muted-foreground">Showing the first {{ w.series|length }}. Use Details for everything.</p>{% endif %}</details>
+  {% endif %}
+  {% if w.not_applied %}<p class="mt-2 text-xs text-muted-foreground">Not filtered by: {{ w.not_applied|join:", " }} (this data has no such field).</p>{% endif %}
+</div>

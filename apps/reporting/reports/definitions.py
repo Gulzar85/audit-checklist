@@ -264,34 +264,32 @@ def _pct(part: int, whole: int) -> float | None:
     return round(part * 100 / whole, 1) if whole else None
 
 
-COMPLETION_GROUPS = (("location", "Location"), ("template", "Checklist"), ("month", "Month issued"))
+COMPLETION_GROUPS = (("location", "Location"), ("template", "Checklist"), ("day", "Day issued"), ("week", "Week issued"), ("month", "Month issued"), ("quarter", "Quarter issued"))
 
 
 def build_completion(ctx: Ctx) -> list[dict[str, Any]]:
     """Denominator: assignments that were *issued* in the period and are not cancelled (draft assignments were never issued).  Each assignment counts once - executions are
-    counted separately, so retries never inflate the totals.  Overdue = open (assigned / in progress) with a past due date."""
-    base = assignment_selectors.assignments_visible_to(ctx.user, ctx.organization).exclude(status__in=[AssignmentStatus.DRAFT, AssignmentStatus.CANCELLED])
-    base = apply_common(ctx, base, date_field="issued_at")
-    groups = {"location": ("location__name", F("location__name")), "template": ("template", F("version__template__name")), "month": ("month", TruncMonth("issued_at", tzinfo=timezone.get_default_timezone()))}
-    group = _group(ctx, groups)
-    qs = base.annotate(g=group[1]).values("g") if group else base.annotate(g=Value("All")).values("g")
-    open_values = [s.value for s in ASSIGNMENT_OPEN]
-    rows = qs.annotate(eligible=Count("pk"), completed=Count("pk", filter=Q(status=AssignmentStatus.COMPLETED)), in_progress=Count("pk", filter=Q(status=AssignmentStatus.IN_PROGRESS)),
-                       pending=Count("pk", filter=Q(status=AssignmentStatus.ASSIGNED)), overdue=Count("pk", filter=Q(status__in=open_values, due_at__lt=ctx.now))).order_by("g")[: k.MAX_SUMMARY_GROUPS]
+    counted separately, so retries never inflate the totals.  Overdue = open (assigned / in progress) with a past due date.  Empty time buckets are listed with zero counts."""
     from apps.executions.models import ChecklistExecution
 
-    durations = {}
-    exec_qs = ChecklistExecution.objects.filter(assignment__in=base.values("pk"), status=ExecutionStatus.SUBMITTED, submitted_at__isnull=False, started_at__isnull=False)
-    exec_groups = {"location": F("assignment__location__name"), "template": F("version__template__name"), "month": TruncMonth("assignment__issued_at", tzinfo=timezone.get_default_timezone())}
-    for row in (exec_qs.annotate(g=exec_groups[ctx.params.group_by] if group else Value("All")).values("g")
-                .annotate(avg=Avg(ExpressionWrapper(F("submitted_at") - F("started_at"), output_field=DurationField()))).order_by("g")):
-        durations[row["g"]] = duration_minutes(row["avg"])
-    out = []
+    from .summaries import summarize
+
+    base = assignment_selectors.assignments_visible_to(ctx.user, ctx.organization).exclude(status__in=[AssignmentStatus.DRAFT, AssignmentStatus.CANCELLED])
+    base = apply_common(ctx, base, date_field="issued_at")
+    open_values = [s.value for s in ASSIGNMENT_OPEN]
+    rows = summarize(ctx, period_qs=base, date_path="issued_at", groups={"location": ("location_id", "location__name", None), "template": ("version__template_id", "version__template__name", None)},
+                     period_metrics={"eligible": Count("pk"), "completed": Count("pk", filter=Q(status=AssignmentStatus.COMPLETED)),
+                                     "in_progress": Count("pk", filter=Q(status=AssignmentStatus.IN_PROGRESS)), "pending": Count("pk", filter=Q(status=AssignmentStatus.ASSIGNED)),
+                                     "overdue": Count("pk", filter=Q(status__in=open_values, due_at__lt=ctx.now))})
+    executions = ChecklistExecution.objects.filter(assignment__in=base.values("pk"), status=ExecutionStatus.SUBMITTED, submitted_at__isnull=False, started_at__isnull=False)
+    durations = {r["key"]: r["avg_minutes"] for r in summarize(
+        ctx, period_qs=executions, date_path="assignment__issued_at", averages=("avg_minutes",),
+        groups={"location": ("assignment__location_id", "assignment__location__name", None), "template": ("version__template_id", "version__template__name", None)},
+        period_metrics={"avg_minutes": Avg(ExpressionWrapper(F("submitted_at") - F("started_at"), output_field=DurationField()))})}
     for row in rows:
-        label = row["g"].strftime("%Y-%m") if hasattr(row["g"], "strftime") else row["g"]
-        out.append({"group": label, "eligible": row["eligible"], "completed": row["completed"], "in_progress": row["in_progress"], "pending": row["pending"], "overdue": row["overdue"],
-                    "completion_pct": _pct(row["completed"], row["eligible"]), "avg_minutes": durations.get(row["g"])})
-    return out
+        row["completion_pct"] = _pct(row["completed"], row["eligible"])
+        row["avg_minutes"] = durations.get(row["key"])
+    return rows
 
 
 register(Report(
@@ -308,12 +306,17 @@ SCORE_GROUPS = (("template", "Checklist"), ("location", "Location"), ("month", "
 def build_score_summary(ctx: Ctx) -> list[dict[str, Any]]:
     qs = scoring_selectors.results_visible_to(ctx.user).filter(organization=ctx.organization, is_current=True, status=ResultStatus.FINAL)
     qs = apply_common(ctx, qs, date_field="execution__submitted_at", location_path="execution__assignment__location_id", permission=P.SCORING_SCORE_VIEW)
-    groups = {"template": F("version__template__name"), "location": F("execution__assignment__location__name"), "month": TruncMonth("execution__submitted_at", tzinfo=timezone.get_default_timezone())}
-    expr = groups.get(ctx.params.group_by, Value("All"))
-    rows = (qs.annotate(g=expr).values("g").annotate(scored=Count("pk"), average=Avg("percentage"), lowest=Min("percentage"), highest=Max("percentage"), critical=Count("pk", filter=Q(critical=True)))
-            .order_by("g")[: k.MAX_SUMMARY_GROUPS])
-    return [{"group": r["g"].strftime("%Y-%m") if hasattr(r["g"], "strftime") else r["g"], "scored": r["scored"], "average": round(float(r["average"]), 2) if r["average"] is not None else None,
-             "lowest": r["lowest"], "highest": r["highest"], "critical": r["critical"]} for r in rows]
+    groups = {"template": (F("version__template_id"), F("version__template__name")), "location": (F("execution__assignment__location_id"), F("execution__assignment__location__name")),
+              "month": (TruncMonth("execution__submitted_at", tzinfo=timezone.get_default_timezone()), Value(""))}
+    key, label = groups.get(ctx.params.group_by, (Value("all"), Value("All")))
+    rows = (qs.annotate(gk=key, g=label).order_by().values("gk", "g").annotate(scored=Count("pk"), average=Avg("percentage"), lowest=Min("percentage"), highest=Max("percentage"),
+                                                                              critical=Count("pk", filter=Q(critical=True))).order_by("gk")[: k.MAX_SUMMARY_GROUPS])
+    out = []
+    for r in rows:
+        month = hasattr(r["gk"], "strftime")
+        out.append({"group": timezone.localtime(r["gk"]).strftime("%Y-%m") if month else r["g"], "key": timezone.localtime(r["gk"]).date().isoformat() if month else str(r["gk"]),
+                    "scored": r["scored"], "average": round(float(r["average"]), 2) if r["average"] is not None else None, "lowest": r["lowest"], "highest": r["highest"], "critical": r["critical"]})
+    return out
 
 
 register(Report(
@@ -373,3 +376,6 @@ register(Report(
              C("overdue_actions", "Overdue actions (now)", INT), C("workflow_backlog", "Active workflows (now)", INT)),
     filters=(LOCATION, DESCENDANTS), default_sort="location", source_permission=P.ASSIGNMENT_VIEW,
     notes="Counts of findings, actions and workflows are limited to what you may view in each module. The location hierarchy and types are the organization's own; nothing is assumed about their names."))
+
+
+from . import summaries  # noqa: E402,F401  (registers the summary reports used by dashboards - Phase 20)

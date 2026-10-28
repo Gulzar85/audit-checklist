@@ -1,0 +1,5 @@
+﻿{% extends "base.html" %}
+{% load ui %}
+{% block title %}Dashboards &middot; {{ APP_NAME }}{% endblock %}
+{% block page_header %}{% page_header title="Dashboards" subtitle=organization.name icon="layout-dashboard" %}{% endpage_header %}{% endblock %}
+{% block content %}<div class="card card-body">{% include "components/states/empty.html" with icon="layout-dashboard" title="No dashboard available" message="Dashboards need access to at least one report source (assignments, scores, findings, actions, workflows or evaluations)." %}</div>{% endblock %}

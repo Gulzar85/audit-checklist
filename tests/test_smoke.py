@@ -47,6 +47,7 @@ def test_all_local_apps_are_installed():
         "apps.notifications",
         "apps.jobs",
         "apps.reporting",
+        "apps.dashboards",
         "apps.api",
     }
 

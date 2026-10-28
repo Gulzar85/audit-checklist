@@ -1,0 +1,35 @@
+﻿{% extends "base.html" %}
+{% load ui dashboard_tags %}
+{% block title %}{{ dashboard.title }} &middot; {{ APP_NAME }}{% endblock %}
+{% block page_width %}page-wide{% endblock %}
+{% block breadcrumbs %}{% url 'dashboards:index' as c %}{% breadcrumbs "Home" "core:home" "Dashboards" c dashboard.title %}{% endblock %}
+{% block page_header %}{% page_header title=dashboard.title subtitle=dashboard.description icon=dashboard.icon %}
+  <a class="btn btn-secondary" href="{% url 'dashboards:customize' dashboard.code %}">{% icon "sliders-horizontal" %} Customize</a>
+  <a class="btn btn-secondary" href="{% url 'reporting:catalogue' %}">{% icon "chart-column" %} Reports</a>{% endpage_header %}{% endblock %}
+
+{% block content %}
+<nav class="mb-4 flex flex-wrap gap-2" aria-label="Dashboards">
+  {% for d in dashboards %}<a href="{% url 'dashboards:dashboard' d.code %}?{{ query }}" class="badge {% if d.code == dashboard.code %}badge-info{% else %}badge-neutral{% endif %}" {% if d.code == dashboard.code %}aria-current="page"{% endif %}>{{ d.title }}</a>{% endfor %}
+</nav>
+<form method="get" class="card mb-4" aria-label="Dashboard filters"><div class="card-body grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+  <div><label class="label" for="date_from">From</label><input id="date_from" type="date" name="date_from" value="{{ raw.date_from|default:'' }}" class="input"></div>
+  <div><label class="label" for="date_to">To (inclusive)</label><input id="date_to" type="date" name="date_to" value="{{ raw.date_to|default:'' }}" class="input"></div>
+  <div><label class="label" for="location">Location</label><select id="location" name="location" class="input"><option value="">All my locations</option>{% for l in locations %}<option value="{{ l.pk }}" {% if raw.location == l.pk|stringformat:"s" %}selected{% endif %}>{{ l.name }}</option>{% endfor %}</select>
+    <label class="mt-1 flex items-center gap-2 text-xs"><input type="checkbox" class="checkbox" name="include_descendants" value="1" {% if raw.include_descendants is not False %}checked{% endif %}> Include sub-locations</label></div>
+  <div><label class="label" for="template">Checklist</label><select id="template" name="template" class="input"><option value="">All checklists</option>{% for t in templates %}<option value="{{ t.pk }}" {% if raw.template == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></div>
+  <div><label class="label" for="bucket">Trend by</label><select id="bucket" name="bucket" class="input"><option value="">Automatic</option>{% for b in "day week month quarter"|make_list_words %}<option value="{{ b }}" {% if raw.bucket == b %}selected{% endif %}>{{ b|capfirst }}</option>{% endfor %}</select></div>
+  <div class="flex items-end gap-2"><button class="btn btn-primary" type="submit">{% icon "filter" %} Apply</button><a class="btn btn-ghost" href="{% url 'dashboards:dashboard' dashboard.code %}">Reset</a></div>
+</div>
+<p class="card-footer text-xs text-muted-foreground">{% if period %}Period {{ period.0|date:"M d, Y" }} to {{ period.1|date:"M d, Y" }} (inclusive) · trends by {{ bucket }} · {% endif %}Live: calculated from current data when the page loads. Only data you may see is counted. Each widget says which filters it cannot use.</p></form>
+
+{% if error %}<div class="alert alert-danger mb-4" role="alert">{{ error }} <a class="underline" href="{% url 'dashboards:dashboard' dashboard.code %}">Reset the filters</a></div>
+{% elif widgets %}
+<div class="grid grid-flow-row-dense gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  {% for w in widgets %}
+  <section class="card dash-widget dash-size-{{ w.size }}" aria-live="polite" hx-get="{% url 'dashboards:widget' dashboard.code w.code %}?{{ query }}" hx-trigger="load" hx-swap="innerHTML">
+    <div class="card-body" aria-busy="true"><div class="dash-skeleton"></div><span class="sr-only">Loading…</span></div>
+  </section>
+  {% endfor %}
+</div>
+{% else %}<div class="card card-body">{% include "components/states/empty.html" with icon="layout-dashboard" title="Every widget is hidden" message="Use Customize to show widgets again." %}</div>{% endif %}
+{% endblock %}

@@ -184,6 +184,7 @@ REGISTRY: tuple[PermissionDef, ...] = (
     _p("report", "people", "See names of people (owners, assignees, requesters) in reports and filter by them"),
     _p("report", "share", "Share saved report configurations with the whole organization", org_wide_only=True),
     _p("dashboard", "view", "View dashboards"),
+    _p("dashboard", "manage", "Set the organization's default dashboard layouts", org_wide_only=True),
 )
 
 BY_CODE: dict[str, PermissionDef] = {definition.code: definition for definition in REGISTRY}
@@ -244,7 +245,7 @@ SYSTEM_ROLES: dict[str, tuple[str, str, tuple[str, ...]]] = {
          P.WORKFLOW_VIEW, P.WORKFLOW_CREATE, P.WORKFLOW_UPDATE_DRAFT, P.WORKFLOW_VALIDATE, P.WORKFLOW_PUBLISH, P.WORKFLOW_ARCHIVE, P.WORKFLOW_START, P.WORKFLOW_TRANSITION, P.WORKFLOW_CANCEL, P.WORKFLOW_INSTANCE_VIEW, P.WORKFLOW_TASK_VIEW, P.WORKFLOW_TASK_CLAIM, P.WORKFLOW_TASK_REASSIGN,
          P.SCORING_CONFIGURE, P.SCORING_SCORE_VIEW, P.SCORING_BREAKDOWN_VIEW, P.SCORING_RECALCULATE, P.SCORING_FINALIZE_RECALCULATE,
          P.EVALUATION_CONFIGURE, P.EVALUATION_RESULT_VIEW, P.EVALUATION_EXPLAIN, P.EVALUATION_EVALUATE, P.EVALUATION_REEVALUATE,
-         P.NOTIFICATION_CONFIGURE, P.NOTIFICATION_DELIVERIES, P.NOTIFICATION_RETRY, P.JOBS_VIEW, P.JOBS_MANAGE, P.JOBS_RUN, P.REPORT_VIEW, P.REPORT_EXPORT, P.REPORT_PEOPLE, P.REPORT_SHARE),
+         P.NOTIFICATION_CONFIGURE, P.NOTIFICATION_DELIVERIES, P.NOTIFICATION_RETRY, P.JOBS_VIEW, P.JOBS_MANAGE, P.JOBS_RUN, P.REPORT_VIEW, P.REPORT_EXPORT, P.REPORT_PEOPLE, P.REPORT_SHARE, P.DASHBOARD_VIEW, P.DASHBOARD_MANAGE),
     ),
     "auditor": (
         "Auditor",

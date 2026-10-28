@@ -92,3 +92,5 @@ consequences. New records are appended; existing ones are superseded, not edited
 | [0085](0085-reporting-registry-and-scope.md) | Reporting: a controlled registry over the modules' scoped selectors | Accepted |
 | [0086](0086-report-exports-and-private-artifacts.md) | Report exports and private artifacts | Accepted |
 | [0087](0087-report-runs-saved-reports-and-background-generation.md) | Report runs, saved reports and background generation | Accepted |
+| [0088](0088-dashboards-on-the-report-registry.md) | Dashboards read the report registry; KPIs are pointers, not formulas | Accepted |
+| [0089](0089-dashboard-charts-and-layouts.md) | Dashboard charts and layouts | Accepted |

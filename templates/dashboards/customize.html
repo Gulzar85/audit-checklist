@@ -1,0 +1,20 @@
+﻿{% extends "base.html" %}
+{% load ui %}
+{% block title %}Customize {{ dashboard.title }} &middot; {{ APP_NAME }}{% endblock %}
+{% block breadcrumbs %}{% url 'dashboards:dashboard' dashboard.code as c %}{% breadcrumbs "Home" "core:home" dashboard.title c "Customize" %}{% endblock %}
+{% block page_header %}{% page_header title="Customize dashboard" subtitle=dashboard.title icon="sliders-horizontal" %}<a class="btn btn-secondary" href="{% url 'dashboards:dashboard' dashboard.code %}">{% icon "arrow-left" %} Back</a>{% endpage_header %}{% endblock %}
+{% block content %}
+<form method="post" class="card max-w-3xl">{% csrf_token %}
+  <div class="card-body"><p class="mb-3 text-sm text-muted-foreground">Choose which widgets to show and their order (lower numbers first). Currently using the {{ source }} layout. Only widgets you are allowed to see are listed; a layout never grants access.</p>
+  <div class="table-wrap"><table class="table"><thead><tr><th>Widget</th><th>Type</th><th>Order</th><th>Show</th></tr></thead><tbody>
+    {% for i in items %}<tr><td><input type="hidden" name="widget" value="{{ i.code }}">{{ i.title }}</td><td class="text-sm text-muted-foreground">{{ i.kind }}</td>
+      <td><label class="sr-only" for="pos-{{ i.code }}">Order of {{ i.title }}</label><input id="pos-{{ i.code }}" type="number" name="position_{{ i.code }}" value="{{ i.position }}" min="1" max="99" class="input w-20"></td>
+      <td><label class="flex items-center gap-2"><input type="checkbox" class="checkbox" name="show_{{ i.code }}" value="1" aria-label="Show {{ i.title }}" {% if not i.hidden %}checked{% endif %}></label></td></tr>{% endfor %}
+  </tbody></table></div></div>
+  <div class="card-footer flex flex-wrap justify-end gap-2">
+    <button class="btn btn-ghost" type="submit" name="action" value="reset">{% icon "rotate-ccw" %} Reset to default</button>
+    {% if can_manage %}<button class="btn btn-ghost" type="submit" name="action" value="reset_shared">Reset organization default</button>
+    <button class="btn btn-secondary" type="submit" name="action" value="save_shared">{% icon "users" %} Save as organization default</button>{% endif %}
+    <button class="btn btn-primary" type="submit" name="action" value="save">{% icon "save" %} Save my layout</button></div>
+</form>
+{% endblock %}

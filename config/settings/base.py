@@ -93,6 +93,7 @@ LOCAL_APPS = [
     "apps.notifications",
     "apps.jobs",
     "apps.reporting",
+    "apps.dashboards",
     "apps.api",
 ]
 
@@ -668,6 +669,7 @@ JAZZMIN_SETTINGS = {
         "jobs.RunnerHeartbeat": "fas fa-heart-pulse",
         "reporting.SavedReport": "fas fa-bookmark",
         "reporting.ReportRun": "fas fa-file-export",
+        "dashboards.DashboardLayout": "fas fa-table-columns",
         "scoring.ScoringConfig": "fas fa-calculator",
         "scoring.ScoreResult": "fas fa-percentage",
         "workflows.WorkflowDefinition": "fas fa-project-diagram",
@@ -688,6 +690,7 @@ JAZZMIN_SETTINGS = {
         "notifications": "fas fa-bell",
         "jobs": "fas fa-calendar-days",
         "reporting": "fas fa-chart-line",
+        "dashboards": "fas fa-gauge",
     },
     # --- Change forms -----------------------------------------------------
     "changeform_format": "horizontal_tabs",
