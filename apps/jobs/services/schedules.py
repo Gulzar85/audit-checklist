@@ -82,6 +82,10 @@ def save_schedule(actor: Any, organization: Any, data: dict[str, Any], *, schedu
     task = registry.require(data.get("task_type") if schedule is None else (data.get("task_type") or schedule.task_type))
     if schedule is not None:
         organization = schedule.organization
+    if task.scope == registry.SCOPE_GLOBAL and organization is not None and getattr(actor, "is_superuser", False):
+        raise JobError("That task is platform-wide: tick \"platform wide\" to schedule it.", "scope_mismatch")
+    if task.scope == registry.SCOPE_ORGANIZATION and organization is None and getattr(actor, "is_superuser", False):
+        raise JobError("That task needs an organization: untick \"platform wide\".", "scope_mismatch")
     if not policies.can_schedule(actor, task, organization):
         raise PermissionDenied
     merged = dict(data)
